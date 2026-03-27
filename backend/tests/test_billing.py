@@ -9,8 +9,11 @@ Tests MON-02 requirements:
 """
 import pytest
 import pytest_asyncio
+from datetime import datetime, timedelta, timezone
 from httpx import AsyncClient
+from sqlalchemy import update
 from tests.conftest import register_verify_and_login
+from app.modules.auth.models import User
 
 
 @pytest.mark.asyncio
@@ -212,11 +215,16 @@ async def test_plan_gate_returns_structured_error(client: AsyncClient, db_sessio
     """Import limit 403 returns structured error with code and upgrade_url."""
     import io
     from unittest.mock import patch
-    from sqlalchemy import update
-    from app.modules.imports.models import ImportJob
     from app.core.plan_gate import FREE_IMPORTS_PER_MONTH
 
-    await register_verify_and_login(client, email_stub, email="gatelimit@test.com")
+    user_id = await register_verify_and_login(client, email_stub, email="gatelimit@test.com")
+
+    # Expire the trial so user is treated as free (not elevated to pro)
+    past = datetime.now(tz=timezone.utc) - timedelta(days=1)
+    await db_session.execute(
+        update(User).where(User.id == user_id).values(trial_ends_at=past)
+    )
+    await db_session.flush()
 
     # Simulate already at limit by patching the constant
     with patch("app.core.plan_gate.FREE_IMPORTS_PER_MONTH", 0):

@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: — Onde Investir
-status: unknown
-last_updated: "2026-03-24T12:05:08.174Z"
+status: deploy-pending
+last_updated: "2026-03-27T00:00:00.000Z"
 progress:
   total_phases: 6
-  completed_phases: 5
-  total_plans: 18
-  completed_plans: 17
+  completed_phases: 6
+  total_plans: 19
+  completed_plans: 19
 ---
 
 # Project State
@@ -22,8 +22,8 @@ See: .planning/PROJECT.md (updated 2026-03-21)
 
 ## Current Position
 
-Phase: 11 (wizard-onde-investir) — EXECUTING
-Plan: 2 of 2
+Phase: 11 (wizard-onde-investir) — COMPLETE (code done, VPS deploy pending)
+Plan: 2 of 2 ✅
 
 ## v1.0 Status Reference
 
