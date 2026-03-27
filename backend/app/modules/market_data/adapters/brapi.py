@@ -115,23 +115,28 @@ class BrapiClient:
     def fetch_quotes(self, tickers: list[str]) -> list[dict]:
         """Fetch B3 stock quotes for a list of tickers.
 
-        Uses /quote/list endpoint for batch fetching.
+        Calls /quote/{ticker} individually for each ticker — BRAPI free plan
+        does not support comma-separated batch in the path.
         Returns list of dicts with keys:
           symbol, regularMarketPrice, regularMarketChange, regularMarketChangePercent
         """
-        tickers_csv = ",".join(t.upper() for t in tickers)
-        time.sleep(_BATCH_SLEEP_SECONDS)
-        data = self._get("/quote/list", params={"search": tickers_csv})
-        results = data.get("results", [])
-        return [
-            {
-                "symbol": r.get("symbol", ""),
-                "regularMarketPrice": r.get("regularMarketPrice", 0.0),
-                "regularMarketChange": r.get("regularMarketChange", 0.0),
-                "regularMarketChangePercent": r.get("regularMarketChangePercent", 0.0),
-            }
-            for r in results
-        ]
+        results = []
+        for ticker in tickers:
+            try:
+                time.sleep(_BATCH_SLEEP_SECONDS)
+                data = self._get(f"/quote/{ticker.upper()}")
+                ticker_results = data.get("results", [])
+                if ticker_results:
+                    r = ticker_results[0]
+                    results.append({
+                        "symbol": r.get("symbol", ticker.upper()),
+                        "regularMarketPrice": r.get("regularMarketPrice", 0.0),
+                        "regularMarketChange": r.get("regularMarketChange", 0.0),
+                        "regularMarketChangePercent": r.get("regularMarketChangePercent", 0.0),
+                    })
+            except Exception as exc:
+                logger.warning("fetch_quotes: skipping %s — %s", ticker, exc)
+        return results
 
     def fetch_fundamentals(self, ticker: str) -> dict:
         """Fetch fundamental analysis data for a single ticker.
