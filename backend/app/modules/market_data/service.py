@@ -1,0 +1,154 @@
+"""MarketDataService — Redis read layer for all user-facing market data.
+
+Architecture:
+  - All user API requests read from Redis (never call external APIs directly)
+  - Celery tasks (tasks.py) populate Redis on schedule via brapi.dev and BCB
+  - Cache-aside pattern: if key is missing, return data with data_stale=True
+  - All reads are async (redis.asyncio / aioredis compatible)
+
+Redis key schema:
+  market:quote:{TICKER}          — QuoteCache JSON
+  market:macro:selic             — Decimal string
+  market:macro:cdi               — Decimal string
+  market:macro:ipca              — Decimal string
+  market:macro:ptax_usd          — Decimal string
+  market:macro:fetched_at        — ISO timestamp string
+  market:fundamentals:{TICKER}   — FundamentalsCache JSON
+  market:historical:{TICKER}     — HistoricalCache JSON
+
+Stale data policy:
+  When a Redis key returns None (cache miss), the service returns the
+  appropriate Cache schema with data_stale=True and fetched_at=datetime.min.
+  The caller (router/frontend) should surface this to the user.
+"""
+from __future__ import annotations
+
+import logging
+from datetime import datetime, timezone
+from decimal import Decimal
+
+from app.modules.market_data.schemas import (
+    FundamentalsCache,
+    HistoricalCache,
+    MacroCache,
+    QuoteCache,
+)
+
+logger = logging.getLogger(__name__)
+
+# Sentinel for missing cache data
+_EPOCH_MIN = datetime.min
+
+
+class MarketDataService:
+    """Redis-backed read service for market data.
+
+    Args:
+        redis_client: async Redis client (redis.asyncio.Redis or compatible)
+    """
+
+    def __init__(self, redis_client) -> None:
+        self.redis = redis_client
+
+    async def get_quote(self, ticker: str) -> QuoteCache:
+        """Read B3 quote from Redis cache.
+
+        Returns QuoteCache with data_stale=True when cache key is missing.
+        """
+        key = f"market:quote:{ticker.upper()}"
+        raw = await self.redis.get(key)
+        if raw is None:
+            logger.debug("Cache miss for %s — returning stale placeholder", key)
+            return QuoteCache(
+                symbol=ticker.upper(),
+                price=Decimal("0"),
+                change=Decimal("0"),
+                change_pct=Decimal("0"),
+                fetched_at=_EPOCH_MIN,
+                data_stale=True,
+            )
+        return QuoteCache.model_validate_json(raw)
+
+    async def get_macro(self) -> MacroCache:
+        """Read macro indicators from Redis cache.
+
+        Individual indicators are stored as separate keys and assembled
+        into a MacroCache response. Returns data_stale=True if any key is missing.
+        """
+        keys = ["selic", "cdi", "ipca", "ptax_usd", "fetched_at"]
+        values: dict[str, bytes | None] = {}
+
+        for k in keys:
+            values[k] = await self.redis.get(f"market:macro:{k}")
+
+        # If any core indicator is missing, mark as stale
+        core_keys = ["selic", "cdi", "ipca", "ptax_usd"]
+        is_stale = any(values[k] is None for k in core_keys)
+
+        if is_stale:
+            logger.debug("Cache miss for macro indicators — returning stale placeholder")
+            return MacroCache(
+                selic=Decimal("0"),
+                cdi=Decimal("0"),
+                ipca=Decimal("0"),
+                ptax_usd=Decimal("0"),
+                fetched_at=_EPOCH_MIN,
+                data_stale=True,
+            )
+
+        def _to_decimal(raw: bytes | None) -> Decimal:
+            if raw is None:
+                return Decimal("0")
+            return Decimal(raw.decode())
+
+        fetched_at_raw = values["fetched_at"]
+        fetched_at: datetime
+        if fetched_at_raw:
+            try:
+                fetched_at = datetime.fromisoformat(fetched_at_raw.decode())
+            except ValueError:
+                fetched_at = _EPOCH_MIN
+        else:
+            fetched_at = _EPOCH_MIN
+
+        return MacroCache(
+            selic=_to_decimal(values["selic"]),
+            cdi=_to_decimal(values["cdi"]),
+            ipca=_to_decimal(values["ipca"]),
+            ptax_usd=_to_decimal(values["ptax_usd"]),
+            fetched_at=fetched_at,
+            data_stale=False,
+        )
+
+    async def get_fundamentals(self, ticker: str) -> FundamentalsCache:
+        """Read fundamental analysis data from Redis cache.
+
+        Returns FundamentalsCache with data_stale=True when cache key is missing.
+        """
+        key = f"market:fundamentals:{ticker.upper()}"
+        raw = await self.redis.get(key)
+        if raw is None:
+            logger.debug("Cache miss for %s — returning stale placeholder", key)
+            return FundamentalsCache(
+                ticker=ticker.upper(),
+                fetched_at=_EPOCH_MIN,
+                data_stale=True,
+            )
+        return FundamentalsCache.model_validate_json(raw)
+
+    async def get_historical(self, ticker: str) -> HistoricalCache:
+        """Read historical OHLCV data from Redis cache.
+
+        Returns HistoricalCache with data_stale=True when cache key is missing.
+        """
+        key = f"market:historical:{ticker.upper()}"
+        raw = await self.redis.get(key)
+        if raw is None:
+            logger.debug("Cache miss for %s — returning stale placeholder", key)
+            return HistoricalCache(
+                ticker=ticker.upper(),
+                points=[],
+                fetched_at=_EPOCH_MIN,
+                data_stale=True,
+            )
+        return HistoricalCache.model_validate_json(raw)

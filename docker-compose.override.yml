@@ -1,0 +1,22 @@
+# Development overrides — automatically applied by docker compose
+# These settings are NOT applied in production (use docker-compose.prod.yml instead)
+services:
+  backend:
+    environment:
+      ENVIRONMENT: development
+    command: >
+      sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    volumes:
+      - ./backend:/app
+
+  celery-worker:
+    volumes:
+      - ./backend:/app
+
+  celery-beat:
+    volumes:
+      - ./backend:/app
+
+  frontend:
+    environment:
+      NODE_ENV: development

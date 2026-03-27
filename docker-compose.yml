@@ -1,0 +1,123 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: investiq
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d investiq"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8100:8000"
+    environment:
+      # Use app_user (non-superuser) — RLS policies apply to this role.
+      # postgres superuser bypasses RLS, which would defeat tenant isolation in production.
+      # Change 'change_in_production' to a secret from AWS SM before going live.
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://app_user:change_in_production@postgres:5432/investiq}
+      AUTH_DATABASE_URL: ${AUTH_DATABASE_URL:-postgresql+asyncpg://postgres:postgres@postgres:5432/investiq}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:-}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      BREVO_FROM_EMAIL: ${BREVO_FROM_EMAIL:-noreply@investiq.com.br}
+      BREVO_FROM_NAME: ${BREVO_FROM_NAME:-InvestIQ}
+      APP_URL: ${APP_URL:-http://localhost:3100}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      CEREBRAS_API_KEY: ${CEREBRAS_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-["xandeq@gmail.com"]}
+      BRAPI_TOKEN: ${BRAPI_TOKEN:-}
+      STRIPE_PREMIUM_PRICE_ID: ${STRIPE_PREMIUM_PRICE_ID:-}
+    command: >
+      sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    restart: unless-stopped
+
+  celery-worker:
+    build: ./backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://app_user:change_in_production@postgres:5432/investiq}
+      AUTH_DATABASE_URL: ${AUTH_DATABASE_URL:-postgresql+asyncpg://postgres:postgres@postgres:5432/investiq}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:-}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      BREVO_FROM_EMAIL: ${BREVO_FROM_EMAIL:-noreply@investiq.com.br}
+      BREVO_FROM_NAME: ${BREVO_FROM_NAME:-InvestIQ}
+      APP_URL: ${APP_URL:-http://localhost:3100}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      CEREBRAS_API_KEY: ${CEREBRAS_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-["xandeq@gmail.com"]}
+      BRAPI_TOKEN: ${BRAPI_TOKEN:-}
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=4
+    restart: unless-stopped
+
+  celery-beat:
+    build: ./backend
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://app_user:change_in_production@postgres:5432/investiq}
+      AUTH_DATABASE_URL: ${AUTH_DATABASE_URL:-postgresql+asyncpg://postgres:postgres@postgres:5432/investiq}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:-}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      BREVO_FROM_EMAIL: ${BREVO_FROM_EMAIL:-noreply@investiq.com.br}
+      BREVO_FROM_NAME: ${BREVO_FROM_NAME:-InvestIQ}
+      APP_URL: ${APP_URL:-http://localhost:3100}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+    command: celery -A app.celery_app beat --loglevel=info --scheduler celery.beat.PersistentScheduler
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "3100:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://backend:8000}
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

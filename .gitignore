@@ -1,0 +1,62 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.coverage
+.coverage
+htmlcov/
+
+# Environment — NEVER commit real secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Node / Next.js
+node_modules/
+.next/
+.turbo/
+out/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Secrets — NEVER commit PEM keys
+*.pem
+private_key.pem
+*.key
+*.p12
+*.pfx
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Docker volumes (local bind mounts tracked by git, data not)
+postgres_data/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Playwright local artifacts / secrets
+.playwright-mcp/
+
+# Planning outputs (generated, not source)
+# .planning/ is committed — it is source

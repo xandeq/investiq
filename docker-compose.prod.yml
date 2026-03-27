@@ -1,0 +1,20 @@
+# Production overrides — use with:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# This file removes dev-only settings (--reload, bind-mounted source code).
+services:
+  backend:
+    environment:
+      ENVIRONMENT: production
+    command: >
+      sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2"
+    volumes: []
+
+  celery-worker:
+    volumes: []
+
+  celery-beat:
+    volumes: []
+
+  frontend:
+    environment:
+      NODE_ENV: production
