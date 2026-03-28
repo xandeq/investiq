@@ -237,7 +237,7 @@ def run_recommendation(self, job_id: str, tenant_id: str, perfil: str, prazo: st
                 raw = asyncio.run(call_llm(
                     prompt_used,
                     system="Você é um consultor financeiro brasileiro. Responda APENAS com JSON válido.",
-                    use_free_tier=use_free_tier,
+                    tier="free" if use_free_tier else "paid",
                     max_tokens=800,
                 ))
 
