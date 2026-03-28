@@ -113,13 +113,14 @@ def parse_with_correpy(pdf_bytes: bytes) -> list[dict[str, Any]]:
 
         results: list[dict[str, Any]] = []
         for note in brokerage_notes:
-            # note.operational_fee is the brokerage fee for the entire nota
-            # We distribute it to each transaction proportionally — but for
-            # simplicity in v1, assign the full fee to each transaction.
-            # TODO v2: distribute proportionally by total_value
-            brokerage_fee = Decimal(str(note.operational_fee or 0))
+            # note.operational_fee is the brokerage fee for the entire nota.
+            # Distribute it proportionally by each transaction's total_value so
+            # that the sum of all assigned fees equals the nota's total fee.
+            total_fee = Decimal(str(note.operational_fee or 0))
             reference_date = note.settlement_date or note.reference_date
 
+            # First pass: build transaction data with computed total_value
+            txn_data: list[dict[str, Any]] = []
             for txn in note.transactions:
                 try:
                     ticker = _normalize_ticker(txn.security.name if txn.security else "")
@@ -127,22 +128,49 @@ def parse_with_correpy(pdf_bytes: bytes) -> list[dict[str, Any]]:
                     quantity = Decimal(str(txn.quantity or 0))
                     unit_price = Decimal(str(txn.unit_price or 0))
                     total_value = quantity * unit_price
-
-                    results.append({
+                    irrf = Decimal(str(txn.irrf or 0))
+                    txn_data.append({
                         "ticker": ticker,
-                        "asset_class": "acao",
-                        "transaction_type": txn_type,
-                        "transaction_date": reference_date,
+                        "txn_type": txn_type,
                         "quantity": quantity,
                         "unit_price": unit_price,
                         "total_value": total_value,
-                        "brokerage_fee": brokerage_fee,
-                        "irrf_withheld": Decimal(str(txn.irrf or 0)),
-                        "parser_source": "correpy",
+                        "irrf": irrf,
                     })
                 except Exception as txn_exc:
                     logger.warning("correpy: error processing transaction: %s", txn_exc)
                     continue
+
+            # Calculate sum of total_values for proportional distribution
+            sum_total_value = sum(d["total_value"] for d in txn_data)
+
+            # Second pass: assign proportional fee and build result dicts
+            n = len(txn_data)
+            for d in txn_data:
+                if sum_total_value > 0:
+                    proportional_fee = (
+                        total_fee * d["total_value"] / sum_total_value
+                    ).quantize(Decimal("0.00000001"))
+                else:
+                    # Fallback: split equally when all total_values are zero
+                    proportional_fee = (
+                        (total_fee / n).quantize(Decimal("0.00000001"))
+                        if n > 0
+                        else Decimal("0")
+                    )
+
+                results.append({
+                    "ticker": d["ticker"],
+                    "asset_class": "acao",
+                    "transaction_type": d["txn_type"],
+                    "transaction_date": reference_date,
+                    "quantity": d["quantity"],
+                    "unit_price": d["unit_price"],
+                    "total_value": d["total_value"],
+                    "brokerage_fee": proportional_fee,
+                    "irrf_withheld": d["irrf"],
+                    "parser_source": "correpy",
+                })
 
         logger.info("correpy: parsed %d transactions from PDF", len(results))
         return results
