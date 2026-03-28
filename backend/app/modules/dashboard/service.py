@@ -5,8 +5,12 @@ Does NOT own any data access logic — orchestrates existing services.
 
 N+1 prevention: call get_pnl() ONCE, reuse pnl.positions for all derived metrics.
 Do NOT call get_positions() separately — get_pnl() calls it internally.
+
+Resilience: any internal failure returns an empty summary with data_stale=True
+instead of propagating a 500 to the frontend.
 """
 from __future__ import annotations
+import logging
 from collections import defaultdict
 from decimal import Decimal
 from datetime import date
@@ -23,9 +27,36 @@ from app.modules.dashboard.schemas import (
     RecentTransaction,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class DashboardService:
     async def get_summary(
+        self,
+        db: AsyncSession,
+        tenant_id: str,
+        redis_client,
+    ) -> DashboardSummaryResponse:
+        try:
+            return await self._get_summary_inner(db, tenant_id, redis_client)
+        except Exception as exc:
+            logger.error("DashboardService.get_summary failed for tenant %s: %s", tenant_id, exc, exc_info=True)
+            # Plan B: return empty stale summary so the frontend shows a degraded state
+            # instead of a full-page 500 error
+            return DashboardSummaryResponse(
+                net_worth=Decimal("0"),
+                total_invested=Decimal("0"),
+                total_return=Decimal("0"),
+                total_return_pct=Decimal("0"),
+                daily_pnl=Decimal("0"),
+                daily_pnl_pct=Decimal("0"),
+                data_stale=True,
+                asset_allocation=[],
+                portfolio_timeseries=[],
+                recent_transactions=[],
+            )
+
+    async def _get_summary_inner(
         self,
         db: AsyncSession,
         tenant_id: str,

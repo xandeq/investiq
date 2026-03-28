@@ -28,6 +28,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+from datetime import datetime, timezone
 
 import redis as redis_lib
 import requests as requests_lib
@@ -78,12 +79,22 @@ def refresh_quotes(self) -> None:
         logger.info("refresh_quotes: fetching %d tickers", len(DEFAULT_TICKERS))
         quotes = client.fetch_quotes(DEFAULT_TICKERS)
 
+        now_iso = datetime.now(timezone.utc).isoformat()
         for q in quotes:
             ticker = q.get("symbol", "")
             if not ticker:
                 continue
             key = f"market:quote:{ticker.upper()}"
-            r.set(key, json.dumps(q), ex=_QUOTE_TTL)
+            # Normalize to QuoteCache field names (price/change/change_pct + fetched_at)
+            cache_entry = {
+                "symbol": ticker.upper(),
+                "price": q.get("regularMarketPrice", 0.0),
+                "change": q.get("regularMarketChange", 0.0),
+                "change_pct": q.get("regularMarketChangePercent", 0.0),
+                "fetched_at": now_iso,
+                "data_stale": False,
+            }
+            r.set(key, json.dumps(cache_entry), ex=_QUOTE_TTL)
             logger.debug("Wrote %s to Redis (TTL=%d)", key, _QUOTE_TTL)
 
         logger.info("refresh_quotes: wrote %d quotes to Redis", len(quotes))
@@ -92,6 +103,9 @@ def refresh_quotes(self) -> None:
         for ticker in DEFAULT_TICKERS:
             try:
                 fund = client.fetch_fundamentals(ticker)
+                # Add required FundamentalsCache fields
+                fund["ticker"] = ticker.upper()
+                fund["fetched_at"] = now_iso
                 key = f"market:fundamentals:{ticker.upper()}"
                 r.set(key, json.dumps(fund), ex=_FUNDAMENTALS_TTL)
                 logger.debug("Wrote %s to Redis (TTL=%d)", key, _FUNDAMENTALS_TTL)

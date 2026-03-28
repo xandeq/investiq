@@ -9,20 +9,45 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { OnboardingBanner } from "@/features/onboarding/OnboardingBanner";
 
 export function DashboardContent() {
-  const { data, isLoading, error } = useDashboardSummary();
+  const { data, isLoading, error, refetch } = useDashboardSummary();
 
   if (error) {
+    // Plan C: user-friendly error with retry — log details to console for developers
+    console.error("[InvestIQ] Falha ao carregar /dashboard/summary:", error);
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-red-600">
-        <p className="font-medium">Erro ao carregar carteira</p>
-        <p className="text-sm mt-1">{error.message}</p>
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-6">
+        <div className="flex items-start gap-3">
+          <span className="text-2xl" aria-hidden>⚠️</span>
+          <div className="flex-1">
+            <p className="font-semibold text-amber-900">Dados temporariamente indisponíveis</p>
+            <p className="text-sm text-amber-700 mt-1">
+              Não foi possível carregar sua carteira agora. Isso pode ser um problema temporário — tente novamente em alguns instantes.
+            </p>
+            <button
+              onClick={() => refetch()}
+              className="mt-3 px-4 py-1.5 text-sm font-medium bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
+            >
+              Tentar novamente
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
 
+  // Plan B result: data returned but data_stale=true — show banner warning
+  const showStaleBanner = data?.data_stale && !isLoading;
+
   return (
     <div className="space-y-6">
       <OnboardingBanner />
+      {showStaleBanner && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-center gap-2 text-sm text-amber-800">
+          <span aria-hidden>⚠️</span>
+          <span>Cotações desatualizadas — os valores exibidos podem não refletir o mercado atual.</span>
+          <button onClick={() => refetch()} className="ml-auto underline hover:no-underline font-medium">Atualizar</button>
+        </div>
+      )}
       {/* Row 1: Net Worth */}
       {isLoading ? (
         <Skeleton className="h-32 w-full rounded-xl" />
