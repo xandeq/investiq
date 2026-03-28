@@ -2,6 +2,8 @@ FROM node:20-alpine AS base
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
+# Limit Node memory to prevent OOM on low-RAM VPS (npm ci + next build spike)
+ENV NODE_OPTIONS="--max-old-space-size=768"
 RUN npm ci
 
 COPY . .
