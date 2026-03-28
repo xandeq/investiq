@@ -52,8 +52,9 @@ DEFAULT_TICKERS = [
 ]
 
 # Redis TTLs (in seconds)
-_QUOTE_TTL = 1200    # 20 min — slightly longer than 15-min refresh interval
-_MACRO_TTL = 25200   # 7h — longer than 6h refresh interval
+_QUOTE_TTL = 1200        # 20 min — slightly longer than 15-min refresh interval
+_MACRO_TTL = 25200       # 7h — longer than 6h refresh interval
+_FUNDAMENTALS_TTL = 14400  # 4h — fundamentals change rarely
 
 
 def _get_redis() -> redis_lib.Redis:
@@ -86,6 +87,17 @@ def refresh_quotes(self) -> None:
             logger.debug("Wrote %s to Redis (TTL=%d)", key, _QUOTE_TTL)
 
         logger.info("refresh_quotes: wrote %d quotes to Redis", len(quotes))
+
+        # Populate fundamentals cache for each ticker (used by AI analysis tasks)
+        for ticker in DEFAULT_TICKERS:
+            try:
+                fund = client.fetch_fundamentals(ticker)
+                key = f"market:fundamentals:{ticker.upper()}"
+                r.set(key, json.dumps(fund), ex=_FUNDAMENTALS_TTL)
+                logger.debug("Wrote %s to Redis (TTL=%d)", key, _FUNDAMENTALS_TTL)
+            except Exception as fund_exc:
+                logger.warning("refresh_quotes: fundamentals skipped for %s — %s", ticker, fund_exc)
+        logger.info("refresh_quotes: fundamentals refreshed for %d tickers", len(DEFAULT_TICKERS))
 
         # Also fetch IBOVESPA index — may fail on unauthenticated free tier
         try:

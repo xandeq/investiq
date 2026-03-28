@@ -55,6 +55,13 @@ def _save_insight(tenant_id: str, type_: str, title: str, body: str, severity: s
         from app.core.db_sync import get_sync_db_session
         from sqlalchemy import text
         with get_sync_db_session(tenant_id) as session:
+            # Dedup: skip if an unread insight with the same (type, ticker) already exists
+            existing = session.execute(text(
+                "SELECT 1 FROM user_insights WHERE tenant_id = :tid AND type = :type "
+                "AND (ticker IS NOT DISTINCT FROM :ticker) AND seen = false LIMIT 1"
+            ), {"tid": tenant_id, "type": type_, "ticker": ticker}).fetchone()
+            if existing:
+                return
             session.execute(text(
                 "INSERT INTO user_insights (id, tenant_id, type, title, body, severity, ticker, seen, created_at) "
                 "VALUES (:id, :tid, :type, :title, :body, :sev, :ticker, false, :now)"
@@ -91,9 +98,10 @@ def generate_daily_insights() -> None:
         # SELIC alert: if < 10% renda fixa and SELIC > 13%
         rf_pct = sum(p["cost"] for p in positions if p["asset_class"] == "renda_fixa") / total_cost * 100
         if selic >= CDI_THRESHOLD_FOR_SELIC_ALERT and rf_pct < 10:
+            selic_fmt = f"{round(selic, 2)}"
             _save_insight(tenant_id, "selic_alert",
-                f"SELIC em {selic}% — renda fixa sub-representada",
-                f"Com SELIC em {selic}% a.a., sua alocação em renda fixa ({rf_pct:.1f}%) pode estar perdendo oportunidade de risco/retorno.",
+                f"SELIC em {selic_fmt}% — renda fixa sub-representada",
+                f"Com SELIC em {selic_fmt}% a.a., sua alocação em renda fixa ({rf_pct:.1f}%) pode estar perdendo oportunidade de risco/retorno.",
                 "warning")
 
         # Diversification alert: fewer than 3 distinct tickers

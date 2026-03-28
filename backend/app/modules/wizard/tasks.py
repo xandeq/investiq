@@ -44,7 +44,13 @@ def _get_macro() -> dict[str, str]:
     result = {}
     for k in ["selic", "cdi", "ipca"]:
         val = r.get(f"market:macro:{k}")
-        result[k] = val or "N/D"
+        if val:
+            try:
+                result[k] = f"{float(val):.2f}"
+            except (ValueError, TypeError):
+                result[k] = val
+        else:
+            result[k] = "N/D"
     return result
 
 
