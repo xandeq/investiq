@@ -21,6 +21,12 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.auth.models import User
+from app.modules.billing.email_templates import (
+    payment_failed_email,
+    payment_received_email,
+    subscription_canceled_email,
+    welcome_premium_email,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -165,6 +171,14 @@ class BillingService:
         )
         await db.flush()
 
+        # Send welcome-to-premium email (non-blocking)
+        try:
+            from app.modules.auth.service import brevo_email_sender
+            subject, html = welcome_premium_email(user.email, period_end)
+            await brevo_email_sender(user.email, subject, html)
+        except Exception as exc:
+            logger.warning("Failed to send billing email to %s: %s", user.email, exc)
+
     async def handle_invoice_paid(self, invoice_data: dict, db: AsyncSession) -> None:
         """invoice.paid / invoice.payment_succeeded — renew access."""
         stripe_customer_id = invoice_data.get("customer")
@@ -192,6 +206,21 @@ class BillingService:
         )
         await db.flush()
 
+        # Send payment-received confirmation (non-blocking)
+        try:
+            from app.modules.auth.service import brevo_email_sender
+            result = await db.execute(
+                select(User).where(User.stripe_customer_id == stripe_customer_id)
+            )
+            paid_user = result.scalar_one_or_none()
+            if paid_user:
+                subject, html = payment_received_email(
+                    paid_user.email, paid_user.subscription_current_period_end
+                )
+                await brevo_email_sender(paid_user.email, subject, html)
+        except Exception as exc:
+            logger.warning("Failed to send billing email for customer %s: %s", stripe_customer_id, exc)
+
     async def handle_payment_failed(self, invoice_data: dict, db: AsyncSession) -> None:
         """invoice.payment_failed — keep plan but update status for display."""
         stripe_customer_id = invoice_data.get("customer")
@@ -216,6 +245,19 @@ class BillingService:
             .values(subscription_status="past_due")
         )
         await db.flush()
+
+        # Send payment-failed warning (non-blocking)
+        try:
+            from app.modules.auth.service import brevo_email_sender
+            result = await db.execute(
+                select(User).where(User.stripe_customer_id == stripe_customer_id)
+            )
+            failed_user = result.scalar_one_or_none()
+            if failed_user:
+                subject, html = payment_failed_email(failed_user.email)
+                await brevo_email_sender(failed_user.email, subject, html)
+        except Exception as exc:
+            logger.warning("Failed to send billing email for customer %s: %s", stripe_customer_id, exc)
 
     async def handle_subscription_changed(self, sub_data: dict, db: AsyncSession) -> None:
         """customer.subscription.updated / .deleted — sync status."""
@@ -251,6 +293,24 @@ class BillingService:
             )
         )
         await db.flush()
+
+        # Send cancellation email when plan downgrades to free (non-blocking)
+        if new_plan == "free":
+            try:
+                from app.modules.auth.service import brevo_email_sender
+                result = await db.execute(
+                    select(User).where(User.stripe_subscription_id == subscription_id)
+                )
+                changed_user = result.scalar_one_or_none()
+                if changed_user:
+                    subject, html = subscription_canceled_email(changed_user.email)
+                    await brevo_email_sender(changed_user.email, subject, html)
+            except Exception as exc:
+                logger.warning(
+                    "Failed to send cancellation email for subscription %s: %s",
+                    subscription_id,
+                    exc,
+                )
 
 
 billing_service = BillingService()
