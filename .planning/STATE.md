@@ -1,21 +1,22 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: — Onde Investir
-status: deploy-pending
-last_updated: "2026-03-27T00:00:00.000Z"
+milestone: v1.2
+milestone_name: (to be defined)
+status: planning
+last_updated: "2026-03-28T00:00:00.000Z"
+previous_milestone: v1.1
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 19
-  completed_plans: 19
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-21)
+See: .planning/PROJECT.md (updated 2026-03-28 after v1.1)
 
 **Core value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada
 **Current focus:** Phase 11 — wizard-onde-investir
