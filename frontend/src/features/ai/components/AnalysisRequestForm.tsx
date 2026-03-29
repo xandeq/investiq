@@ -86,10 +86,11 @@ export function AnalysisRequestForm() {
       )}
 
       {isCompleted && job?.result && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           <SkillResultCard
             result={job.result.dcf ?? null}
             title="DCF — Fluxo de Caixa Descontado"
+            defaultOpen
           />
           <SkillResultCard
             result={job.result.valuation ?? null}
