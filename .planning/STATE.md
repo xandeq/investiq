@@ -1,14 +1,13 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.2
-milestone_name: AI Analysis Engine
-status: roadmap_created
-last_updated: "2026-03-31T12:00:00.000Z"
-previous_milestone: v1.1
+milestone_name: Requirements to Phases Mapping
+status: unknown
+last_updated: "2026-03-31T21:38:25.546Z"
 progress:
   total_phases: 5
   completed_phases: 0
-  total_plans: 15
+  total_plans: 3
   completed_plans: 0
 ---
 
@@ -20,20 +19,12 @@ See: .planning/PROJECT.md (updated 2026-03-31 after v1.2 planning)
 
 **Core value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada — v1.2 adds AI-driven fundamental analysis (DCF, earnings, dividends, peers)
 
-**Current focus:** v1.2 roadmap created; awaiting approval; Phase 12 (Foundation) ready to plan
+**Current focus:** Phase 12 — Foundation (Legal + Cost Control + Async Architecture)
 
 ## Current Position
 
-**Milestone:** v1.2 AI Analysis Engine
-**Phase:** 12 (Foundation — not started)
-**Status:** Roadmap drafted, awaiting user approval
-
-**v1.2 Phases:** 12–16 (5 total)
-- Phase 12: Foundation (Legal + Cost Control + Async Architecture)
-- Phase 13: Core Analysis Engine (DCF, earnings, dividends, peers)
-- Phase 14: Differentiators & Sophistication (LLM narratives, sensitivity, customization)
-- Phase 15: Data Quality & Advanced Features (Cache invalidation, auditing, performance)
-- Phase 16: Frontend Integration & Launch (Detail page, WebSocket, testing, production)
+Phase: 12 (Foundation (Legal + Cost Control + Async Architecture)) — EXECUTING
+Plan: 1 of 3
 
 ## v1.1 Status Reference
 
@@ -63,23 +54,27 @@ See: .planning/PROJECT.md (updated 2026-03-31 after v1.2 planning)
 ## v1.2 Architecture Decisions
 
 ### Legal & Compliance
+
 - CVM audit required before Phase 12 launch — confirm registration threshold + disclaimer architecture
 - On-feature disclaimer (not hidden in TOS) — position as educational analysis, not financial advice
 - Data versioning mandatory on all analyses — `data_version_id` + `data_timestamp` visible to users
 
 ### Cost Control & Operations
+
 - Rate limiting per plan tier: Free 0/month, Pro 50/month, Enterprise 500/month
 - LLM provider pattern: OpenRouter (Haiku) + Groq fallback (never hardcode keys)
 - Cost tracking per analysis type: DCF, Earnings, Dividend, Sector analysis tracked separately
 - Async architecture mandatory: All analysis requests return job ID immediately, background Celery workers process
 
 ### Data & Caching
+
 - All analyses tagged with data source + timestamp (BRAPI EOD, CVM/B3 filings, etc.)
 - Cache invalidation on earnings release (BRAPI earnings feed) + manual "Refresh" button
 - Peer comparison must show data completeness: "7 of 10 peers included; 2 missing earnings, 1 recent IPO"
 - Multi-tenancy: All analyses scoped to `tenant_id` (like portfolio positions)
 
 ### Performance
+
 - Analysis job target: <30s for simple DCF (Phase 12), <60s for complex sector analysis (Phase 15)
 - Async job pattern reused from wizard: Return job ID, WebSocket notification on completion
 - Cache hit rate target: >75% for repeat analyses (same ticker, same user within 24h)
@@ -111,6 +106,7 @@ See: .planning/PROJECT.md (updated 2026-03-31 after v1.2 planning)
 ## Performance Metrics
 
 **v1.1 baseline (for reference):**
+
 - Sessions: 11
 - Plans executed: 11 (Phases 1–7, 11)
 - Phases complete: 8 (Phases 1–7, 11 shipped; Phases 8–10 deferred)
@@ -118,6 +114,7 @@ See: .planning/PROJECT.md (updated 2026-03-31 after v1.2 planning)
 - Lines of code: ~24K Python backend + ~12K TypeScript frontend
 
 **v1.2 targets:**
+
 - Phase duration: 2–4 weeks per phase (Foundation critical, expect 3–4 weeks)
 - Test count: 257 baseline + new analysis tests (target 300+)
 - Code coverage: Maintain >80% for critical paths (quota enforcement, async jobs, legal disclaimers)

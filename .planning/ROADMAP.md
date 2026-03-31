@@ -39,7 +39,7 @@
 **Plans:** 3 plans
 
 Plans:
-- [ ] 12-01-PLAN.md — Analysis module foundation (models, schemas, migration, test scaffold)
+- [x] 12-01-PLAN.md — Analysis module foundation (models, schemas, migration, test scaffold)
 - [ ] 12-02-PLAN.md — Quota enforcement, rate limiting, cost tracking, CVM disclaimer
 - [ ] 12-03-PLAN.md — Async Celery task, LLM provider fallback, cache invalidation
 
