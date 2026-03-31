@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: AI Analysis Engine
-status: planning
-last_updated: "2026-03-31T00:00:00.000Z"
+status: roadmap_created
+last_updated: "2026-03-31T12:00:00.000Z"
 previous_milestone: v1.1
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
-  total_plans: 0
+  total_plans: 15
   completed_plans: 0
 ---
 
@@ -18,64 +18,124 @@ progress:
 
 See: .planning/PROJECT.md (updated 2026-03-31 after v1.2 planning)
 
-**Core value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada
-**Current focus:** Defining v1.2 requirements (AI Analysis Engine)
+**Core value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada — v1.2 adds AI-driven fundamental analysis (DCF, earnings, dividends, peers)
+
+**Current focus:** v1.2 roadmap created; awaiting approval; Phase 12 (Foundation) ready to plan
 
 ## Current Position
 
-Phase: 11 (wizard-onde-investir) — COMPLETE (code done, VPS deploy pending)
-Plan: 2 of 2 ✅
+**Milestone:** v1.2 AI Analysis Engine
+**Phase:** 12 (Foundation — not started)
+**Status:** Roadmap drafted, awaiting user approval
 
-## v1.0 Status Reference
+**v1.2 Phases:** 12–16 (5 total)
+- Phase 12: Foundation (Legal + Cost Control + Async Architecture)
+- Phase 13: Core Analysis Engine (DCF, earnings, dividends, peers)
+- Phase 14: Differentiators & Sophistication (LLM narratives, sensitivity, customization)
+- Phase 15: Data Quality & Advanced Features (Cache invalidation, auditing, performance)
+- Phase 16: Frontend Integration & Launch (Detail page, WebSocket, testing, production)
 
-| Phase | Status |
-|-------|--------|
-| 1. Foundation | Complete (2026-03-14) |
-| 2. Portfolio Engine + Market Data | Complete (2026-03-14) |
-| 3. Dashboard + Core UX | Checkpoint (human-verify) |
-| 4. AI Analysis Engine | Not started |
-| 5. Import + Broker Integration | Complete (2026-03-15) |
-| 6. Monetization | Not started |
+## v1.1 Status Reference
+
+✅ SHIPPED 2026-03-28
+
+| Phase | Status | Completed |
+|-------|--------|-----------|
+| 1. Foundation | Complete | 2026-03-14 |
+| 2. Portfolio Engine + Market Data | Complete | 2026-03-14 |
+| 3. Dashboard + Core UX | Complete | 2026-03-15 |
+| 4. AI Analysis Engine | Complete | 2026-03-15 |
+| 5. Import + Broker Integration | Complete | 2026-03-15 |
+| 6. Monetization | Complete | 2026-03-21 |
+| 7. Foundation + Data Pipelines | Complete | 2026-03-26 |
+| 11. Wizard Onde Investir | Complete | 2026-03-28 |
 
 ## Accumulated Context
 
-- Stack: FastAPI + SQLAlchemy async + Next.js 15 + PostgreSQL + Redis + Celery
-- Deploy: docker cp → docker compose restart (nao docker build — apt-get falha na rede do VPS)
-- VPS: 185.173.110.180, path: /app/financas/
-- BRAPI token disponivel (gratuito, 15k req/mes) — cotacoes B3
-- Milestone v1.0 phases 1, 2, 5 completos; 3, 4, 6 pendentes (monetizacao e dashboard)
+- **Stack:** FastAPI + SQLAlchemy async + Next.js 15 + PostgreSQL + Redis + Celery
+- **Deploy:** docker cp → docker compose restart (not docker build — apt-get fails on VPS network)
+- **VPS:** 185.173.110.180, path: /app/financas/
+- **BRAPI:** Token available (free, 15k req/month) — B3 quotes
+- **Testing:** 257 tests passing currently; maintain test quality in v1.2
+- **Production:** https://investiq.com.br (frontend) + https://api.investiq.com.br (backend)
+- **Stripe LIVE:** price_1TC56FCA1CPHCF6PKQ5XmUWD (R$29,90/mês)
 
-### v1.1 Architecture Decisions
+## v1.2 Architecture Decisions
 
-- `get_global_db` FastAPI dependency required for all screener/catalog tables — must NOT use tenant-scoped `get_db`
-- Redis namespaces: `screener:universe:{TICKER}`, `tesouro:rates:{BOND_CODE}`, `fii:metadata:{TICKER}` — never use `market:*` prefix for v1.1 data
-- TaxEngine IR rates must be DB config (not constants) — LCI/LCA exemption reform pending in 2026
-- Tesouro Direto: old JSON endpoint 404 since Aug 2025 — use ANBIMA API (register at developers.anbima.com.br) or CKAN CSV fallback
-- CDB/LCI/LCA rates: no public live API exists — `fixed_income_catalog` table with curated reference ranges, UI must say "taxas de referencia de mercado"
-- Screener universe rebuild: ~900 tickers via brapi.dev with 200ms sleep — Celery beat only, never per-request
-- AI wizard output: asset class percentages only — ticker validation post-processing required (reject uppercase 4-6 char strings)
-- CVM Res. 19/2021 disclaimer must appear BEFORE results render, not as footnote
+### Legal & Compliance
+- CVM audit required before Phase 12 launch — confirm registration threshold + disclaimer architecture
+- On-feature disclaimer (not hidden in TOS) — position as educational analysis, not financial advice
+- Data versioning mandatory on all analyses — `data_version_id` + `data_timestamp` visible to users
 
-### Open Questions (resolve in Phase 7)
+### Cost Control & Operations
+- Rate limiting per plan tier: Free 0/month, Pro 50/month, Enterprise 500/month
+- LLM provider pattern: OpenRouter (Haiku) + Groq fallback (never hardcode keys)
+- Cost tracking per analysis type: DCF, Earnings, Dividend, Sector analysis tracked separately
+- Async architecture mandatory: All analysis requests return job ID immediately, background Celery workers process
 
-- ANBIMA API auth model (OAuth2 client credentials?) — confirm at developers.anbima.com.br before writing Tesouro fetch task
-- brapi.dev rate limit behavior under 900-ticker daily rebuild — monitor first production run
-- Allocation model parameters (expected returns per profile per asset class) — requires sign-off from Alexandre before Phase 10
+### Data & Caching
+- All analyses tagged with data source + timestamp (BRAPI EOD, CVM/B3 filings, etc.)
+- Cache invalidation on earnings release (BRAPI earnings feed) + manual "Refresh" button
+- Peer comparison must show data completeness: "7 of 10 peers included; 2 missing earnings, 1 recent IPO"
+- Multi-tenancy: All analyses scoped to `tenant_id` (like portfolio positions)
+
+### Performance
+- Analysis job target: <30s for simple DCF (Phase 12), <60s for complex sector analysis (Phase 15)
+- Async job pattern reused from wizard: Return job ID, WebSocket notification on completion
+- Cache hit rate target: >75% for repeat analyses (same ticker, same user within 24h)
+
+## Research Flags (Phase Assignments)
+
+| Flag | Phase | Action |
+|------|-------|--------|
+| CVM registration threshold | 12 | Legal counsel consultation during disclaimer architecture |
+| OpenRouter fallback reliability | 12 | Staging integration test before production |
+| Per-analysis-type cost tracking | 12 | Cost dashboard implemented in Phase 12 |
+| BRAPI earnings feed reliability | 15 | Pilot invalidation with 10 tickers; verify triggers |
+| B3 stock data completeness | 15 | Data audit of 200+ stocks before launch |
+| User assumption validation ranges | 14 | Input validation: growth 0–20%, discount rate 0–30% |
 
 ## Decisions
 
-- **07-01:** Global tables use GRANT instead of RLS — app_user has direct access since no per-tenant data in screener_snapshots, fii_metadata, fixed_income_catalog, tax_config
-- **07-01:** TaxEngine accepts pre-loaded rows (not session) — enables pure unit testing; instantiate per-request, not as module-level singleton, so rate changes take effect after restart
-- [Phase 11-wizard-onde-investir]: SQLite returns naive datetimes for DateTime(timezone=True) columns -- normalize with replace(tzinfo=utc) before comparison in plan_gate.py and main.py
+- **03-31 Roadmap:** Phase 12 Foundation must include legal audit + cost control + async architecture before any analysis features ship (research critical finding)
+- **03-31 Roadmap:** Reuse wizard patterns: Celery async jobs, job ID return, WebSocket polling, LLM provider fallback
+- **03-31 Roadmap:** Coarse granularity (5 phases) chosen to compress 15 requirements into critical-path deliverables
+- **03-31 Roadmap:** All research pitfalls (legal, cost, data staleness, cache invalidation, performance) addressed in Phase 12 upfront, not bolted on later
+
+## Open Questions (resolve in Phase 12)
+
+1. CVM registration threshold: At what user count / analysis volume does InvestIQ cross from "information tool" to "financial adviser"?
+2. OpenRouter fallback latency: What's acceptable degradation when Groq fallback fires?
+3. Earnings feed timing: How reliably does BRAPI capture earnings announcements (same-day vs +1 day)?
 
 ## Performance Metrics
 
-- Sessions: 2
-- Plans executed: 1 (07-01)
-- Phases complete: 0/5 (07 in progress)
+**v1.1 baseline (for reference):**
+- Sessions: 11
+- Plans executed: 11 (Phases 1–7, 11)
+- Phases complete: 8 (Phases 1–7, 11 shipped; Phases 8–10 deferred)
+- Test count: 257 passing
+- Lines of code: ~24K Python backend + ~12K TypeScript frontend
 
-| Phase | Plan | Duration | Tasks | Files |
-|-------|------|----------|-------|-------|
-| 07-foundation-data-pipelines | 01 | 8min | 2 | 8 |
-| 07-foundation-data-pipelines | 02 | 1 session | 2 | 3 |
-| Phase 11-wizard-onde-investir P01 | 15min | 2 tasks | 4 files |
+**v1.2 targets:**
+- Phase duration: 2–4 weeks per phase (Foundation critical, expect 3–4 weeks)
+- Test count: 257 baseline + new analysis tests (target 300+)
+- Code coverage: Maintain >80% for critical paths (quota enforcement, async jobs, legal disclaimers)
+
+| Phase | Plan | Status | Duration | Tasks |
+|-------|------|--------|----------|-------|
+| 12 | 01-legal-audit | Planned | TBD | Consult CVM lawyer, build disclaimer UI, implement quota schema |
+| 12 | 02-async-infrastructure | Planned | TBD | Design queue, implement fallback providers, write integration tests |
+| 12 | 03-dcf-basic | Planned | TBD | Simple DCF model, data versioning, cost tracking |
+| 13 | 01-earnings | Planned | TBD | Historical EPS, quality metrics, forecast aggregation |
+| 13 | 02-dividends | Planned | TBD | Yield, payout ratio, coverage, sustainability flag |
+| 13 | 03-peers | Planned | TBD | Sector peer fundamentals, metrics aggregation, <10s response |
+| 14 | 01-llm-narrative | Planned | TBD | Claude Haiku integration, narrative generation, validation |
+| 14 | 02-sensitivity | Planned | TBD | Bear/base/bull scenarios, input ranges, comparisons |
+| 14 | 03-customization | Planned | TBD | Frontend form, assumption inputs, recalculation |
+| 15 | 01-cache-invalidation | Planned | TBD | Event-driven invalidation, earnings feed integration |
+| 15 | 02-data-quality | Planned | TBD | Peer audit, completeness flags, bias testing |
+| 15 | 03-performance | Planned | TBD | Load test, scaling validation, p95 latency <30s |
+| 16 | 01-detail-page | Planned | TBD | Stock detail layout, all analysis sections, disclaimer |
+| 16 | 02-websocket | Planned | TBD | Async loading UX, progress spinner, real-time updates |
+| 16 | 03-testing-launch | Planned | TBD | Regression test, security audit, production toggle |

@@ -63,31 +63,33 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
+Mapping requirements to roadmap phases. Updated during roadmap creation.
 
-| Requirement | Phase | Status |
-|-------------|-------|--------|
-| AI-01 | TBD | Pending |
-| AI-02 | TBD | Pending |
-| AI-03 | TBD | Pending |
-| AI-04 | TBD | Pending |
-| AI-05 | TBD | Pending |
-| AI-06 | TBD | Pending |
-| AI-07 | TBD | Pending |
-| AI-08 | TBD | Pending |
-| AI-09 | TBD | Pending |
-| AI-10 | TBD | Pending |
-| AI-11 | TBD | Pending |
-| AI-12 | TBD | Pending |
-| AI-13 | TBD | Pending |
-| AI-14 | TBD | Pending |
-| AI-15 | TBD | Pending |
+| Requirement | Phase | Category | Status |
+|-------------|-------|----------|--------|
+| AI-01 | 13 | Core Analysis | Pending |
+| AI-02 | 13 | Core Analysis | Pending |
+| AI-03 | 13 | Core Analysis | Pending |
+| AI-04 | 13 | Core Analysis | Pending |
+| AI-05 | 14 | Differentiators | Pending |
+| AI-06 | 14 | Differentiators | Pending |
+| AI-07 | 14 | Differentiators | Pending |
+| AI-08 | 12 | Data Quality/Legal | Pending |
+| AI-09 | 12 | Data Quality/Legal | Pending |
+| AI-10 | 15 | Data Quality/Legal | Pending |
+| AI-11 | 12 | Operations | Pending |
+| AI-12 | 12 | Operations | Pending |
+| AI-13 | 15 | Operations | Pending |
+| AI-14 | 16 | UX | Pending |
+| AI-15 | 16 | UX | Pending |
 
 **Coverage:**
 - v1.2 requirements: 15 total
-- Mapped to phases: 0 (awaiting roadmap)
-- Unmapped: 15 ⚠️
+- Mapped to phases: 15 ✓
+- Unmapped: 0 ✓
+- **Coverage: 100%**
 
 ---
+
 *Requirements defined: 2026-03-31*
-*Last updated: 2026-03-31 after scope gathering*
+*Last updated: 2026-03-31 after roadmap creation*
