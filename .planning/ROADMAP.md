@@ -36,7 +36,12 @@
 4. Async analysis queue working end-to-end: User submits analysis request, receives job ID immediately, background Celery worker processes, test confirms <30s processing for simple DCF on 5 sample tickers
 5. Fallback LLM provider chain tested: OpenRouter → Groq fallback works in staging, load test with 50 concurrent requests completes without errors
 
-**Plans:** TBD
+**Plans:** 3 plans
+
+Plans:
+- [ ] 12-01-PLAN.md — Analysis module foundation (models, schemas, migration, test scaffold)
+- [ ] 12-02-PLAN.md — Quota enforcement, rate limiting, cost tracking, CVM disclaimer
+- [ ] 12-03-PLAN.md — Async Celery task, LLM provider fallback, cache invalidation
 
 ---
 
@@ -56,7 +61,12 @@
 4. Sector comparison returns data: API queries BRAPI peer fundamentals, aggregates metrics (P/E, P/B, dividend yield) for 5–10 peers, test confirms response <10s for avg-case ticker
 5. All analyses include data source attribution: API responses show "Data: BRAPI EOD [date]", "Fundamentals: CVM/B3 [source]" for transparency
 
-**Plans:** TBD
+**Plans:** 3 plans
+
+Plans:
+- [ ] 12-01-PLAN.md — Analysis module foundation (models, schemas, migration, test scaffold)
+- [ ] 12-02-PLAN.md — Quota enforcement, rate limiting, cost tracking, CVM disclaimer
+- [ ] 12-03-PLAN.md — Async Celery task, LLM provider fallback, cache invalidation
 
 ---
 
@@ -76,7 +86,12 @@
 4. Analysis quality monitoring in place: Per-LLM-call token count and cost tracked, test shows cost per analysis <$0.05 (Haiku tier), cost dashboard accessible to ops team
 5. Fallback graceful degradation: If LLM quota exhausted, analysis returns cached result with "outdated" badge and "Contact support" message (feature doesn't break)
 
-**Plans:** TBD
+**Plans:** 3 plans
+
+Plans:
+- [ ] 12-01-PLAN.md — Analysis module foundation (models, schemas, migration, test scaffold)
+- [ ] 12-02-PLAN.md — Quota enforcement, rate limiting, cost tracking, CVM disclaimer
+- [ ] 12-03-PLAN.md — Async Celery task, LLM provider fallback, cache invalidation
 
 ---
 
@@ -96,7 +111,12 @@
 4. Analysis history + audit trail: Old analyses retrievable by user, changes between analyses (old valuation vs new) computed and surfaced in UI ("Fair value changed +15% due to EPS revision"), test confirms audit trail entries created on every analysis
 5. Manual "Refresh analysis" button working: User clicks refresh, new job queued immediately, old result replaced on completion, test confirms refresh costs user 1 quota point, old analysis archived with timestamp
 
-**Plans:** TBD
+**Plans:** 3 plans
+
+Plans:
+- [ ] 12-01-PLAN.md — Analysis module foundation (models, schemas, migration, test scaffold)
+- [ ] 12-02-PLAN.md — Quota enforcement, rate limiting, cost tracking, CVM disclaimer
+- [ ] 12-03-PLAN.md — Async Celery task, LLM provider fallback, cache invalidation
 
 ---
 
@@ -116,7 +136,12 @@
 4. Performance meets SLA: Production load test shows p50 analysis latency 15s, p95 <30s, p99 <60s, no timeout failures at 100 concurrent users, cache hit rate >75% (repeat analyses), database query times <500ms
 5. Testing comprehensive: Full test suite passes (257 existing + new analysis tests), integration tests verify end-to-end flow (user request → Celery job → API response → frontend display), security tests confirm tenant isolation (user can't see other users' analyses)
 
-**Plans:** TBD
+**Plans:** 3 plans
+
+Plans:
+- [ ] 12-01-PLAN.md — Analysis module foundation (models, schemas, migration, test scaffold)
+- [ ] 12-02-PLAN.md — Quota enforcement, rate limiting, cost tracking, CVM disclaimer
+- [ ] 12-03-PLAN.md — Async Celery task, LLM provider fallback, cache invalidation
 
 ---
 
@@ -124,7 +149,7 @@
 
 | Phase | Status | Plans Complete | Completed |
 |-------|--------|----------------|-----------|
-| 12 - Foundation | Not started | 0/3 | - |
+| 12 - Foundation | Planning complete | 0/3 | - |
 | 13 - Core Analysis Engine | Not started | 0/3 | - |
 | 14 - Differentiators | Not started | 0/3 | - |
 | 15 - Data Quality | Not started | 0/3 | - |
