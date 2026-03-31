@@ -84,16 +84,30 @@ O usuário controla toda sua carteira em um lugar só, com análise financeira d
 - **DB Migrations:** 0019 (head)
 - **Stripe:** LIVE — price_1TC56FCA1CPHCF6PKQ5XmUWD (R$29,90/mês)
 
-## Next Milestone Goals (v1.2 — to be defined)
+## Current Milestone: v1.2 AI Analysis Engine
 
-Priority items from Active requirements:
-1. AI analysis engine (DCF/valuation/earnings) — AI-01–05 — biggest differentiator
-2. FII screener + Ações filtros avançados — SCRF + SCRA-01–03
-3. Renda fixa catalog frontend — RF-01–03
-4. Simulador de alocação — SIM-01–03
-5. Admin dashboard — MON-04
+**Goal:** Give users institutional-grade analysis on any stock (DCF, earnings, dividend yield, sector comparison) in a per-stock detail page — async on-demand, 30-60s turnaround like the wizard.
 
-Start with `/gsd:new-milestone` after `/clear`.
+**Target features:**
+- Per-stock detail page with DCF valuation (intrinsic value vs market price)
+- Earnings analysis (historical + forecast, growth rates, quality metrics)
+- Dividend sustainability check (payout ratio, coverage, safety)
+- Sector comparison widget (stock vs peers on valuation, growth, yield)
+- Async Celery job infrastructure (reuse wizard pattern)
+- LLM-generated narrative (plain English interpretation of numbers)
+
+**Phase count:** TBD (roadmapper will define)
+**Timeline:** TBD
 
 ---
-*Last updated: 2026-03-28 after v1.1 milestone*
+
+## Future Milestone Items (Post-v1.2)
+
+Priority items from Active requirements:
+1. FII screener + Ações filtros avançados — SCRF + SCRA-01–03
+2. Renda fixa catalog frontend — RF-01–03
+3. Simulador de alocação — SIM-01–03
+4. Admin dashboard — MON-04
+
+---
+*Last updated: 2026-03-31 after v1.2 planning start*

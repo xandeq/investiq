@@ -1,9 +1,9 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.2
-milestone_name: (to be defined)
+milestone_name: AI Analysis Engine
 status: planning
-last_updated: "2026-03-28T00:00:00.000Z"
+last_updated: "2026-03-31T00:00:00.000Z"
 previous_milestone: v1.1
 progress:
   total_phases: 0
@@ -16,10 +16,10 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-28 after v1.1)
+See: .planning/PROJECT.md (updated 2026-03-31 after v1.2 planning)
 
 **Core value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada
-**Current focus:** Phase 11 — wizard-onde-investir
+**Current focus:** Defining v1.2 requirements (AI Analysis Engine)
 
 ## Current Position
 
