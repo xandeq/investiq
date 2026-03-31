@@ -35,6 +35,7 @@ from app.modules.screener_v2.router import router as screener_v2_router
 from app.modules.comparador.router import router as comparador_router
 from app.modules.simulador.router import router as simulador_router
 from app.modules.wizard.router import router as wizard_router
+from app.modules.analysis.router import router as analysis_router
 
 
 @asynccontextmanager
@@ -126,6 +127,8 @@ app.include_router(comparador_router, prefix="/comparador", tags=["comparador"])
 app.include_router(simulador_router, prefix="/simulador", tags=["simulador"])
 # Phase 11: Wizard Onde Investir
 app.include_router(wizard_router, prefix="/wizard", tags=["wizard"])
+# Phase 12: AI Analysis Engine
+app.include_router(analysis_router, prefix="/analysis", tags=["analysis"])
 
 
 @app.get("/health")
