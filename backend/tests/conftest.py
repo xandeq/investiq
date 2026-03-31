@@ -70,6 +70,7 @@ import app.modules.insights.models as _insm  # noqa: F401 — registers UserInsi
 import app.modules.market_universe.models as _mum  # noqa: F401 — registers ScreenerSnapshot, FIIMetadata, FixedIncomeCatalog, TaxConfig
 import app.modules.wizard.models as _wizm  # noqa: F401 — registers WizardJob
 import app.modules.screener.models as _scrm  # noqa: F401 — registers ScreenerRun
+import app.modules.analysis.models as _anm  # noqa: F401 — registers AnalysisJob, AnalysisQuotaLog, AnalysisCostLog
 
 
 # ---------------------------------------------------------------------------
