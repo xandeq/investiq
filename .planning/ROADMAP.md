@@ -10,7 +10,7 @@
 
 ## Phases
 
-- [ ] **Phase 12: Foundation (Legal + Cost Control + Async Architecture)** — Establish legal compliance, data versioning, quota system, async job infrastructure
+- [x] **Phase 12: Foundation (Legal + Cost Control + Async Architecture)** — Establish legal compliance, data versioning, quota system, async job infrastructure (completed 2026-03-31)
 - [ ] **Phase 13: Core Analysis Engine** — DCF, earnings, dividends, sector comparison (MVP scope)
 - [ ] **Phase 14: Differentiators & Sophistication** — LLM narratives, sensitivity analysis, user customization
 - [ ] **Phase 15: Data Quality & Advanced Features** — Cache invalidation, peer data audit, performance hardening
@@ -36,12 +36,12 @@
 4. Async analysis queue working end-to-end: User submits analysis request, receives job ID immediately, background Celery worker processes, test confirms <30s processing for simple DCF on 5 sample tickers
 5. Fallback LLM provider chain tested: OpenRouter → Groq fallback works in staging, load test with 50 concurrent requests completes without errors
 
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 12-01-PLAN.md — Analysis module foundation (models, schemas, migration, test scaffold)
-- [ ] 12-02-PLAN.md — Quota enforcement, rate limiting, cost tracking, CVM disclaimer
-- [ ] 12-03-PLAN.md — Async Celery task, LLM provider fallback, cache invalidation
+- [x] 12-02-PLAN.md — Quota enforcement, rate limiting, cost tracking, CVM disclaimer
+- [x] 12-03-PLAN.md — Async Celery task, LLM provider fallback, cache invalidation
 
 ---
 
@@ -64,8 +64,8 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 12-01-PLAN.md — Analysis module foundation (models, schemas, migration, test scaffold)
-- [ ] 12-02-PLAN.md — Quota enforcement, rate limiting, cost tracking, CVM disclaimer
+- [x] 12-01-PLAN.md — Analysis module foundation (models, schemas, migration, test scaffold)
+- [x] 12-02-PLAN.md — Quota enforcement, rate limiting, cost tracking, CVM disclaimer
 - [ ] 12-03-PLAN.md — Async Celery task, LLM provider fallback, cache invalidation
 
 ---
@@ -89,7 +89,7 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 12-01-PLAN.md — Analysis module foundation (models, schemas, migration, test scaffold)
+- [x] 12-01-PLAN.md — Analysis module foundation (models, schemas, migration, test scaffold)
 - [ ] 12-02-PLAN.md — Quota enforcement, rate limiting, cost tracking, CVM disclaimer
 - [ ] 12-03-PLAN.md — Async Celery task, LLM provider fallback, cache invalidation
 
@@ -149,7 +149,7 @@ Plans:
 
 | Phase | Status | Plans Complete | Completed |
 |-------|--------|----------------|-----------|
-| 12 - Foundation | Planning complete | 0/3 | - |
+| 12 - Foundation | Planning complete | Complete    | 2026-03-31 |
 | 13 - Core Analysis Engine | Not started | 0/3 | - |
 | 14 - Differentiators | Not started | 0/3 | - |
 | 15 - Data Quality | Not started | 0/3 | - |
