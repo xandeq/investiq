@@ -15,7 +15,7 @@ from __future__ import annotations
 from alembic import op
 
 
-revision = "0017"
+revision = "0017_drop_import_staging_unique_constraint"
 down_revision = "0016_add_wizard_jobs"
 branch_labels = None
 depends_on = None
