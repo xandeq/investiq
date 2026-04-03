@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Requirements to Phases Mapping
 status: unknown
-last_updated: "2026-03-31T22:02:45.872Z"
+last_updated: "2026-04-03T00:39:50.096Z"
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 5
+  completed_plans: 4
 ---
 
 # Project State
@@ -19,12 +19,12 @@ See: .planning/PROJECT.md (updated 2026-03-31 after v1.2 planning)
 
 **Core value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada — v1.2 adds AI-driven fundamental analysis (DCF, earnings, dividends, peers)
 
-**Current focus:** Phase 12 — Foundation (Legal + Cost Control + Async Architecture)
+**Current focus:** Phase 13 — Core Analysis Engine (DCF real data layer complete, earnings/dividends/sector next)
 
 ## Current Position
 
 Phase: 13
-Plan: Not started
+Plan: 01 complete, 02 remaining
 
 ## v1.1 Status Reference
 
@@ -96,6 +96,8 @@ Plan: Not started
 - **03-31 Roadmap:** Reuse wizard patterns: Celery async jobs, job ID return, WebSocket polling, LLM provider fallback
 - **03-31 Roadmap:** Coarse granularity (5 phases) chosen to compress 15 requirements into critical-path deliverables
 - **03-31 Roadmap:** All research pitfalls (legal, cost, data staleness, cache invalidation, performance) addressed in Phase 12 upfront, not bolted on later
+- [Phase 13]: BRAPI token resolved via env > AWS SM (same as BrapiClient), sync HTTP calls in data.py
+- [Phase 13]: DCF uses net_debt (total_debt - total_cash) subtracted from EV for equity fair value per share
 
 ## Open Questions (resolve in Phase 12)
 
@@ -136,3 +138,4 @@ Plan: Not started
 | 16 | 01-detail-page | Planned | TBD | Stock detail layout, all analysis sections, disclaimer |
 | 16 | 02-websocket | Planned | TBD | Async loading UX, progress spinner, real-time updates |
 | 16 | 03-testing-launch | Planned | TBD | Regression test, security audit, production toggle |
+| Phase 13 P01 | 344 | 2 tasks | 5 files |

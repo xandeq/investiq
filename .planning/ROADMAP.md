@@ -61,7 +61,7 @@ Plans:
 4. Sector comparison returns data: API queries BRAPI peer fundamentals, aggregates metrics (P/E, P/B, dividend yield) for 5–10 peers, test confirms response <10s for avg-case ticker
 5. All analyses include data source attribution: API responses show "Data: BRAPI EOD [date]", "Fundamentals: CVM/B3 [source]" for transparency
 
-**Plans:** 3 plans
+**Plans:** 1/2 plans executed
 
 Plans:
 - [x] 12-01-PLAN.md — Analysis module foundation (models, schemas, migration, test scaffold)
@@ -150,7 +150,7 @@ Plans:
 | Phase | Status | Plans Complete | Completed |
 |-------|--------|----------------|-----------|
 | 12 - Foundation | Planning complete | Complete    | 2026-03-31 |
-| 13 - Core Analysis Engine | Not started | 0/3 | - |
+| 13 - Core Analysis Engine | 1/2 | In Progress|  |
 | 14 - Differentiators | Not started | 0/3 | - |
 | 15 - Data Quality | Not started | 0/3 | - |
 | 16 - Frontend Launch | Not started | 0/3 | - |
