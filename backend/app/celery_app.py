@@ -39,6 +39,7 @@ def create_celery_app() -> Celery:
             "app.modules.market_universe.tasks",
             "app.modules.wizard.tasks",
             "app.modules.analysis.tasks",
+            "app.modules.opportunity_detector.scanner",
         ],
     )
 
@@ -104,6 +105,31 @@ def create_celery_app() -> Celery:
                 # Every 6 hours — ANBIMA rates update intraday
                 "schedule": crontab(minute=0, hour="*/6"),
                 "args": [],
+            },
+            “check-earnings-releases-nightly”: {
+                “task”: “analysis.check_earnings_releases”,
+                # 22h BRT, Mon-Fri — after market close and filing updates
+                “schedule”: crontab(minute=0, hour=22, day_of_week=”1-5”),
+                “args”: [],
+            },
+            # Opportunity Detector
+            “opportunity-detector-acoes”: {
+                “task”: “opportunity_detector.scan_acoes”,
+                # Every 15min, Mon-Fri, 10h-17h BRT — aligned with quote refresh
+                “schedule”: crontab(minute=”*/15”, hour=”10-17”, day_of_week=”1-5”),
+                “args”: [],
+            },
+            “opportunity-detector-crypto”: {
+                “task”: “opportunity_detector.scan_crypto”,
+                # Every 15min, 24/7 — crypto never sleeps
+                “schedule”: crontab(minute=”*/15”),
+                “args”: [],
+            },
+            “opportunity-detector-fixed-income”: {
+                “task”: “opportunity_detector.scan_fixed_income”,
+                # Every 6h — aligned with tesouro rate refresh
+                “schedule”: crontab(minute=30, hour=”*/6”),
+                “args”: [],
             },
         },
     )
