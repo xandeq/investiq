@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Requirements to Phases Mapping
 status: unknown
-last_updated: "2026-04-03T10:28:44.603Z"
+last_updated: "2026-04-03T10:29:51.787Z"
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 7
-  completed_plans: 6
+  completed_plans: 7
 ---
 
 # Project State
@@ -102,6 +102,8 @@ Plan: 2 of 2
 - [Phase 13]: Dividend sustainability uses strict priority ordering: risk first, warning second, safe last
 - [Phase 14]: Admin costs endpoint placed before /{job_id} catch-all route in router.py to avoid 404 routing conflict
 - [Phase 14]: days param validated with le=90 via FastAPI Query — days>90 returns 422 (not clamped)
+- [Phase 14]: BRAPI has no sector-listing endpoint — hardcoded _SECTOR_TICKERS dict with 11 B3 sectors is the correct peer lookup approach
+- [Phase 14]: fetch_fundamentals() does not return ticker field — inject as _ticker private key so calculate_sector_comparison() can identify each peer
 
 ## Open Questions (resolve in Phase 12)
 
@@ -145,3 +147,4 @@ Plan: 2 of 2
 | Phase 13 P01 | 344 | 2 tasks | 5 files |
 | Phase 13 P02 | 339 | 2 tasks | 5 files |
 | Phase 14 P02 | 15 | 2 tasks | 2 files |
+| Phase 14 P01 | 22 | 2 tasks | 4 files |
