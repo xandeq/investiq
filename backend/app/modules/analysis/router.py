@@ -21,6 +21,7 @@ from app.modules.analysis.constants import CVM_DISCLAIMER_SHORT_PT
 from app.modules.analysis.models import AnalysisCostLog, AnalysisJob
 from app.modules.analysis.quota import check_analysis_quota, increment_quota_used
 from app.modules.analysis.schemas import (
+    AnalysisHistoryItem,
     AnalysisJobStatus,
     AnalysisResponse,
     DCFRequest,
@@ -480,6 +481,36 @@ async def get_admin_costs(
         "total_analyses": total_analyses,
         "total_cost_usd": round(total_cost_usd, 6),
     }
+
+
+@router.get(
+    "/history/{ticker}",
+    response_model=list[AnalysisHistoryItem],
+    summary="Histórico de análises para um ticker",
+    tags=["analysis"],
+)
+async def get_ticker_analysis_history(
+    ticker: str,
+    analysis_type: str | None = Query(default=None, description="Filtrar por tipo: dcf|earnings|dividend|sector"),
+    limit: int = Query(default=10, ge=1, le=50, description="Máximo de itens (1-50)"),
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+):
+    """Return past analyses for a ticker, newest first.
+
+    Includes completed and stale analyses. Tenant-scoped.
+    Use compute_analysis_diff() on consecutive results to surface changes.
+    """
+    from app.modules.analysis.history import get_analysis_history
+
+    history = get_analysis_history(
+        ticker=ticker,
+        tenant_id=tenant_id,
+        analysis_type=analysis_type,
+        limit=limit,
+    )
+    return [AnalysisHistoryItem(**item) for item in history]
 
 
 @router.get(

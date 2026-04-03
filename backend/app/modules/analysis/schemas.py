@@ -77,3 +77,18 @@ class AnalysisJobStatus(BaseModel):
     job_id: str
     status: str
     message: str | None = None
+
+
+class AnalysisHistoryItem(BaseModel):
+    """Single history entry for GET /analysis/history/{ticker}."""
+
+    job_id: str
+    analysis_type: str
+    ticker: str
+    status: str
+    completed_at: str | None
+    data_timestamp: str | None
+    data_version_id: str
+    result: dict | None = None
+
+    model_config = {"from_attributes": True}

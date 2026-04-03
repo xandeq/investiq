@@ -14,6 +14,7 @@ import logging
 import time
 from datetime import datetime, timezone
 
+import requests
 from celery import shared_task
 from sqlalchemy import select, update
 
@@ -27,6 +28,7 @@ from app.modules.analysis.providers import (
     call_analysis_llm,
 )
 from app.modules.analysis.data import DataFetchError, fetch_fundamentals, get_selic_rate
+from app.modules.analysis.history import get_completeness_flag
 from app.modules.analysis.dcf import calculate_dcf_with_sensitivity, calculate_wacc, estimate_growth_rate
 from app.modules.analysis.dividend import calculate_dividend_analysis
 from app.modules.analysis.earnings import calculate_earnings_analysis
@@ -54,6 +56,94 @@ _STATIC_FALLBACK_NARRATIVE_SECTOR = (
     "Narrative generation unavailable. The sector comparison above is based on "
     "quantitative data only. Please retry later for AI-generated commentary."
 )
+
+
+def archive_previous_completed_jobs(
+    ticker: str,
+    tenant_id: str,
+    analysis_type: str,
+    exclude_job_id: str,
+) -> int:
+    """Mark older completed jobs as stale after a fresh completed analysis."""
+    with get_superuser_sync_db_session() as session:
+        stmt = (
+            update(AnalysisJob)
+            .where(
+                AnalysisJob.tenant_id == tenant_id,
+                AnalysisJob.ticker == ticker.upper(),
+                AnalysisJob.analysis_type == analysis_type,
+                AnalysisJob.status == "completed",
+                AnalysisJob.id != exclude_job_id,
+            )
+            .values(
+                status="stale",
+                error_message="Superseded by newer analysis",
+            )
+        )
+        result = session.execute(stmt)
+        return result.rowcount or 0
+
+
+def _fetch_latest_quarterly_filing_date(ticker: str) -> datetime | None:
+    """Fetch the most recent quarterly filing date from BRAPI."""
+    from app.modules.analysis.data import _BRAPI_BASE_URL, _resolve_brapi_token
+
+    try:
+        token = _resolve_brapi_token()
+        params = {
+            "modules": "incomeStatementHistoryQuarterly",
+            "fundamental": "true",
+        }
+        if token:
+            params["token"] = token
+
+        response = requests.get(
+            f"{_BRAPI_BASE_URL}/quote/{ticker.upper()}",
+            params=params,
+            timeout=10,
+        )
+        response.raise_for_status()
+        data = response.json()
+        results = data.get("results", [])
+        if not results:
+            return None
+
+        quarterly = results[0].get("incomeStatementHistoryQuarterly", [])
+        if not quarterly:
+            return None
+
+        end_date = quarterly[0].get("endDate")
+        if not end_date:
+            return None
+
+        return datetime.fromisoformat(end_date.replace("Z", "+00:00"))
+    except Exception as exc:
+        logger.warning("Failed to fetch filing date for %s: %s", ticker, exc)
+        return None
+
+
+def _archive_superseded_job(
+    ticker: str,
+    tenant_id: str,
+    analysis_type: str,
+    job_id: str,
+) -> None:
+    """Best-effort archival of older completed jobs after a successful refresh."""
+    try:
+        archive_previous_completed_jobs(
+            ticker=ticker,
+            tenant_id=tenant_id,
+            analysis_type=analysis_type,
+            exclude_job_id=job_id,
+        )
+    except Exception as exc:
+        logger.warning(
+            "Failed to archive previous %s analyses for %s/%s: %s",
+            analysis_type,
+            tenant_id,
+            ticker,
+            exc,
+        )
 
 
 def _update_job(
@@ -303,6 +393,7 @@ def run_dcf(
             "scenarios": dcf_result.get("scenarios", {}),
             "narrative": narrative,
             "data_completeness": fundamentals.get("data_completeness", {}),
+            "completeness_flag": get_completeness_flag(fundamentals.get("data_completeness", {})),
             "data_version_id": data_version_id,
             "data_timestamp": data_timestamp,
             "data_sources": data_sources,
@@ -311,6 +402,7 @@ def run_dcf(
 
         # Step 7: Update job
         _update_job(job_id, "completed", result_json=json.dumps(result, ensure_ascii=False))
+        _archive_superseded_job(ticker, tenant_id, "dcf", job_id)
 
         # Step 8: Log cost
         duration_ms = int((time.time() - start_time) * 1000)
@@ -439,6 +531,7 @@ def run_earnings(
             "quality_metrics": earnings_result.get("quality_metrics", {}),
             "narrative": narrative,
             "data_completeness": earnings_result.get("data_completeness", {}),
+            "completeness_flag": get_completeness_flag(earnings_result.get("data_completeness", {})),
             "data_version_id": data_version_id,
             "data_timestamp": data_timestamp,
             "data_sources": data_sources,
@@ -447,6 +540,7 @@ def run_earnings(
 
         # Step 7: Update job
         _update_job(job_id, "completed", result_json=json.dumps(result, ensure_ascii=False))
+        _archive_superseded_job(ticker, tenant_id, "earnings", job_id)
 
         # Step 8: Log cost
         duration_ms = int((time.time() - start_time) * 1000)
@@ -578,6 +672,7 @@ def run_dividend(
             "dividend_history": dividend_result.get("dividend_history", []),
             "narrative": narrative,
             "data_completeness": dividend_result.get("data_completeness", {}),
+            "completeness_flag": get_completeness_flag(dividend_result.get("data_completeness", {})),
             "data_version_id": data_version_id,
             "data_timestamp": data_timestamp,
             "data_sources": data_sources,
@@ -586,6 +681,7 @@ def run_dividend(
 
         # Step 7: Update job
         _update_job(job_id, "completed", result_json=json.dumps(result, ensure_ascii=False))
+        _archive_superseded_job(ticker, tenant_id, "dividend", job_id)
 
         # Step 8: Log cost
         duration_ms = int((time.time() - start_time) * 1000)
@@ -765,6 +861,15 @@ def run_sector(
             "target_percentiles": sector_result.get("target_percentiles", {}),
             "peers": sector_result.get("peers", []),
             "data_completeness": sector_result.get("data_completeness", {}),
+            "completeness_flag": get_completeness_flag(
+                {
+                    "completeness": (
+                        f"{int((sector_result.get('peers_with_data', 0) / sector_result.get('peers_attempted', 1)) * 100)}%"
+                        if sector_result.get("peers_attempted", 0) > 0
+                        else "0%"
+                    )
+                }
+            ),
             "narrative": narrative,
             "data_version_id": data_version_id,
             "data_timestamp": data_timestamp,
@@ -774,6 +879,7 @@ def run_sector(
 
         # Step 9: Update job
         _update_job(job_id, "completed", result_json=json.dumps(result, ensure_ascii=False))
+        _archive_superseded_job(ticker, tenant_id, "sector", job_id)
 
         # Step 10: Log cost
         duration_ms = int((time.time() - start_time) * 1000)
@@ -802,3 +908,43 @@ def run_sector(
             duration_ms=duration_ms,
             status="failed",
         )
+
+
+@shared_task(name="analysis.check_earnings_releases", bind=False)
+def check_earnings_releases() -> dict:
+    """Nightly Beat task to invalidate stale analyses after new filings."""
+    from app.modules.analysis.invalidation import (
+        get_analyzed_tickers_recent_7d,
+        get_last_analysis_data_timestamp,
+        on_earnings_release,
+    )
+
+    tickers = get_analyzed_tickers_recent_7d()[:50]
+    invalidated = 0
+
+    for ticker in tickers:
+        filing_date = _fetch_latest_quarterly_filing_date(ticker)
+        if filing_date is None:
+            continue
+
+        last_timestamp = get_last_analysis_data_timestamp(ticker)
+        if last_timestamp is None:
+            continue
+
+        if last_timestamp.tzinfo is None:
+            last_timestamp = last_timestamp.replace(tzinfo=timezone.utc)
+        if filing_date.tzinfo is None:
+            filing_date = filing_date.replace(tzinfo=timezone.utc)
+
+        if filing_date > last_timestamp:
+            invalidated += on_earnings_release(ticker, filing_date)
+
+    logger.info(
+        "check_earnings_releases invalidated=%d tickers_checked=%d",
+        invalidated,
+        len(tickers),
+    )
+    return {
+        "tickers_checked": len(tickers),
+        "analyses_invalidated": invalidated,
+    }
