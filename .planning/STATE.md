@@ -8,7 +8,7 @@ progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 5
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-31 after v1.2 planning)
 ## Current Position
 
 Phase: 13
-Plan: 01 complete, 02 remaining
+Plan: 02 complete (all plans in phase done)
 
 ## v1.1 Status Reference
 
@@ -98,6 +98,8 @@ Plan: 01 complete, 02 remaining
 - **03-31 Roadmap:** All research pitfalls (legal, cost, data staleness, cache invalidation, performance) addressed in Phase 12 upfront, not bolted on later
 - [Phase 13]: BRAPI token resolved via env > AWS SM (same as BrapiClient), sync HTTP calls in data.py
 - [Phase 13]: DCF uses net_debt (total_debt - total_cash) subtracted from EV for equity fair value per share
+- [Phase 13]: Earnings accrual ratio uses (total_debt + total_cash) as proxy for total assets (BRAPI limitation)
+- [Phase 13]: Dividend sustainability uses strict priority ordering: risk first, warning second, safe last
 
 ## Open Questions (resolve in Phase 12)
 
@@ -139,3 +141,4 @@ Plan: 01 complete, 02 remaining
 | 16 | 02-websocket | Planned | TBD | Async loading UX, progress spinner, real-time updates |
 | 16 | 03-testing-launch | Planned | TBD | Regression test, security audit, production toggle |
 | Phase 13 P01 | 344 | 2 tasks | 5 files |
+| Phase 13 P02 | 339 | 2 tasks | 5 files |

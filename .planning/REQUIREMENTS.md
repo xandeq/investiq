@@ -8,8 +8,8 @@
 ### Core Analysis
 
 - [x] **AI-01**: User can view DCF valuation (intrinsic value calculation, sensitivity to assumptions)
-- [ ] **AI-02**: User can view earnings analysis (historical + forecast, growth rates, earnings quality metrics)
-- [ ] **AI-03**: User can view dividend yield + sustainability check (payout ratio, coverage, risk flag if unsustainable)
+- [x] **AI-02**: User can view earnings analysis (historical + forecast, growth rates, earnings quality metrics)
+- [x] **AI-03**: User can view dividend yield + sustainability check (payout ratio, coverage, risk flag if unsustainable)
 - [ ] **AI-04**: User can view sector peer comparison (stock vs 5-10 peers on valuation, growth, yield with data completeness)
 
 ### Differentiators
