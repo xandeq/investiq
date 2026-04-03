@@ -14,7 +14,8 @@
  (completed 2026-03-31)
 - [x] **Phase 13: Core Analysis Engine** — DCF, earnings, dividends, sector comparison (MVP scope)
  (completed 2026-04-03)
-- [x] **Phase 14: Differentiators & Sophistication** — LLM narratives, sensitivity analysis, user customization (completed 2026-04-03)
+- [x] **Phase 14: Differentiators & Sophistication** — LLM narratives, sensitivity analysis, user customization
+ (completed 2026-04-03)
 - [ ] **Phase 15: Data Quality & Advanced Features** — Cache invalidation, peer data audit, performance hardening
 - [ ] **Phase 16: Frontend Integration & Launch** — Detail page, progress UI, WebSocket, testing, production launch
 
@@ -115,9 +116,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 12-01-PLAN.md — Analysis module foundation (models, schemas, migration, test scaffold)
-- [ ] 12-02-PLAN.md — Quota enforcement, rate limiting, cost tracking, CVM disclaimer
-- [ ] 12-03-PLAN.md — Async Celery task, LLM provider fallback, cache invalidation
+- [ ] 15-01-PLAN.md — Cache invalidation fix + Celery Beat nightly task (AI-13)
+- [ ] 15-02-PLAN.md — Data completeness flags + analysis history + history endpoint (AI-10)
+- [ ] 15-03-PLAN.md — Performance load test + Celery scaling validation
 
 ---
 
