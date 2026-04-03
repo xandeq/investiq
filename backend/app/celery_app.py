@@ -38,6 +38,7 @@ def create_celery_app() -> Celery:
             "app.modules.screener.tasks",
             "app.modules.market_universe.tasks",
             "app.modules.wizard.tasks",
+            "app.modules.analysis.tasks",
         ],
     )
 
