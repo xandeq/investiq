@@ -10,8 +10,10 @@
 
 ## Phases
 
-- [x] **Phase 12: Foundation (Legal + Cost Control + Async Architecture)** — Establish legal compliance, data versioning, quota system, async job infrastructure (completed 2026-03-31)
-- [x] **Phase 13: Core Analysis Engine** — DCF, earnings, dividends, sector comparison (MVP scope) (completed 2026-04-03)
+- [x] **Phase 12: Foundation (Legal + Cost Control + Async Architecture)** — Establish legal compliance, data versioning, quota system, async job infrastructure
+ (completed 2026-03-31)
+- [x] **Phase 13: Core Analysis Engine** — DCF, earnings, dividends, sector comparison (MVP scope)
+ (completed 2026-04-03)
 - [ ] **Phase 14: Differentiators & Sophistication** — LLM narratives, sensitivity analysis, user customization
 - [ ] **Phase 15: Data Quality & Advanced Features** — Cache invalidation, peer data audit, performance hardening
 - [ ] **Phase 16: Frontend Integration & Launch** — Detail page, progress UI, WebSocket, testing, production launch
@@ -86,12 +88,11 @@ Plans:
 4. Analysis quality monitoring in place: Per-LLM-call token count and cost tracked, test shows cost per analysis <$0.05 (Haiku tier), cost dashboard accessible to ops team
 5. Fallback graceful degradation: If LLM quota exhausted, analysis returns cached result with "outdated" badge and "Contact support" message (feature doesn't break)
 
-**Plans:** 3 plans
+**Plans:** 2 plans
 
 Plans:
-- [x] 12-01-PLAN.md — Analysis module foundation (models, schemas, migration, test scaffold)
-- [ ] 12-02-PLAN.md — Quota enforcement, rate limiting, cost tracking, CVM disclaimer
-- [ ] 12-03-PLAN.md — Async Celery task, LLM provider fallback, cache invalidation
+- [ ] 14-01-PLAN.md — Sector peer comparison (AI-04: calculation, task, endpoint, tests)
+- [ ] 14-02-PLAN.md — Quality validation + cost monitoring (AI-05, AI-06, AI-07 hardening + admin costs endpoint)
 
 ---
 
@@ -151,7 +152,7 @@ Plans:
 |-------|--------|----------------|-----------|
 | 12 - Foundation | Planning complete | Complete    | 2026-03-31 |
 | 13 - Core Analysis Engine | 2/2 | Complete   | 2026-04-03 |
-| 14 - Differentiators | Not started | 0/3 | - |
+| 14 - Differentiators | Planning complete | 0/2 | - |
 | 15 - Data Quality | Not started | 0/3 | - |
 | 16 - Frontend Launch | Not started | 0/3 | - |
 
