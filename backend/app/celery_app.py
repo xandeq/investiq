@@ -2,16 +2,16 @@
 
 Architecture decisions:
 - Redis is used as BOTH broker AND result backend (same Redis instance, different key namespaces)
-- Beat runs as a separate Docker service — do not embed beat in worker
+- Beat runs as a separate Docker service -- do not embed beat in worker
 - Tasks that need DB use db_sync.py (psycopg2 sync engine), NOT the asyncpg engine
 - Market hours: B3 trades Mon-Fri 10h00-17h30 BRT (UTC-3 = 13h00-20h30 UTC)
   We use 10h-17h BRT = 13h-20h UTC for conservative scheduling
 - brapi.dev Startup plan note: free tier has 15,000 req/month cap.
   At 15-min intervals, 6h market day = 24 requests/day × 20 tickers = 480 req/day.
-  Monthly: ~10,560 requests — within free tier for dev. Startup plan (R$59.99/mo) for prod.
+  Monthly: ~10,560 requests -- within free tier for dev. Startup plan (R$59.99/mo) for prod.
 
 Celery-asyncpg mismatch (critical):
-- FastAPI uses asyncpg (async-only driver) — cannot be used inside Celery sync tasks
+- FastAPI uses asyncpg (async-only driver) -- cannot be used inside Celery sync tasks
 - Celery workers use psycopg2 (sync) via db_sync.py
 - NEVER import async_session_factory from app.core.db inside Celery tasks
 """
@@ -78,7 +78,7 @@ def create_celery_app() -> Celery:
             },
             "check-price-alerts": {
                 "task": "app.modules.watchlist.tasks.check_price_alerts",
-                # Every 15 min, Mon-Fri, 10h00-17h00 BRT — aligned with quote refresh
+                # Every 15 min, Mon-Fri, 10h00-17h00 BRT -- aligned with quote refresh
                 "schedule": crontab(minute="*/15", hour="10-17", day_of_week="1-5"),
                 "args": [],
             },
@@ -90,46 +90,46 @@ def create_celery_app() -> Celery:
             },
             "refresh-screener-universe-daily": {
                 "task": "app.modules.market_universe.tasks.refresh_screener_universe",
-                # 7h BRT Mon-Fri — runs before market open at 10h BRT
+                # 7h BRT Mon-Fri -- runs before market open at 10h BRT
                 "schedule": crontab(minute=0, hour=7, day_of_week="1-5"),
                 "args": [],
             },
             "refresh-fii-metadata-weekly": {
                 "task": "app.modules.market_universe.tasks.refresh_fii_metadata",
-                # Monday at 06:00 BRT — runs before screener universe at 07h
+                # Monday at 06:00 BRT -- runs before screener universe at 07h
                 "schedule": crontab(minute=0, hour=6, day_of_week="1"),
                 "args": [],
             },
             "refresh-tesouro-rates-6h": {
                 "task": "app.modules.market_universe.tasks.refresh_tesouro_rates",
-                # Every 6 hours — ANBIMA rates update intraday
+                # Every 6 hours -- ANBIMA rates update intraday
                 "schedule": crontab(minute=0, hour="*/6"),
                 "args": [],
             },
-            “check-earnings-releases-nightly”: {
-                “task”: “analysis.check_earnings_releases”,
-                # 22h BRT, Mon-Fri — after market close and filing updates
-                “schedule”: crontab(minute=0, hour=22, day_of_week=”1-5”),
-                “args”: [],
+            "check-earnings-releases-nightly": {
+                "task": "analysis.check_earnings_releases",
+                # 22h BRT, Mon-Fri -- after market close and filing updates
+                "schedule": crontab(minute=0, hour=22, day_of_week="1-5"),
+                "args": [],
             },
             # Opportunity Detector
-            “opportunity-detector-acoes”: {
-                “task”: “opportunity_detector.scan_acoes”,
-                # Every 15min, Mon-Fri, 10h-17h BRT — aligned with quote refresh
-                “schedule”: crontab(minute=”*/15”, hour=”10-17”, day_of_week=”1-5”),
-                “args”: [],
+            "opportunity-detector-acoes": {
+                "task": "opportunity_detector.scan_acoes",
+                # Every 15min, Mon-Fri, 10h-17h BRT -- aligned with quote refresh
+                "schedule": crontab(minute="*/15", hour="10-17", day_of_week="1-5"),
+                "args": [],
             },
-            “opportunity-detector-crypto”: {
-                “task”: “opportunity_detector.scan_crypto”,
-                # Every 15min, 24/7 — crypto never sleeps
-                “schedule”: crontab(minute=”*/15”),
-                “args”: [],
+            "opportunity-detector-crypto": {
+                "task": "opportunity_detector.scan_crypto",
+                # Every 15min, 24/7 -- crypto never sleeps
+                "schedule": crontab(minute="*/15"),
+                "args": [],
             },
-            “opportunity-detector-fixed-income”: {
-                “task”: “opportunity_detector.scan_fixed_income”,
-                # Every 6h — aligned with tesouro rate refresh
-                “schedule”: crontab(minute=30, hour=”*/6”),
-                “args”: [],
+            "opportunity-detector-fixed-income": {
+                "task": "opportunity_detector.scan_fixed_income",
+                # Every 6h -- aligned with tesouro rate refresh
+                "schedule": crontab(minute=30, hour="*/6"),
+                "args": [],
             },
         },
     )
