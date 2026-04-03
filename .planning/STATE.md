@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Requirements to Phases Mapping
 status: unknown
-last_updated: "2026-04-03T00:39:50.096Z"
+last_updated: "2026-04-03T10:28:44.603Z"
 progress:
   total_phases: 5
-  completed_phases: 1
-  total_plans: 5
-  completed_plans: 5
+  completed_phases: 2
+  total_plans: 7
+  completed_plans: 6
 ---
 
 # Project State
@@ -19,12 +19,12 @@ See: .planning/PROJECT.md (updated 2026-03-31 after v1.2 planning)
 
 **Core value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada — v1.2 adds AI-driven fundamental analysis (DCF, earnings, dividends, peers)
 
-**Current focus:** Phase 13 — Core Analysis Engine (DCF real data layer complete, earnings/dividends/sector next)
+**Current focus:** Phase 14 — differentiators-sophistication
 
 ## Current Position
 
-Phase: 13
-Plan: 02 complete (all plans in phase done)
+Phase: 14 (differentiators-sophistication) — EXECUTING
+Plan: 2 of 2
 
 ## v1.1 Status Reference
 
@@ -100,6 +100,8 @@ Plan: 02 complete (all plans in phase done)
 - [Phase 13]: DCF uses net_debt (total_debt - total_cash) subtracted from EV for equity fair value per share
 - [Phase 13]: Earnings accrual ratio uses (total_debt + total_cash) as proxy for total assets (BRAPI limitation)
 - [Phase 13]: Dividend sustainability uses strict priority ordering: risk first, warning second, safe last
+- [Phase 14]: Admin costs endpoint placed before /{job_id} catch-all route in router.py to avoid 404 routing conflict
+- [Phase 14]: days param validated with le=90 via FastAPI Query — days>90 returns 422 (not clamped)
 
 ## Open Questions (resolve in Phase 12)
 
@@ -142,3 +144,4 @@ Plan: 02 complete (all plans in phase done)
 | 16 | 03-testing-launch | Planned | TBD | Regression test, security audit, production toggle |
 | Phase 13 P01 | 344 | 2 tasks | 5 files |
 | Phase 13 P02 | 339 | 2 tasks | 5 files |
+| Phase 14 P02 | 15 | 2 tasks | 2 files |

@@ -14,9 +14,9 @@
 
 ### Differentiators
 
-- [ ] **AI-05**: Analysis includes LLM narrative (plain English interpretation of numbers, key insights, caveats)
-- [ ] **AI-06**: User can see sensitivity analysis (bear/base/bull scenarios, impact on intrinsic value)
-- [ ] **AI-07**: User can customize DCF assumptions (growth rate, discount rate, terminal growth) and recalculate
+- [x] **AI-05**: Analysis includes LLM narrative (plain English interpretation of numbers, key insights, caveats)
+- [x] **AI-06**: User can see sensitivity analysis (bear/base/bull scenarios, impact on intrinsic value)
+- [x] **AI-07**: User can customize DCF assumptions (growth rate, discount rate, terminal growth) and recalculate
 
 ### Data Quality & Legal Compliance
 
