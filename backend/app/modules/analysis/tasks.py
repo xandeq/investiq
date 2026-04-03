@@ -28,6 +28,8 @@ from app.modules.analysis.providers import (
 )
 from app.modules.analysis.data import DataFetchError, fetch_fundamentals, get_selic_rate
 from app.modules.analysis.dcf import calculate_dcf_with_sensitivity, calculate_wacc, estimate_growth_rate
+from app.modules.analysis.dividend import calculate_dividend_analysis
+from app.modules.analysis.earnings import calculate_earnings_analysis
 from app.modules.analysis.versioning import build_data_version_id, get_data_sources
 
 logger = logging.getLogger(__name__)
@@ -35,6 +37,16 @@ logger = logging.getLogger(__name__)
 _STATIC_FALLBACK_NARRATIVE = (
     "Narrative generation unavailable. The DCF valuation above is based on "
     "quantitative inputs only. Please retry later for AI-generated commentary."
+)
+
+_STATIC_FALLBACK_NARRATIVE_EARNINGS = (
+    "Narrative generation unavailable. The earnings analysis above is based on "
+    "quantitative data only. Please retry later for AI-generated commentary."
+)
+
+_STATIC_FALLBACK_NARRATIVE_DIVIDEND = (
+    "Narrative generation unavailable. The dividend analysis above is based on "
+    "quantitative data only. Please retry later for AI-generated commentary."
 )
 
 
@@ -317,6 +329,281 @@ def run_dcf(
             tenant_id,
             job_id,
             "dcf",
+            ticker,
+            duration_ms=duration_ms,
+            status="failed",
+        )
+
+
+@shared_task(name="analysis.run_earnings", bind=True, max_retries=0)
+def run_earnings(
+    self,
+    job_id: str,
+    tenant_id: str,
+    ticker: str,
+) -> None:
+    """Run earnings analysis as a Celery background task.
+
+    Steps:
+    1. Check quota
+    2. Set status -> running
+    3. Fetch fundamentals from BRAPI
+    4. Calculate earnings analysis
+    5. Call LLM for narrative (PT-BR)
+    6. Build result with data versioning
+    7. Update job status -> completed
+    8. Log cost
+    """
+    logger.info("Earnings analysis started: job=%s ticker=%s", job_id, ticker)
+
+    # Step 1: Quota check
+    if not _check_and_increment_quota(tenant_id):
+        _update_job(job_id, "failed", error="Analysis quota exhausted")
+        log_analysis_cost(
+            tenant_id, job_id, "earnings", ticker, duration_ms=0, status="failed"
+        )
+        return
+
+    # Step 2: Mark running
+    _update_job(job_id, "running")
+    start_time = time.time()
+
+    llm_meta: dict = {}
+
+    try:
+        # Step 3: Fetch fundamentals
+        try:
+            fundamentals = fetch_fundamentals(ticker)
+        except DataFetchError as exc:
+            _update_job(job_id, "failed", error=f"Data fetch failed: {exc}")
+            duration_ms = int((time.time() - start_time) * 1000)
+            log_analysis_cost(
+                tenant_id, job_id, "earnings", ticker,
+                duration_ms=duration_ms, status="failed",
+            )
+            return
+
+        # Step 4: Calculate earnings analysis
+        earnings_result = calculate_earnings_analysis(fundamentals)
+
+        # Step 5: Call LLM for narrative
+        narrative = _STATIC_FALLBACK_NARRATIVE_EARNINGS
+        try:
+            qm = earnings_result.get("quality_metrics", {})
+            eps_val = fundamentals.get("eps", "N/A")
+            cagr = earnings_result.get("eps_cagr_5y")
+            cagr_str = f"{cagr:.1%}" if cagr is not None else "N/A"
+            quality = qm.get("earnings_quality", "N/A")
+            accrual = qm.get("accrual_ratio")
+            accrual_str = f"{accrual:.2f}" if accrual is not None else "N/A"
+            fcf_conv = qm.get("fcf_conversion")
+            fcf_str = f"{fcf_conv:.2f}" if fcf_conv is not None else "N/A"
+
+            prompt = (
+                f"Resuma a analise de lucros de {ticker}. "
+                f"EPS atual: R${eps_val}. "
+                f"CAGR 5 anos: {cagr_str}. "
+                f"Qualidade dos lucros: {quality}. "
+                f"Accrual ratio: {accrual_str}. "
+                f"Conversao FCF: {fcf_str}. "
+                f"Seja conciso, 2-3 frases em portugues."
+            )
+            narrative_text, llm_meta = asyncio.run(
+                call_analysis_llm(prompt, max_tokens=300)
+            )
+            narrative = narrative_text
+        except AIProviderError:
+            logger.warning(
+                "All LLM providers failed for earnings job %s — using static fallback",
+                job_id,
+            )
+            cached = _get_cached_analysis_with_outdated_badge(ticker, "earnings")
+            if cached and "narrative" in cached:
+                narrative = cached["narrative"]
+
+        # Step 6: Build result with versioning
+        data_version_id = build_data_version_id()
+        data_sources = get_data_sources()
+        data_timestamp = datetime.now(timezone.utc).isoformat()
+
+        result = {
+            "ticker": ticker,
+            "eps_history": earnings_result.get("eps_history", []),
+            "eps_cagr_5y": earnings_result.get("eps_cagr_5y"),
+            "quality_metrics": earnings_result.get("quality_metrics", {}),
+            "narrative": narrative,
+            "data_completeness": earnings_result.get("data_completeness", {}),
+            "data_version_id": data_version_id,
+            "data_timestamp": data_timestamp,
+            "data_sources": data_sources,
+            "disclaimer": CVM_DISCLAIMER_SHORT_PT,
+        }
+
+        # Step 7: Update job
+        _update_job(job_id, "completed", result_json=json.dumps(result, ensure_ascii=False))
+
+        # Step 8: Log cost
+        duration_ms = int((time.time() - start_time) * 1000)
+        log_analysis_cost(
+            tenant_id,
+            job_id,
+            "earnings",
+            ticker,
+            duration_ms=duration_ms,
+            status="completed",
+            llm_provider=llm_meta.get("provider_used"),
+            llm_model=llm_meta.get("model"),
+        )
+
+        logger.info("Earnings analysis completed: job=%s ticker=%s", job_id, ticker)
+
+    except Exception as exc:
+        duration_ms = int((time.time() - start_time) * 1000)
+        logger.error("Earnings analysis failed for job %s: %s", job_id, exc)
+        _update_job(job_id, "failed", error=str(exc)[:500])
+        log_analysis_cost(
+            tenant_id,
+            job_id,
+            "earnings",
+            ticker,
+            duration_ms=duration_ms,
+            status="failed",
+        )
+
+
+@shared_task(name="analysis.run_dividend", bind=True, max_retries=0)
+def run_dividend(
+    self,
+    job_id: str,
+    tenant_id: str,
+    ticker: str,
+) -> None:
+    """Run dividend sustainability analysis as a Celery background task.
+
+    Steps:
+    1. Check quota
+    2. Set status -> running
+    3. Fetch fundamentals from BRAPI
+    4. Calculate dividend analysis
+    5. Call LLM for narrative (PT-BR)
+    6. Build result with data versioning
+    7. Update job status -> completed
+    8. Log cost
+    """
+    logger.info("Dividend analysis started: job=%s ticker=%s", job_id, ticker)
+
+    # Step 1: Quota check
+    if not _check_and_increment_quota(tenant_id):
+        _update_job(job_id, "failed", error="Analysis quota exhausted")
+        log_analysis_cost(
+            tenant_id, job_id, "dividend", ticker, duration_ms=0, status="failed"
+        )
+        return
+
+    # Step 2: Mark running
+    _update_job(job_id, "running")
+    start_time = time.time()
+
+    llm_meta: dict = {}
+
+    try:
+        # Step 3: Fetch fundamentals
+        try:
+            fundamentals = fetch_fundamentals(ticker)
+        except DataFetchError as exc:
+            _update_job(job_id, "failed", error=f"Data fetch failed: {exc}")
+            duration_ms = int((time.time() - start_time) * 1000)
+            log_analysis_cost(
+                tenant_id, job_id, "dividend", ticker,
+                duration_ms=duration_ms, status="failed",
+            )
+            return
+
+        # Step 4: Calculate dividend analysis
+        dividend_result = calculate_dividend_analysis(fundamentals)
+
+        # Step 5: Call LLM for narrative
+        narrative = _STATIC_FALLBACK_NARRATIVE_DIVIDEND
+        try:
+            yield_val = dividend_result.get("current_yield")
+            yield_str = f"{yield_val:.1%}" if yield_val is not None else "N/A"
+            payout = dividend_result.get("payout_ratio")
+            payout_str = f"{payout:.1%}" if payout is not None else "N/A"
+            coverage = dividend_result.get("coverage_ratio")
+            coverage_str = f"{coverage:.2f}x" if coverage is not None else "N/A"
+            sust = dividend_result.get("sustainability", "N/A")
+            consistency = dividend_result.get("consistency", {})
+            score = consistency.get("score", "N/A")
+
+            prompt = (
+                f"Resuma a analise de dividendos de {ticker}. "
+                f"Yield: {yield_str}. "
+                f"Payout: {payout_str}. "
+                f"Cobertura: {coverage_str}. "
+                f"Sustentabilidade: {sust}. "
+                f"Consistencia: {score} de 5 anos. "
+                f"Seja conciso, 2-3 frases em portugues."
+            )
+            narrative_text, llm_meta = asyncio.run(
+                call_analysis_llm(prompt, max_tokens=300)
+            )
+            narrative = narrative_text
+        except AIProviderError:
+            logger.warning(
+                "All LLM providers failed for dividend job %s — using static fallback",
+                job_id,
+            )
+            cached = _get_cached_analysis_with_outdated_badge(ticker, "dividend")
+            if cached and "narrative" in cached:
+                narrative = cached["narrative"]
+
+        # Step 6: Build result with versioning
+        data_version_id = build_data_version_id()
+        data_sources = get_data_sources()
+        data_timestamp = datetime.now(timezone.utc).isoformat()
+
+        result = {
+            "ticker": ticker,
+            "current_yield": dividend_result.get("current_yield"),
+            "payout_ratio": dividend_result.get("payout_ratio"),
+            "coverage_ratio": dividend_result.get("coverage_ratio"),
+            "consistency": dividend_result.get("consistency", {}),
+            "sustainability": dividend_result.get("sustainability"),
+            "dividend_history": dividend_result.get("dividend_history", []),
+            "narrative": narrative,
+            "data_completeness": dividend_result.get("data_completeness", {}),
+            "data_version_id": data_version_id,
+            "data_timestamp": data_timestamp,
+            "data_sources": data_sources,
+            "disclaimer": CVM_DISCLAIMER_SHORT_PT,
+        }
+
+        # Step 7: Update job
+        _update_job(job_id, "completed", result_json=json.dumps(result, ensure_ascii=False))
+
+        # Step 8: Log cost
+        duration_ms = int((time.time() - start_time) * 1000)
+        log_analysis_cost(
+            tenant_id,
+            job_id,
+            "dividend",
+            ticker,
+            duration_ms=duration_ms,
+            status="completed",
+            llm_provider=llm_meta.get("provider_used"),
+            llm_model=llm_meta.get("model"),
+        )
+
+        logger.info("Dividend analysis completed: job=%s ticker=%s", job_id, ticker)
+
+    except Exception as exc:
+        duration_ms = int((time.time() - start_time) * 1000)
+        logger.error("Dividend analysis failed for job %s: %s", job_id, exc)
+        _update_job(job_id, "failed", error=str(exc)[:500])
+        log_analysis_cost(
+            tenant_id,
+            job_id,
+            "dividend",
             ticker,
             duration_ms=duration_ms,
             status="failed",

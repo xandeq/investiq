@@ -24,6 +24,8 @@ from app.modules.analysis.schemas import (
     AnalysisJobStatus,
     AnalysisResponse,
     DCFRequest,
+    DividendRequest,
+    EarningsRequest,
 )
 from app.modules.analysis.versioning import build_data_version_id, get_data_sources
 
@@ -124,6 +126,174 @@ async def request_dcf_analysis(
         job_id=job.id,
         status="pending",
         message="Analysis queued",
+    )
+
+
+@router.post(
+    "/earnings",
+    response_model=AnalysisJobStatus,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Solicitar análise de lucros (Earnings Quality)",
+    tags=["analysis"],
+)
+async def request_earnings_analysis(
+    body: EarningsRequest,
+    current_user: dict = Depends(get_current_user),
+    plan: str = Depends(get_user_plan),
+    db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+):
+    """Request an earnings quality analysis for a given ticker.
+
+    Returns 202 with job_id immediately. Poll GET /analysis/{job_id} until
+    status == 'completed' or 'failed'.
+    """
+    # Step 1: Rate limiting
+    allowed, retry_after = await check_analysis_rate_limit(tenant_id, plan)
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail={"code": "RATE_LIMITED", "retry_after": retry_after},
+            headers={"Retry-After": str(retry_after)},
+        )
+
+    # Step 2: Quota enforcement
+    quota_allowed, quota_used, quota_limit = check_analysis_quota(tenant_id, plan)
+    if not quota_allowed:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "QUOTA_EXCEEDED",
+                "message": (
+                    f"Voce atingiu o limite de {quota_limit} analises deste mes. "
+                    "Faca upgrade para continuar usando analises de IA."
+                ),
+                "quota_used": quota_used,
+                "quota_limit": quota_limit,
+                "upgrade_url": "/planos",
+            },
+        )
+
+    # Step 3: Create AnalysisJob record
+    now = datetime.now(tz=timezone.utc)
+    job = AnalysisJob(
+        tenant_id=tenant_id,
+        analysis_type="earnings",
+        ticker=body.ticker.upper(),
+        data_timestamp=now,
+        data_version_id=build_data_version_id(),
+        data_sources=json.dumps(get_data_sources()),
+        status="pending",
+    )
+    db.add(job)
+    await db.commit()
+    await db.refresh(job)
+
+    # Increment quota after successful job creation
+    increment_quota_used(tenant_id)
+
+    logger.info(
+        "analysis.job_created job_id=%s type=earnings ticker=%s tenant_id=%s",
+        job.id, body.ticker, tenant_id,
+    )
+
+    # Step 4: Dispatch Celery task
+    from app.modules.analysis.tasks import run_earnings
+
+    run_earnings.delay(
+        job_id=job.id,
+        tenant_id=tenant_id,
+        ticker=body.ticker.upper(),
+    )
+
+    return AnalysisJobStatus(
+        job_id=job.id,
+        status="pending",
+        message="Earnings analysis queued",
+    )
+
+
+@router.post(
+    "/dividend",
+    response_model=AnalysisJobStatus,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Solicitar análise de dividendos (Dividend Sustainability)",
+    tags=["analysis"],
+)
+async def request_dividend_analysis(
+    body: DividendRequest,
+    current_user: dict = Depends(get_current_user),
+    plan: str = Depends(get_user_plan),
+    db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+):
+    """Request a dividend sustainability analysis for a given ticker.
+
+    Returns 202 with job_id immediately. Poll GET /analysis/{job_id} until
+    status == 'completed' or 'failed'.
+    """
+    # Step 1: Rate limiting
+    allowed, retry_after = await check_analysis_rate_limit(tenant_id, plan)
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail={"code": "RATE_LIMITED", "retry_after": retry_after},
+            headers={"Retry-After": str(retry_after)},
+        )
+
+    # Step 2: Quota enforcement
+    quota_allowed, quota_used, quota_limit = check_analysis_quota(tenant_id, plan)
+    if not quota_allowed:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "QUOTA_EXCEEDED",
+                "message": (
+                    f"Voce atingiu o limite de {quota_limit} analises deste mes. "
+                    "Faca upgrade para continuar usando analises de IA."
+                ),
+                "quota_used": quota_used,
+                "quota_limit": quota_limit,
+                "upgrade_url": "/planos",
+            },
+        )
+
+    # Step 3: Create AnalysisJob record
+    now = datetime.now(tz=timezone.utc)
+    job = AnalysisJob(
+        tenant_id=tenant_id,
+        analysis_type="dividend",
+        ticker=body.ticker.upper(),
+        data_timestamp=now,
+        data_version_id=build_data_version_id(),
+        data_sources=json.dumps(get_data_sources()),
+        status="pending",
+    )
+    db.add(job)
+    await db.commit()
+    await db.refresh(job)
+
+    # Increment quota after successful job creation
+    increment_quota_used(tenant_id)
+
+    logger.info(
+        "analysis.job_created job_id=%s type=dividend ticker=%s tenant_id=%s",
+        job.id, body.ticker, tenant_id,
+    )
+
+    # Step 4: Dispatch Celery task
+    from app.modules.analysis.tasks import run_dividend
+
+    run_dividend.delay(
+        job_id=job.id,
+        tenant_id=tenant_id,
+        ticker=body.ticker.upper(),
+    )
+
+    return AnalysisJobStatus(
+        job_id=job.id,
+        status="pending",
+        message="Dividend analysis queued",
     )
 
 
