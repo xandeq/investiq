@@ -108,19 +108,24 @@ async def request_dcf_analysis(
         job.id, body.ticker, tenant_id,
     )
 
-    # Step 4: Dispatch Celery task (Plan 03)
-    from app.modules.analysis.tasks import run_dcf
+    # Step 4: Dispatch Celery task
+    from app.celery_app import celery_app
 
-    run_dcf.delay(
-        job_id=job.id,
-        tenant_id=tenant_id,
-        ticker=body.ticker.upper(),
-        assumptions={
-            "growth_rate": body.growth_rate,
-            "discount_rate": body.discount_rate,
-            "terminal_growth": body.terminal_growth,
-        },
-    )
+    with celery_app.connection_for_write() as conn:
+        celery_app.send_task(
+            "analysis.run_dcf",
+            kwargs={
+                "job_id": job.id,
+                "tenant_id": tenant_id,
+                "ticker": body.ticker.upper(),
+                "assumptions": {
+                    "growth_rate": body.growth_rate,
+                    "discount_rate": body.discount_rate,
+                    "terminal_growth": body.terminal_growth,
+                },
+            },
+            connection=conn,
+        )
 
     return AnalysisJobStatus(
         job_id=job.id,
@@ -198,13 +203,18 @@ async def request_earnings_analysis(
     )
 
     # Step 4: Dispatch Celery task
-    from app.modules.analysis.tasks import run_earnings
+    from app.celery_app import celery_app
 
-    run_earnings.delay(
-        job_id=job.id,
-        tenant_id=tenant_id,
-        ticker=body.ticker.upper(),
-    )
+    with celery_app.connection_for_write() as conn:
+        celery_app.send_task(
+            "analysis.run_earnings",
+            kwargs={
+                "job_id": job.id,
+                "tenant_id": tenant_id,
+                "ticker": body.ticker.upper(),
+            },
+            connection=conn,
+        )
 
     return AnalysisJobStatus(
         job_id=job.id,
@@ -282,13 +292,18 @@ async def request_dividend_analysis(
     )
 
     # Step 4: Dispatch Celery task
-    from app.modules.analysis.tasks import run_dividend
+    from app.celery_app import celery_app
 
-    run_dividend.delay(
-        job_id=job.id,
-        tenant_id=tenant_id,
-        ticker=body.ticker.upper(),
-    )
+    with celery_app.connection_for_write() as conn:
+        celery_app.send_task(
+            "analysis.run_dividend",
+            kwargs={
+                "job_id": job.id,
+                "tenant_id": tenant_id,
+                "ticker": body.ticker.upper(),
+            },
+            connection=conn,
+        )
 
     return AnalysisJobStatus(
         job_id=job.id,

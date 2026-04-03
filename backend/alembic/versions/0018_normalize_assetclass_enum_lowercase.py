@@ -32,7 +32,7 @@ from alembic import op
 
 
 revision = "0018_normalize_assetclass_enum_lowercase"
-down_revision = "0017"
+down_revision = "0017_drop_import_staging_unique_constraint"
 branch_labels = None
 depends_on = None
 
