@@ -26,6 +26,8 @@ from app.modules.analysis.providers import (
     _get_cached_analysis_with_outdated_badge,
     call_analysis_llm,
 )
+from app.modules.analysis.data import DataFetchError, fetch_fundamentals, get_selic_rate
+from app.modules.analysis.dcf import calculate_dcf_with_sensitivity, calculate_wacc, estimate_growth_rate
 from app.modules.analysis.versioning import build_data_version_id, get_data_sources
 
 logger = logging.getLogger(__name__)
@@ -108,43 +110,6 @@ def _check_and_increment_quota(tenant_id: str) -> bool:
         return False
 
 
-def _fetch_fundamentals_stub(ticker: str) -> dict:
-    """Return hardcoded sample fundamentals data.
-
-    Real BRAPI integration comes in Phase 13. This stub provides realistic
-    values for testing the full DCF pipeline.
-    """
-    return {
-        "current_price": 27.80,
-        "eps": 3.50,
-        "pe_ratio": 7.94,
-        "revenue": 500_000_000_000,
-        "free_cash_flow": 50_000_000_000,
-        "dividend_yield": 0.08,
-        "market_cap": 400_000_000_000,
-    }
-
-
-def _calculate_dcf_stub(
-    ticker: str, fundamentals: dict, assumptions: dict | None
-) -> dict:
-    """Return hardcoded DCF calculation results.
-
-    Real DCF calculation comes in Phase 13. This stub returns plausible
-    values to test the full task pipeline.
-    """
-    assumptions = assumptions or {}
-    return {
-        "fair_value": 28.50,
-        "low": 26.00,
-        "high": 31.00,
-        "upside_pct": 2.5,
-        "growth_rate": assumptions.get("growth_rate", 0.05),
-        "discount_rate": assumptions.get("discount_rate", 0.10),
-        "terminal_growth": assumptions.get("terminal_growth", 0.03),
-    }
-
-
 @shared_task(name="analysis.run_dcf", bind=True, max_retries=0)
 def run_dcf(
     self,
@@ -158,8 +123,11 @@ def run_dcf(
     Steps:
     1. Check quota
     2. Set status -> running
-    3. Fetch fundamentals (stub in Phase 12)
-    4. Calculate DCF (stub in Phase 12)
+    3. Fetch fundamentals from BRAPI (real data, cached in Redis)
+    3.5. Fetch SELIC rate from BCB
+    3.6. Calculate WACC via CAPM
+    3.7. Estimate growth rate if not provided
+    4. Calculate DCF with sensitivity analysis
     5. Call LLM for narrative (with fallback chain)
     6. Build result with data versioning metadata
     7. Update job status -> completed
@@ -168,6 +136,7 @@ def run_dcf(
     On any failure: status -> failed, cost logged.
     """
     logger.info("DCF analysis started: job=%s ticker=%s", job_id, ticker)
+    assumptions = assumptions or {}
 
     # Step 1: Quota check
     if not _check_and_increment_quota(tenant_id):
@@ -184,23 +153,94 @@ def run_dcf(
     llm_meta: dict = {}
 
     try:
-        # Step 3: Fetch fundamentals
-        fundamentals = _fetch_fundamentals_stub(ticker)
+        # Step 3: Fetch fundamentals from BRAPI
+        try:
+            fundamentals = fetch_fundamentals(ticker)
+        except DataFetchError as exc:
+            _update_job(job_id, "failed", error=f"Data fetch failed: {exc}")
+            duration_ms = int((time.time() - start_time) * 1000)
+            log_analysis_cost(
+                tenant_id, job_id, "dcf", ticker,
+                duration_ms=duration_ms, status="failed",
+            )
+            return
 
-        # Step 4: Calculate DCF
-        dcf_result = _calculate_dcf_stub(ticker, fundamentals, assumptions)
+        # Validate critical DCF field
+        if not fundamentals.get("free_cash_flow"):
+            _update_job(
+                job_id, "failed",
+                error=f"DCF requires Free Cash Flow data which is unavailable for {ticker}",
+            )
+            duration_ms = int((time.time() - start_time) * 1000)
+            log_analysis_cost(
+                tenant_id, job_id, "dcf", ticker,
+                duration_ms=duration_ms, status="failed",
+            )
+            return
+
+        # Step 3.5: Fetch SELIC rate from BCB
+        selic_rate, selic_date, selic_is_fallback = get_selic_rate()
+
+        # Step 3.6: Calculate WACC via CAPM
+        wacc = calculate_wacc(
+            selic=selic_rate,
+            beta=fundamentals.get("beta"),
+            debt=fundamentals.get("total_debt", 0) or 0,
+            equity=fundamentals.get("market_cap", 0) or 0,
+        )
+
+        # Step 3.7: Estimate growth rate if not provided by user
+        growth = assumptions.get("growth_rate") or estimate_growth_rate(
+            fundamentals.get("cashflow_history", [])
+        )
+
+        # Step 4: Calculate DCF with sensitivity
+        net_debt = (fundamentals.get("total_debt", 0) or 0) - (fundamentals.get("total_cash", 0) or 0)
+        shares = fundamentals.get("shares_outstanding")
+        if not shares or shares <= 0:
+            _update_job(
+                job_id, "failed",
+                error=f"Cannot calculate DCF: shares outstanding unavailable for {ticker}",
+            )
+            duration_ms = int((time.time() - start_time) * 1000)
+            log_analysis_cost(
+                tenant_id, job_id, "dcf", ticker,
+                duration_ms=duration_ms, status="failed",
+            )
+            return
+
+        dcf_result = calculate_dcf_with_sensitivity(
+            fcf_current=fundamentals["free_cash_flow"],
+            shares_outstanding=shares,
+            growth_rate=growth,
+            wacc=assumptions.get("discount_rate") or wacc,
+            terminal_growth=assumptions.get("terminal_growth") or 0.03,
+            net_debt=net_debt,
+        )
+
+        # Calculate upside from current price
+        current_price = fundamentals.get("current_price", 0) or 0
+        if current_price > 0 and dcf_result["fair_value"]:
+            dcf_result["upside_pct"] = round(
+                ((dcf_result["fair_value"] - current_price) / current_price) * 100, 2
+            )
 
         # Step 5: Call LLM for narrative
         narrative = _STATIC_FALLBACK_NARRATIVE
         try:
+            fv = dcf_result["fair_value"]
+            fv_range = dcf_result.get("fair_value_range", {})
+            upside = dcf_result.get("upside_pct", 0) or 0
             prompt = (
-                f"Provide a brief DCF analysis narrative for {ticker}. "
-                f"Current price: R${fundamentals['current_price']:.2f}. "
-                f"Fair value estimate: R${dcf_result['fair_value']:.2f}. "
-                f"Upside: {dcf_result['upside_pct']:.1f}%. "
-                f"Growth rate: {dcf_result['growth_rate']:.1%}. "
-                f"Discount rate: {dcf_result['discount_rate']:.1%}. "
-                f"Be concise, 2-3 sentences in Portuguese (PT-BR)."
+                f"Forneça uma breve narrativa de análise DCF para {ticker}. "
+                f"Preço atual: R${current_price:.2f}. "
+                f"Valor justo estimado: R${fv:.2f} "
+                f"(faixa: R${fv_range.get('low', 0) or 0:.2f} a R${fv_range.get('high', 0) or 0:.2f}). "
+                f"Upside: {upside:.1f}%. "
+                f"Taxa de crescimento: {growth:.1%}. "
+                f"WACC: {wacc:.1%}. "
+                f"Drivers principais: {'; '.join(dcf_result.get('key_drivers', [])[:2])}. "
+                f"Seja conciso, 2-3 frases em Português (PT-BR)."
             )
             narrative_text, llm_meta = asyncio.run(
                 call_analysis_llm(prompt, max_tokens=300)
@@ -215,26 +255,36 @@ def run_dcf(
                 narrative = cached["narrative"]
             # else: keep _STATIC_FALLBACK_NARRATIVE
 
-        # Step 6: Build result
+        # Step 6: Build result with full breakdown
         data_version_id = build_data_version_id()
         data_sources = get_data_sources()
+        # Append BCB source
+        data_sources.append({
+            "source": "BCB",
+            "type": "SELIC rate",
+            "date": selic_date,
+        })
         data_timestamp = datetime.now(timezone.utc).isoformat()
 
         result = {
             "ticker": ticker,
             "fair_value": dcf_result["fair_value"],
-            "fair_value_range": {
-                "low": dcf_result["low"],
-                "high": dcf_result["high"],
-            },
-            "current_price": fundamentals["current_price"],
-            "upside_pct": dcf_result["upside_pct"],
+            "fair_value_range": dcf_result.get("fair_value_range", {}),
+            "current_price": current_price,
+            "upside_pct": dcf_result.get("upside_pct"),
             "assumptions": {
-                "growth_rate": dcf_result["growth_rate"],
-                "discount_rate": dcf_result["discount_rate"],
-                "terminal_growth": dcf_result["terminal_growth"],
+                "growth_rate": growth,
+                "discount_rate": assumptions.get("discount_rate") or wacc,
+                "terminal_growth": assumptions.get("terminal_growth") or 0.03,
+                "selic_rate": selic_rate,
+                "beta": fundamentals.get("beta"),
+                "selic_is_fallback": selic_is_fallback,
             },
+            "projected_fcfs": dcf_result.get("projected_fcfs", []),
+            "key_drivers": dcf_result.get("key_drivers", []),
+            "scenarios": dcf_result.get("scenarios", {}),
             "narrative": narrative,
+            "data_completeness": fundamentals.get("data_completeness", {}),
             "data_version_id": data_version_id,
             "data_timestamp": data_timestamp,
             "data_sources": data_sources,

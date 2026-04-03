@@ -52,6 +52,25 @@ class DCFRequest(BaseModel):
     terminal_growth: float | None = Field(default=None, ge=0, le=0.05)
 
 
+class EarningsRequest(BaseModel):
+    """Request body for Earnings analysis (Phase 13 Plan 02)."""
+
+    ticker: str = Field(min_length=4, max_length=10)
+
+
+class DividendRequest(BaseModel):
+    """Request body for Dividend analysis (Phase 13 Plan 02)."""
+
+    ticker: str = Field(min_length=4, max_length=10)
+
+
+class SectorRequest(BaseModel):
+    """Request body for Sector peer comparison (Phase 13 Plan 02)."""
+
+    ticker: str = Field(min_length=4, max_length=10)
+    max_peers: int = Field(default=10, ge=3, le=15)
+
+
 class AnalysisJobStatus(BaseModel):
     """Lightweight status check response for async job polling."""
 
