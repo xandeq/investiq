@@ -152,7 +152,7 @@ Plans:
 |-------|--------|----------------|-----------|
 | 12 - Foundation | Planning complete | Complete    | 2026-03-31 |
 | 13 - Core Analysis Engine | 2/2 | Complete   | 2026-04-03 |
-| 14 - Differentiators | 2/2 | Complete   | 2026-04-03 |
+| 14 - Differentiators | 2/2 | Complete    | 2026-04-03 |
 | 15 - Data Quality | Not started | 0/3 | - |
 | 16 - Frontend Launch | Not started | 0/3 | - |
 
