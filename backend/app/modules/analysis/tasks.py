@@ -30,6 +30,7 @@ from app.modules.analysis.data import DataFetchError, fetch_fundamentals, get_se
 from app.modules.analysis.dcf import calculate_dcf_with_sensitivity, calculate_wacc, estimate_growth_rate
 from app.modules.analysis.dividend import calculate_dividend_analysis
 from app.modules.analysis.earnings import calculate_earnings_analysis
+from app.modules.analysis.sector import _SECTOR_TICKERS, calculate_sector_comparison, fetch_peer_fundamentals
 from app.modules.analysis.versioning import build_data_version_id, get_data_sources
 
 logger = logging.getLogger(__name__)
@@ -46,6 +47,11 @@ _STATIC_FALLBACK_NARRATIVE_EARNINGS = (
 
 _STATIC_FALLBACK_NARRATIVE_DIVIDEND = (
     "Narrative generation unavailable. The dividend analysis above is based on "
+    "quantitative data only. Please retry later for AI-generated commentary."
+)
+
+_STATIC_FALLBACK_NARRATIVE_SECTOR = (
+    "Narrative generation unavailable. The sector comparison above is based on "
     "quantitative data only. Please retry later for AI-generated commentary."
 )
 
@@ -604,6 +610,194 @@ def run_dividend(
             tenant_id,
             job_id,
             "dividend",
+            ticker,
+            duration_ms=duration_ms,
+            status="failed",
+        )
+
+
+@shared_task(name="analysis.run_sector", bind=True, max_retries=0)
+def run_sector(
+    self,
+    job_id: str,
+    tenant_id: str,
+    ticker: str,
+    max_peers: int = 10,
+) -> None:
+    """Run sector peer comparison analysis as a Celery background task.
+
+    Steps:
+    1. Check quota
+    2. Set status -> running
+    3. Fetch target fundamentals from BRAPI
+    4. Look up peer tickers from _SECTOR_TICKERS; if sector unmapped, fail gracefully
+    5. Fetch peer fundamentals (skip failures)
+    6. Calculate sector comparison
+    7. Call LLM for narrative (PT-BR, 2-3 sentences)
+    8. Build result with data versioning
+    9. Update job status -> completed
+    10. Log cost
+
+    On any failure: status -> failed, cost logged.
+    """
+    logger.info("Sector analysis started: job=%s ticker=%s max_peers=%s", job_id, ticker, max_peers)
+
+    # Step 1: Quota check
+    if not _check_and_increment_quota(tenant_id):
+        _update_job(job_id, "failed", error="Analysis quota exhausted")
+        log_analysis_cost(
+            tenant_id, job_id, "sector", ticker, duration_ms=0, status="failed"
+        )
+        return
+
+    # Step 2: Mark running
+    _update_job(job_id, "running")
+    start_time = time.time()
+
+    llm_meta: dict = {}
+
+    try:
+        # Step 3: Fetch target fundamentals
+        try:
+            target_fundamentals = fetch_fundamentals(ticker)
+        except DataFetchError as exc:
+            _update_job(job_id, "failed", error=f"Data fetch failed: {exc}")
+            duration_ms = int((time.time() - start_time) * 1000)
+            log_analysis_cost(
+                tenant_id, job_id, "sector", ticker,
+                duration_ms=duration_ms, status="failed",
+            )
+            return
+
+        # Step 4: Look up peers from sector mapping
+        sector_key = target_fundamentals.get("sector_key")
+        if not sector_key:
+            _update_job(job_id, "failed", error="Sector data unavailable for this ticker")
+            duration_ms = int((time.time() - start_time) * 1000)
+            log_analysis_cost(
+                tenant_id, job_id, "sector", ticker,
+                duration_ms=duration_ms, status="failed",
+            )
+            return
+
+        peer_tickers_all = _SECTOR_TICKERS.get(sector_key)
+        if not peer_tickers_all:
+            _update_job(
+                job_id, "failed",
+                error=f"Sector '{sector_key}' is not mapped. Cannot find peers for {ticker}.",
+            )
+            duration_ms = int((time.time() - start_time) * 1000)
+            log_analysis_cost(
+                tenant_id, job_id, "sector", ticker,
+                duration_ms=duration_ms, status="failed",
+            )
+            return
+
+        # Exclude target ticker, limit to max_peers
+        peer_tickers = [t for t in peer_tickers_all if t.upper() != ticker.upper()][:max_peers]
+
+        # Step 5: Fetch peer fundamentals (skip failures)
+        peer_fundamentals, missing_tickers = fetch_peer_fundamentals(peer_tickers, ticker)
+
+        # Inject metadata for calculate_sector_comparison to use
+        target_fundamentals = dict(target_fundamentals)
+        target_fundamentals["_peers_attempted"] = len(peer_tickers)
+        target_fundamentals["_max_peers"] = max_peers
+        target_fundamentals["_missing_tickers"] = missing_tickers
+
+        # Step 6: Calculate sector comparison
+        sector_result = calculate_sector_comparison(target_fundamentals, peer_fundamentals, ticker)
+
+        # Step 7: Call LLM for narrative
+        narrative = _STATIC_FALLBACK_NARRATIVE_SECTOR
+        try:
+            tm = sector_result.get("target_metrics", {})
+            sa = sector_result.get("sector_averages", {})
+            sector_name = sector_result.get("sector", sector_key)
+            peers_found = sector_result.get("peers_found", 0)
+
+            pe_val = tm.get("pe_ratio")
+            pb_val = tm.get("price_to_book")
+            dy_val = tm.get("dividend_yield")
+            roe_val = tm.get("roe")
+            avg_pe = sa.get("pe_ratio")
+
+            pe_str = f"{pe_val:.1f}" if pe_val is not None else "N/D"
+            pb_str = f"{pb_val:.2f}" if pb_val is not None else "N/D"
+            dy_str = f"{dy_val:.1%}" if dy_val is not None else "N/D"
+            roe_str = f"{roe_val:.1%}" if roe_val is not None else "N/D"
+            avg_pe_str = f"{avg_pe:.1f}" if avg_pe is not None else "N/D"
+
+            prompt = (
+                f"Compare {ticker} com seus pares do setor {sector_name} ({peers_found} empresas). "
+                f"Metricas de {ticker}: P/L {pe_str}, P/VP {pb_str}, DY {dy_str}, ROE {roe_str}. "
+                f"Media do setor: P/L {avg_pe_str}. "
+                f"Seja conciso, 2-3 frases em Portugues (PT-BR), destacando pontos positivos e negativos relativos ao setor."
+            )
+            narrative_text, llm_meta = asyncio.run(
+                call_analysis_llm(prompt, max_tokens=300)
+            )
+            narrative = narrative_text
+        except AIProviderError:
+            logger.warning(
+                "All LLM providers failed for sector job %s — using static fallback",
+                job_id,
+            )
+            cached = _get_cached_analysis_with_outdated_badge(ticker, "sector")
+            if cached and "narrative" in cached:
+                narrative = cached["narrative"]
+
+        # Step 8: Build result with versioning
+        data_version_id = build_data_version_id()
+        data_sources = get_data_sources()
+        data_timestamp = datetime.now(timezone.utc).isoformat()
+
+        result = {
+            "ticker": ticker,
+            "sector": sector_result.get("sector"),
+            "sector_key": sector_result.get("sector_key"),
+            "peers_found": sector_result.get("peers_found"),
+            "peers_attempted": sector_result.get("peers_attempted"),
+            "max_peers": sector_result.get("max_peers"),
+            "target_metrics": sector_result.get("target_metrics", {}),
+            "sector_averages": sector_result.get("sector_averages", {}),
+            "sector_medians": sector_result.get("sector_medians", {}),
+            "target_percentiles": sector_result.get("target_percentiles", {}),
+            "peers": sector_result.get("peers", []),
+            "data_completeness": sector_result.get("data_completeness", {}),
+            "narrative": narrative,
+            "data_version_id": data_version_id,
+            "data_timestamp": data_timestamp,
+            "data_sources": data_sources,
+            "disclaimer": CVM_DISCLAIMER_SHORT_PT,
+        }
+
+        # Step 9: Update job
+        _update_job(job_id, "completed", result_json=json.dumps(result, ensure_ascii=False))
+
+        # Step 10: Log cost
+        duration_ms = int((time.time() - start_time) * 1000)
+        log_analysis_cost(
+            tenant_id,
+            job_id,
+            "sector",
+            ticker,
+            duration_ms=duration_ms,
+            status="completed",
+            llm_provider=llm_meta.get("provider_used"),
+            llm_model=llm_meta.get("model"),
+        )
+
+        logger.info("Sector analysis completed: job=%s ticker=%s peers=%s", job_id, ticker, sector_result.get("peers_found"))
+
+    except Exception as exc:
+        duration_ms = int((time.time() - start_time) * 1000)
+        logger.error("Sector analysis failed for job %s: %s", job_id, exc)
+        _update_job(job_id, "failed", error=str(exc)[:500])
+        log_analysis_cost(
+            tenant_id,
+            job_id,
+            "sector",
             ticker,
             duration_ms=duration_ms,
             status="failed",
