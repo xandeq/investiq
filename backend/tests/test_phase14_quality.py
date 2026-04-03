@@ -415,6 +415,17 @@ def test_cost_estimate_free_tier():
 # ---------------------------------------------------------------------------
 
 
+def _make_async_db_mock():
+    """Create an async-compatible DB session mock that returns empty results."""
+    from unittest.mock import AsyncMock
+
+    mock_session = AsyncMock()
+    mock_result = MagicMock()
+    mock_result.all.return_value = []
+    mock_session.execute.return_value = mock_result
+    return mock_session
+
+
 def test_admin_costs_endpoint_returns_200():
     """GET /analysis/admin/costs returns 200 with correct structure (empty DB mock)."""
     from fastapi.testclient import TestClient
@@ -431,13 +442,7 @@ def test_admin_costs_endpoint_returns_200():
         return "tenant-123"
 
     async def override_get_authed_db():
-        mock_session = MagicMock()
-        # Return empty result for the queries
-        mock_result = MagicMock()
-        mock_result.all.return_value = []
-        mock_result.fetchall.return_value = []
-        mock_session.execute.return_value = mock_result
-        yield mock_session
+        yield _make_async_db_mock()
 
     app.dependency_overrides[get_current_user] = override_get_current_user
     app.dependency_overrides[get_current_tenant_id] = override_get_current_tenant_id
@@ -461,7 +466,7 @@ def test_admin_costs_endpoint_returns_200():
 
 
 def test_admin_costs_endpoint_validates_days():
-    """days > 90 should clamp to 90 or still return a valid response."""
+    """days > 90 should return 422 (FastAPI Query validation with le=90)."""
     from fastapi.testclient import TestClient
 
     from app.main import app
@@ -475,12 +480,7 @@ def test_admin_costs_endpoint_validates_days():
         return "tenant-123"
 
     async def override_get_authed_db():
-        mock_session = MagicMock()
-        mock_result = MagicMock()
-        mock_result.all.return_value = []
-        mock_result.fetchall.return_value = []
-        mock_session.execute.return_value = mock_result
-        yield mock_session
+        yield _make_async_db_mock()
 
     app.dependency_overrides[get_current_user] = override_get_current_user
     app.dependency_overrides[get_current_tenant_id] = override_get_current_tenant_id
@@ -496,7 +496,7 @@ def test_admin_costs_endpoint_validates_days():
     app.dependency_overrides.pop(get_current_tenant_id, None)
     app.dependency_overrides.pop(get_authed_db, None)
 
-    # Either 200 (clamp) or 422 (validation) — both are acceptable and consistent
-    assert response.status_code in (200, 422), (
-        f"Expected 200 or 422 for days=200, got {response.status_code}"
+    # days=200 exceeds le=90 limit — FastAPI should return 422 Unprocessable Entity
+    assert response.status_code == 422, (
+        f"Expected 422 for days=200 (le=90 constraint), got {response.status_code}"
     )

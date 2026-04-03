@@ -7,10 +7,10 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.middleware import get_authed_db, get_current_tenant_id
@@ -18,7 +18,7 @@ from app.core.plan_gate import get_user_plan
 from app.core.rate_limit import check_analysis_rate_limit
 from app.core.security import get_current_user
 from app.modules.analysis.constants import CVM_DISCLAIMER_SHORT_PT
-from app.modules.analysis.models import AnalysisJob
+from app.modules.analysis.models import AnalysisCostLog, AnalysisJob
 from app.modules.analysis.quota import check_analysis_quota, increment_quota_used
 from app.modules.analysis.schemas import (
     AnalysisJobStatus,
@@ -26,6 +26,7 @@ from app.modules.analysis.schemas import (
     DCFRequest,
     DividendRequest,
     EarningsRequest,
+    SectorRequest,
 )
 from app.modules.analysis.versioning import build_data_version_id, get_data_sources
 
@@ -310,6 +311,175 @@ async def request_dividend_analysis(
         status="pending",
         message="Dividend analysis queued",
     )
+
+
+@router.post(
+    "/sector",
+    response_model=AnalysisJobStatus,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Solicitar análise de comparação setorial (Sector Peer Comparison)",
+    tags=["analysis"],
+)
+async def request_sector_analysis(
+    body: SectorRequest,
+    current_user: dict = Depends(get_current_user),
+    plan: str = Depends(get_user_plan),
+    db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+):
+    """Request a sector peer comparison analysis for a given ticker.
+
+    Returns 202 with job_id immediately. Poll GET /analysis/{job_id} until
+    status == 'completed' or 'failed'.
+    """
+    # Step 1: Rate limiting
+    allowed, retry_after = await check_analysis_rate_limit(tenant_id, plan)
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail={"code": "RATE_LIMITED", "retry_after": retry_after},
+            headers={"Retry-After": str(retry_after)},
+        )
+
+    # Step 2: Quota enforcement
+    quota_allowed, quota_used, quota_limit = check_analysis_quota(tenant_id, plan)
+    if not quota_allowed:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "QUOTA_EXCEEDED",
+                "message": (
+                    f"Voce atingiu o limite de {quota_limit} analises deste mes. "
+                    "Faca upgrade para continuar usando analises de IA."
+                ),
+                "quota_used": quota_used,
+                "quota_limit": quota_limit,
+                "upgrade_url": "/planos",
+            },
+        )
+
+    # Step 3: Create AnalysisJob record
+    now = datetime.now(tz=timezone.utc)
+    job = AnalysisJob(
+        tenant_id=tenant_id,
+        analysis_type="sector",
+        ticker=body.ticker.upper(),
+        data_timestamp=now,
+        data_version_id=build_data_version_id(),
+        data_sources=json.dumps(get_data_sources()),
+        status="pending",
+    )
+    db.add(job)
+    await db.commit()
+    await db.refresh(job)
+
+    # Increment quota after successful job creation
+    increment_quota_used(tenant_id)
+
+    logger.info(
+        "analysis.job_created job_id=%s type=sector ticker=%s tenant_id=%s max_peers=%s",
+        job.id, body.ticker, tenant_id, body.max_peers,
+    )
+
+    # Step 4: Dispatch Celery task
+    from app.celery_app import celery_app
+
+    with celery_app.connection_for_write() as conn:
+        celery_app.send_task(
+            "analysis.run_sector",
+            kwargs={
+                "job_id": job.id,
+                "tenant_id": tenant_id,
+                "ticker": body.ticker.upper(),
+                "max_peers": body.max_peers,
+            },
+            connection=conn,
+        )
+
+    return AnalysisJobStatus(
+        job_id=job.id,
+        status="pending",
+        message="Sector analysis queued",
+    )
+
+
+@router.get(
+    "/admin/costs",
+    summary="Custo por tipo e por dia (admin)",
+    tags=["analysis"],
+)
+async def get_admin_costs(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+    days: int = Query(default=7, ge=1, le=90),
+):
+    """Get aggregated LLM cost data for the current tenant.
+
+    Returns cost aggregated by analysis type and by day.
+    Query param: days (1-90, default 7).
+    """
+    cutoff = datetime.now(tz=timezone.utc) - timedelta(days=days)
+
+    # Aggregate by analysis_type
+    by_type_result = await db.execute(
+        select(
+            AnalysisCostLog.analysis_type,
+            func.count(AnalysisCostLog.id).label("count"),
+            func.avg(AnalysisCostLog.duration_ms).label("avg_duration_ms"),
+            func.sum(AnalysisCostLog.estimated_cost_usd).label("total_cost_usd"),
+        )
+        .where(
+            AnalysisCostLog.tenant_id == tenant_id,
+            AnalysisCostLog.created_at >= cutoff,
+        )
+        .group_by(AnalysisCostLog.analysis_type)
+    )
+    by_type_rows = by_type_result.all()
+
+    # Aggregate by day
+    by_day_result = await db.execute(
+        select(
+            func.date(AnalysisCostLog.created_at).label("date"),
+            func.count(AnalysisCostLog.id).label("count"),
+            func.sum(AnalysisCostLog.estimated_cost_usd).label("total_cost_usd"),
+        )
+        .where(
+            AnalysisCostLog.tenant_id == tenant_id,
+            AnalysisCostLog.created_at >= cutoff,
+        )
+        .group_by(func.date(AnalysisCostLog.created_at))
+        .order_by(func.date(AnalysisCostLog.created_at).desc())
+    )
+    by_day_rows = by_day_result.all()
+
+    total_analyses = sum(row.count for row in by_type_rows)
+    total_cost_usd = float(
+        sum(float(row.total_cost_usd or 0) for row in by_type_rows)
+    )
+
+    return {
+        "period_days": days,
+        "by_type": [
+            {
+                "analysis_type": row.analysis_type,
+                "count": row.count,
+                "avg_duration_ms": int(row.avg_duration_ms or 0),
+                "total_cost_usd": float(row.total_cost_usd or 0),
+            }
+            for row in by_type_rows
+        ],
+        "by_day": [
+            {
+                "date": str(row.date),
+                "count": row.count,
+                "total_cost_usd": float(row.total_cost_usd or 0),
+            }
+            for row in by_day_rows
+        ],
+        "total_analyses": total_analyses,
+        "total_cost_usd": round(total_cost_usd, 6),
+    }
 
 
 @router.get(
