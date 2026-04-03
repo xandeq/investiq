@@ -5,6 +5,7 @@ import { AllocationChart } from "./AllocationChart";
 import { PortfolioChart } from "./PortfolioChart";
 import { MacroIndicators } from "./MacroIndicators";
 import { RecentTransactions } from "./RecentTransactions";
+import { OpportunityAlerts } from "./OpportunityAlerts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OnboardingBanner } from "@/features/onboarding/OnboardingBanner";
 
@@ -87,6 +88,9 @@ export function DashboardContent() {
       ) : data ? (
         <RecentTransactions transactions={data.recent_transactions} />
       ) : null}
+
+      {/* Row 5: Opportunity Alerts (celery-beat, every 15min) */}
+      <OpportunityAlerts />
     </div>
   );
 }
