@@ -36,6 +36,7 @@ from app.modules.comparador.router import router as comparador_router
 from app.modules.simulador.router import router as simulador_router
 from app.modules.wizard.router import router as wizard_router
 from app.modules.analysis.router import router as analysis_router
+from app.modules.fii_screener.router import router as fii_screener_router
 
 
 @asynccontextmanager
@@ -129,6 +130,8 @@ app.include_router(simulador_router, prefix="/simulador", tags=["simulador"])
 app.include_router(wizard_router, prefix="/wizard", tags=["wizard"])
 # Phase 12: AI Analysis Engine
 app.include_router(analysis_router, prefix="/analysis", tags=["analysis"])
+# Phase 17: FII Scored Screener
+app.include_router(fii_screener_router, prefix="/fii-screener", tags=["fii-screener"])
 
 
 @app.get("/health")

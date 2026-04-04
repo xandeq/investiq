@@ -188,8 +188,10 @@ def test_fii_scored_response_no_scores():
 @pytest_asyncio.fixture
 async def authed_client(client, email_stub):
     """Client with a registered and logged-in user."""
+    import uuid as _uuid
     from tests.conftest import register_verify_and_login
-    await register_verify_and_login(client, email_stub, email="fii_test@example.com")
+    unique_email = f"fii_test_{_uuid.uuid4().hex[:8]}@example.com"
+    await register_verify_and_login(client, email_stub, email=unique_email)
     return client
 
 
@@ -203,20 +205,24 @@ async def test_ranked_endpoint_requires_auth(client):
 @pytest.mark.anyio
 async def test_ranked_endpoint_ordered_by_score(authed_client, db_session):
     """Results must be ordered by score descending."""
-    import uuid
+    import uuid as _uuid
     from app.modules.market_universe.models import FIIMetadata
     from datetime import datetime, timezone
 
-    # Insert 3 FIIMetadata rows with different scores
+    # Use a unique prefix to avoid UNIQUE constraint errors across test backends
+    prefix = _uuid.uuid4().hex[:4].upper()
     now = datetime.now(timezone.utc)
+    test_tickers = [f"{prefix}1{i}1" for i in range(3)]  # e.g. AB1011, AB1111, AB1211
+    test_scores = [50, 90, 70]
+
     rows = [
         FIIMetadata(
-            id=str(uuid.uuid4()),
-            ticker=f"TSCO1{i}",
+            id=str(_uuid.uuid4()),
+            ticker=ticker,
             score=Decimal(str(score)),
             score_updated_at=now,
         )
-        for i, score in enumerate([50, 90, 70])
+        for ticker, score in zip(test_tickers, test_scores)
     ]
     for row in rows:
         db_session.add(row)
@@ -230,8 +236,8 @@ async def test_ranked_endpoint_ordered_by_score(authed_client, db_session):
     assert data["total"] >= 3
 
     # Extract scores for our test tickers
-    test_tickers = {f"TSCO1{i}" for i in range(3)}
-    test_rows = [r for r in data["results"] if r["ticker"] in test_tickers]
+    test_ticker_set = set(test_tickers)
+    test_rows = [r for r in data["results"] if r["ticker"] in test_ticker_set]
     assert len(test_rows) == 3, f"Expected 3 test rows, got {len(test_rows)}"
 
     # Verify ordering: scores should be descending
@@ -244,24 +250,27 @@ async def test_ranked_endpoint_ordered_by_score(authed_client, db_session):
 @pytest.mark.anyio
 async def test_ranked_endpoint_null_scores_at_bottom(authed_client, db_session):
     """FIIs with score=None must appear after those with a score."""
-    import uuid
+    import uuid as _uuid
     from app.modules.market_universe.models import FIIMetadata
     from datetime import datetime, timezone
 
     now = datetime.now(timezone.utc)
+    prefix = _uuid.uuid4().hex[:4].upper()
     # Row with score
     scored = FIIMetadata(
-        id=str(uuid.uuid4()),
-        ticker="SCRD11",
+        id=str(_uuid.uuid4()),
+        ticker=f"{prefix}S11",
         score=Decimal("80"),
         score_updated_at=now,
     )
     # Row without score
     unscored = FIIMetadata(
-        id=str(uuid.uuid4()),
-        ticker="NSCR11",
+        id=str(_uuid.uuid4()),
+        ticker=f"{prefix}N11",
         score=None,
     )
+    scored_ticker = scored.ticker
+    unscored_ticker = unscored.ticker
     db_session.add(scored)
     db_session.add(unscored)
     await db_session.commit()
@@ -274,11 +283,11 @@ async def test_ranked_endpoint_null_scores_at_bottom(authed_client, db_session):
 
     # Find positions of our test rows
     tickers = [r["ticker"] for r in results]
-    assert "SCRD11" in tickers, "SCRD11 not found in results"
-    assert "NSCR11" in tickers, "NSCR11 not found in results"
+    assert scored_ticker in tickers, f"{scored_ticker} not found in results"
+    assert unscored_ticker in tickers, f"{unscored_ticker} not found in results"
 
-    scored_pos = tickers.index("SCRD11")
-    unscored_pos = tickers.index("NSCR11")
+    scored_pos = tickers.index(scored_ticker)
+    unscored_pos = tickers.index(unscored_ticker)
     assert scored_pos < unscored_pos, (
         f"Scored row ({scored_pos}) should appear before null-scored row ({unscored_pos})"
     )

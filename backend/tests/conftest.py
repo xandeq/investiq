@@ -173,12 +173,17 @@ async def client(db_session, email_stub, fake_redis, fake_redis_async) -> AsyncG
     from app.modules.auth.service import AuthService
     from app.modules.market_data.service import MarketDataService
     from app.core.middleware import get_authed_db
+    from app.core.db import get_global_db
 
     async def override_get_db():
         yield db_session
 
     async def override_get_authed_db():
         """Bypass SET LOCAL for SQLite test DB — RLS isolation tested via test_rls.py."""
+        yield db_session
+
+    async def override_get_global_db():
+        """Use test DB session for global tables (screener, fii_metadata) in tests."""
         yield db_session
 
     def override_get_auth_service():
@@ -198,6 +203,7 @@ async def client(db_session, email_stub, fake_redis, fake_redis_async) -> AsyncG
 
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_authed_db] = override_get_authed_db
+    app.dependency_overrides[get_global_db] = override_get_global_db
     app.dependency_overrides[auth_get_service] = override_get_auth_service
     app.dependency_overrides[_get_redis] = override_get_redis
     app.dependency_overrides[_get_market_service] = override_get_market_service
