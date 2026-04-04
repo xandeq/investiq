@@ -32,7 +32,11 @@
 4. Usuário digita ou arrasta slider de DY mínimo (ex: 8%) e a tabela exibe apenas FIIs com DY 12m >= esse valor
 5. Usuário clica no ticker de qualquer FII na tabela e é levado para a página /fii/[ticker]
 
-**Plans:** TBD
+**Plans:** 2 plans
+
+Plans:
+- [ ] 17-01-PLAN.md — Backend: migration, model, Celery score task, API endpoint, tests
+- [ ] 17-02-PLAN.md — Frontend: screener table component, filters, page route, nav link
 
 ---
 
@@ -59,7 +63,7 @@
 
 | Phase | Status | Plans Complete | Completed |
 |-------|--------|----------------|-----------|
-| 17 - FII Screener Table | Not started | 0/? | - |
+| 17 - FII Screener Table | Planned | 0/2 | - |
 | 18 - FII Detail Page + IA | Not started | 0/? | - |
 
 **Totals:** 2 phases | 4/4 requirements mapped | 0% complete
@@ -115,4 +119,4 @@ Combining into 1 phase would create a monster phase. Splitting into 3+ phases wo
 
 *Roadmap created: 2026-04-04*
 *Milestone: InvestIQ v1.3 — FII Screener*
-*Status: Active — ready for Phase 17 planning*
+*Status: Active — Phase 17 planned (2 plans)*
