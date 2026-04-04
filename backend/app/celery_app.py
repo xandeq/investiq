@@ -112,6 +112,12 @@ def create_celery_app() -> Celery:
                 "schedule": crontab(minute=0, hour=22, day_of_week="1-5"),
                 "args": [],
             },
+            # Phase 17: FII Scored Screener -- after screener universe refresh at 07h
+            "calculate-fii-scores-daily": {
+                "task": "app.modules.market_universe.tasks.calculate_fii_scores",
+                "schedule": crontab(minute=0, hour=8),
+                "args": [],
+            },
             # Opportunity Detector
             "opportunity-detector-acoes": {
                 "task": "opportunity_detector.scan_acoes",

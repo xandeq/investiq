@@ -35,7 +35,7 @@ import os
 import time
 import uuid
 import zipfile
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
 
 import redis as redis_lib
@@ -673,3 +673,170 @@ def refresh_tesouro_rates(self) -> None:
         count += 1
 
     logger.info("refresh_tesouro_rates: done — %d bonds from %s", count, source)
+
+
+# ---------------------------------------------------------------------------
+# Helper: percentile rank calculation
+# ---------------------------------------------------------------------------
+
+def _percentile_ranks(values: list[float | None]) -> list[int | None]:
+    """Calculate percentile ranks (0-100) for a list of values.
+
+    None values are preserved as None in the output.
+    Single-element list returns [50].
+    Empty list returns [].
+
+    Args:
+        values: List of numeric values (may include None)
+
+    Returns:
+        List of integer percentile ranks (0-100), same length as input.
+        None inputs produce None outputs. Non-None values are ranked from
+        0 (lowest) to 100 (highest).
+    """
+    if not values:
+        return []
+
+    indexed = [(v, i) for i, v in enumerate(values) if v is not None]
+    if not indexed:
+        return [None] * len(values)
+
+    indexed.sort(key=lambda x: x[0])
+    n = len(indexed)
+    ranks: dict[int, int] = {}
+    if n == 1:
+        # Single non-None element: rank is 50 (median)
+        _, orig_i = indexed[0]
+        ranks[orig_i] = 50
+    else:
+        for pos, (_, orig_i) in enumerate(indexed):
+            ranks[orig_i] = round(pos / (n - 1) * 100)
+
+    return [ranks.get(i) for i in range(len(values))]
+
+
+# ---------------------------------------------------------------------------
+# Task 4: calculate_fii_scores
+# ---------------------------------------------------------------------------
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=120)
+def calculate_fii_scores(self) -> None:
+    """Calculate percentile-based composite scores for all FIIs.
+
+    Schedule: Daily at 08:00 BRT (crontab in celery_app.py)
+    DB: fii_metadata — updates score columns in-place
+
+    Score formula (locked):
+      score = DY_rank * 0.5 + PVP_rank_inverted * 0.3 + liquidity_rank * 0.2
+
+    Where ranks are percentile (0-100) within the FII universe:
+      - DY: higher is better
+      - P/VP: lower is better (rank is inverted: 100 - pvp_rank)
+      - Liquidity (volume): higher is better
+
+    FIIs missing any of the 3 metrics receive score=None.
+    """
+    from sqlalchemy import select, update, func as sa_func
+    from sqlalchemy.dialects.postgresql import insert as _pg_insert  # noqa: not used here
+
+    logger.info("calculate_fii_scores: starting")
+
+    with get_sync_db_session(tenant_id=None) as session:
+        # Get latest snapshot date
+        result = session.execute(
+            select(sa_func.max(ScreenerSnapshot.snapshot_date))
+        )
+        latest_date = result.scalar_one_or_none()
+
+        if latest_date is None:
+            logger.warning("calculate_fii_scores: no snapshot data found — aborting")
+            return
+
+        logger.info("calculate_fii_scores: using snapshot date %s", latest_date)
+
+        # Get all FII tickers (ending in 11) with their latest snapshot data
+        stmt = (
+            select(
+                FIIMetadata.id,
+                FIIMetadata.ticker,
+                ScreenerSnapshot.dy,
+                ScreenerSnapshot.pvp,
+                ScreenerSnapshot.regular_market_volume,
+                ScreenerSnapshot.short_name,
+            )
+            .outerjoin(
+                ScreenerSnapshot,
+                (FIIMetadata.ticker == ScreenerSnapshot.ticker)
+                & (ScreenerSnapshot.snapshot_date == latest_date),
+            )
+            .where(FIIMetadata.ticker.like("%11"))
+            .order_by(FIIMetadata.ticker)
+        )
+
+        rows = session.execute(stmt).fetchall()
+
+    if not rows:
+        logger.warning("calculate_fii_scores: no FII rows found — aborting")
+        return
+
+    logger.info("calculate_fii_scores: found %d FII rows", len(rows))
+
+    # Extract metric lists (preserving None for missing data)
+    fii_ids = [r.id for r in rows]
+    fii_tickers = [r.ticker for r in rows]
+    dy_values = [float(r.dy) if r.dy is not None else None for r in rows]
+    pvp_values = [float(r.pvp) if r.pvp is not None else None for r in rows]
+    volume_values = [float(r.regular_market_volume) if r.regular_market_volume is not None else None for r in rows]
+    snapshot_dy = [r.dy for r in rows]
+    snapshot_pvp = [r.pvp for r in rows]
+    snapshot_volume = [r.regular_market_volume for r in rows]
+
+    # Compute percentile ranks
+    dy_ranks = _percentile_ranks(dy_values)              # higher DY = higher rank
+    pvp_ranks_raw = _percentile_ranks(pvp_values)        # higher P/VP = higher raw rank
+    liquidity_ranks = _percentile_ranks(volume_values)   # higher volume = higher rank
+
+    # Invert PVP ranks: lower P/VP should get higher rank
+    pvp_ranks_inverted = [
+        (100 - r) if r is not None else None
+        for r in pvp_ranks_raw
+    ]
+
+    # Compute composite scores
+    scored_count = 0
+    skipped_count = 0
+    now = datetime.now(timezone.utc)
+
+    with get_sync_db_session(tenant_id=None) as session:
+        for i, (fii_id, ticker) in enumerate(zip(fii_ids, fii_tickers)):
+            dy_rank = dy_ranks[i]
+            pvp_rank_inv = pvp_ranks_inverted[i]
+            liq_rank = liquidity_ranks[i]
+
+            if any(r is None for r in [dy_rank, pvp_rank_inv, liq_rank]):
+                score = None
+                skipped_count += 1
+            else:
+                score = Decimal(str(dy_rank * 0.5 + pvp_rank_inv * 0.3 + liq_rank * 0.2))
+                scored_count += 1
+
+            session.execute(
+                update(FIIMetadata)
+                .where(FIIMetadata.id == fii_id)
+                .values(
+                    dy_12m=snapshot_dy[i],
+                    pvp=snapshot_pvp[i],
+                    daily_liquidity=snapshot_volume[i],
+                    score=score,
+                    dy_rank=dy_rank,
+                    pvp_rank=pvp_rank_inv,
+                    liquidity_rank=liq_rank,
+                    score_updated_at=now,
+                )
+            )
+
+    logger.info(
+        "calculate_fii_scores: done — %d FIIs scored, %d skipped (NULL data)",
+        scored_count,
+        skipped_count,
+    )

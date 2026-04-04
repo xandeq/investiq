@@ -64,6 +64,15 @@ class FIIMetadata(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+    # Phase 17: pre-calculated score columns (updated nightly by calculate_fii_scores task)
+    dy_12m: Mapped[Decimal | None] = mapped_column(Numeric(10, 6), nullable=True)
+    pvp: Mapped[Decimal | None] = mapped_column(Numeric(10, 4), nullable=True)
+    daily_liquidity: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    score: Mapped[Decimal | None] = mapped_column(Numeric(8, 4), nullable=True)
+    dy_rank: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    pvp_rank: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    liquidity_rank: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    score_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class FixedIncomeCatalog(Base):
