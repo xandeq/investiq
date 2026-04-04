@@ -7,9 +7,9 @@
 
 ### FII Screener
 
-- [ ] **SCRF-01**: Usuário pode ver tabela de FIIs ranqueados por score composto calculado a partir de DY 12m, P/VP e liquidez diária
-- [ ] **SCRF-02**: Usuário pode filtrar FIIs por segmento (Logística, Lajes Corporativas, Shopping, CRI/CRA, FoF, Híbrido, Residencial)
-- [ ] **SCRF-03**: Usuário pode filtrar FIIs por DY mínimo dos últimos 12 meses (slider ou input numérico)
+- [x] **SCRF-01**: Usuário pode ver tabela de FIIs ranqueados por score composto calculado a partir de DY 12m, P/VP e liquidez diária
+- [x] **SCRF-02**: Usuário pode filtrar FIIs por segmento (Logística, Lajes Corporativas, Shopping, CRI/CRA, FoF, Híbrido, Residencial)
+- [x] **SCRF-03**: Usuário pode filtrar FIIs por DY mínimo dos últimos 12 meses (slider ou input numérico)
 - [ ] **SCRF-04**: Usuário pode ver página de detalhe de um FII (`/fii/[ticker]`) com histórico de DY, P/VP, dados básicos do portfólio e análise IA assíncrona (narrativa sobre qualidade de dividendo, P/VP e sustentabilidade dos proventos)
 
 ## v2 Requirements (Deferred)
@@ -47,9 +47,9 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SCRF-01 | Phase 17 | Pending |
-| SCRF-02 | Phase 17 | Pending |
-| SCRF-03 | Phase 17 | Pending |
+| SCRF-01 | Phase 17 | Complete |
+| SCRF-02 | Phase 17 | Complete |
+| SCRF-03 | Phase 17 | Complete |
 | SCRF-04 | Phase 18 | Pending |
 
 **Coverage:**
