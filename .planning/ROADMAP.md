@@ -10,7 +10,7 @@
 
 ## Phases
 
-- [ ] **Phase 17: FII Screener Table** — Tabela de FIIs ranqueada por score composto com filtros por segmento e DY mínimo
+- [x] **Phase 17: FII Screener Table** — Tabela de FIIs ranqueada por score composto com filtros por segmento e DY mínimo (completed 2026-04-04)
 - [ ] **Phase 18: FII Detail Page + IA Analysis** — Página /fii/[ticker] com histórico DY/P/VP, portfólio básico e análise IA assíncrona
 
 ---
@@ -32,11 +32,11 @@
 4. Usuário digita ou arrasta slider de DY mínimo (ex: 8%) e a tabela exibe apenas FIIs com DY 12m >= esse valor
 5. Usuário clica no ticker de qualquer FII na tabela e é levado para a página /fii/[ticker]
 
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 17-01-PLAN.md — Backend: migration, model, Celery score task, API endpoint, tests
-- [ ] 17-02-PLAN.md — Frontend: screener table component, filters, page route, nav link
+- [x] 17-02-PLAN.md — Frontend: screener table component, filters, page route, nav link
 
 ---
 
@@ -63,7 +63,7 @@ Plans:
 
 | Phase | Status | Plans Complete | Completed |
 |-------|--------|----------------|-----------|
-| 17 - FII Screener Table | 1/2 | In Progress|  |
+| 17 - FII Screener Table | 2/2 | Complete   | 2026-04-04 |
 | 18 - FII Detail Page + IA | Not started | 0/? | - |
 
 **Totals:** 2 phases | 4/4 requirements mapped | 0% complete

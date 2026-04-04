@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Requirements to Phases Mapping
 status: unknown
-last_updated: "2026-04-04T19:20:47.490Z"
+last_updated: "2026-04-04T19:36:29.746Z"
 progress:
   total_phases: 2
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -118,6 +118,8 @@ Phase 18: FII Detail + IA       [ NOT STARTED ]
 - **2026-04-04 Roadmap:** Score formula with percentile ranks (not absolute values) — normalizes across FII universe regardless of absolute DY/P/VP levels
 - [Phase 17]: Percentile rank single-element returns 50 (median) to avoid unfair extreme ranking in sparse FII data
 - [Phase 17]: Score stored as Decimal(str(float)) to preserve precision without floating-point drift
+- [Phase 17]: Page created at frontend/app/fii/screener/ (not frontend/src/app/) — Next.js appDir is frontend/app/
+- [Phase 17]: Client-side filtering with useMemo avoids API roundtrips — ~400 FIIs fits in browser memory
 
 ## Open Questions (resolve in Phase 17)
 
@@ -145,3 +147,4 @@ Phase 18: FII Detail + IA       [ NOT STARTED ]
 | 17 | TBD | Not started | TBD | Score calc + Celery task + API endpoint + frontend screener table |
 | 18 | TBD | Not started | TBD | Detail page + historical charts + IA job + Playwright tests |
 | Phase 17 P01 | 590 | 2 tasks | 10 files |
+| Phase 17 P02 | 12m | 2 tasks | 6 files |
