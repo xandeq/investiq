@@ -1,14 +1,14 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.3
-milestone_name: FII Screener
-status: roadmap_ready
-last_updated: "2026-04-04T00:00:00-03:00"
+milestone_name: Requirements to Phases Mapping
+status: unknown
+last_updated: "2026-04-04T19:20:47.490Z"
 progress:
   total_phases: 2
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 2
+  completed_plans: 1
 ---
 
 # Project State
@@ -19,14 +19,12 @@ See: .planning/PROJECT.md (updated 2026-04-04 after v1.3 milestone start)
 
 **Core value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada — v1.3 adds FII screener with composite score + filterable table + detail page with async IA analysis
 
-**Current focus:** Phase 17 — FII Screener Table (ready to plan)
+**Current focus:** Phase 17 — fii-screener-table
 
 ## Current Position
 
-Phase: 17 (not started — roadmap defined, awaiting plan-phase)
-Plan: —
-Status: Roadmap created, ready for /gsd:plan-phase 17
-Last activity: 2026-04-04 — v1.3 roadmap created (2 phases, 4 requirements mapped)
+Phase: 17 (fii-screener-table) — EXECUTING
+Plan: 2 of 2
 
 ## Progress Bar
 
@@ -53,6 +51,7 @@ Phase 18: FII Detail + IA       [ NOT STARTED ]
 ## Accumulated Context
 
 ### Infrastructure
+
 - **Stack:** FastAPI + SQLAlchemy async + Next.js 15 + PostgreSQL + Redis + Celery
 - **Deploy:** `docker cp` → `docker compose restart` (NOT docker build — apt-get fails on VPS network)
 - **VPS:** 185.173.110.180, path: /app/financas/
@@ -60,17 +59,20 @@ Phase 18: FII Detail + IA       [ NOT STARTED ]
 - **Stripe LIVE:** price_1TC56FCA1CPHCF6PKQ5XmUWD (R$29,90/mês)
 
 ### Data Sources
+
 - **BRAPI:** Token available (free, 15k req/month) — B3 quotes + dividendsData + summaryProfile
 - **FII endpoint:** `/v2/quote/{ticker}?modules=dividendsData,summaryProfile`
 - **DY 12m:** Sum of dividendsData.cashDividends for last 12 months / current price
 - **MODULES_NOT_AVAILABLE:** BRAPI can return this for some tickers — adapter must fall back to base quote fields (already implemented in v1.2 brapi.py)
 
 ### Existing FII Infrastructure (from v1.1)
+
 - `global_fiis` table exists with FII metadata (ticker, segmento, nome)
 - Celery beat FII metadata pipeline runs nightly — already fetches basic data
 - `get_global_db` pattern established for global (non-tenant) tables
 
 ### v1.2 Patterns to Reuse in v1.3
+
 - **Async job pattern:** POST analysis → returns job_id immediately → GET /analysis/{job_id} for result (Celery)
 - **LLM provider chain:** Claude Haiku (OpenRouter) → Groq fallback — never hardcode keys
 - **CVM disclaimer component:** Built in Phase 12 — reuse as-is for FII IA analysis
@@ -78,12 +80,14 @@ Phase 18: FII Detail + IA       [ NOT STARTED ]
 - **`get_global_db`:** FII screener data is global (not per-tenant) — same pattern as existing screener
 
 ### Testing
+
 - **Current test count:** 257+ passing (v1.2 baseline)
 - **Playwright E2E:** 72 tests passing — maintain when adding new pages
 
 ## v1.3 Architecture Decisions
 
 ### Score Formula
+
 - `normalized_score = (DY_rank * 0.5) + (P_VP_rank * 0.3) + (liquidity_rank * 0.2)`
 - Ranks are percentile (0–100) within FII universe
 - DY: higher = better (higher rank = higher DY)
@@ -92,15 +96,18 @@ Phase 18: FII Detail + IA       [ NOT STARTED ]
 - Recalculated nightly via Celery beat after FII metadata pipeline
 
 ### Migration Strategy
+
 - Add columns to `global_fiis`: `score`, `dy_rank`, `pvp_rank`, `liquidity_rank`, `dy_12m`, `pvp`, `daily_liquidity`, `score_updated_at`
 - New migration (0020+)
 
 ### FII IA Analysis
+
 - New Celery task: `run_fii_analysis` — reuses AnalysisJob model or new FiiAnalysisJob model
 - Prompt scope: dividend quality, DY sustainability (payout > income = unsustainable), P/VP vs historical average, portfolio concentration risk
 - Reuse LLM provider fallback chain from v1.2
 
 ### Frontend Pages
+
 - `/fii/screener` — new page with table + filters (segment dropdown + DY slider)
 - `/fii/[ticker]` — detail page with historical charts + portfolio section + IA analysis card
 
@@ -109,6 +116,8 @@ Phase 18: FII Detail + IA       [ NOT STARTED ]
 - **2026-04-04 Roadmap:** 2 phases for 4 requirements — natural split: screener table (Phase 17) vs detail page (Phase 18)
 - **2026-04-04 Roadmap:** Reuse all v1.2 patterns: async jobs, LLM provider chain, CVM disclaimer, WebSocket polling
 - **2026-04-04 Roadmap:** Score formula with percentile ranks (not absolute values) — normalizes across FII universe regardless of absolute DY/P/VP levels
+- [Phase 17]: Percentile rank single-element returns 50 (median) to avoid unfair extreme ranking in sparse FII data
+- [Phase 17]: Score stored as Decimal(str(float)) to preserve precision without floating-point drift
 
 ## Open Questions (resolve in Phase 17)
 
@@ -119,11 +128,13 @@ Phase 18: FII Detail + IA       [ NOT STARTED ]
 ## Performance Metrics
 
 **v1.2 baseline:**
+
 - Test count: 257+ passing
 - Playwright E2E: 72 passing
 - Lines of code: ~24K Python backend + ~12K TypeScript frontend
 
 **v1.3 targets:**
+
 - Maintain 257+ unit tests passing
 - Maintain 72 Playwright tests passing (+ new FII screener E2E)
 - Screener table load: <500ms (data pre-calculated nightly)
@@ -133,3 +144,4 @@ Phase 18: FII Detail + IA       [ NOT STARTED ]
 |-------|------|--------|----------|-------|
 | 17 | TBD | Not started | TBD | Score calc + Celery task + API endpoint + frontend screener table |
 | 18 | TBD | Not started | TBD | Detail page + historical charts + IA job + Playwright tests |
+| Phase 17 P01 | 590 | 2 tasks | 10 files |

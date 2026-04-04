@@ -32,10 +32,10 @@
 4. Usuário digita ou arrasta slider de DY mínimo (ex: 8%) e a tabela exibe apenas FIIs com DY 12m >= esse valor
 5. Usuário clica no ticker de qualquer FII na tabela e é levado para a página /fii/[ticker]
 
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
-- [ ] 17-01-PLAN.md — Backend: migration, model, Celery score task, API endpoint, tests
+- [x] 17-01-PLAN.md — Backend: migration, model, Celery score task, API endpoint, tests
 - [ ] 17-02-PLAN.md — Frontend: screener table component, filters, page route, nav link
 
 ---
@@ -63,7 +63,7 @@ Plans:
 
 | Phase | Status | Plans Complete | Completed |
 |-------|--------|----------------|-----------|
-| 17 - FII Screener Table | Planned | 0/2 | - |
+| 17 - FII Screener Table | 1/2 | In Progress|  |
 | 18 - FII Detail Page + IA | Not started | 0/? | - |
 
 **Totals:** 2 phases | 4/4 requirements mapped | 0% complete
