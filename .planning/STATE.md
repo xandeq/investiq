@@ -1,30 +1,32 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: Requirements to Phases Mapping
-status: unknown
-last_updated: "2026-04-03T10:32:47.601Z"
+milestone: v1.3
+milestone_name: FII Screener
+status: in_progress
+last_updated: "2026-04-04T00:00:00-03:00"
 progress:
-  total_phases: 5
-  completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-31 after v1.2 planning)
+See: .planning/PROJECT.md (updated 2026-04-04 after v1.3 milestone start)
 
-**Core value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada — v1.2 adds AI-driven fundamental analysis (DCF, earnings, dividends, peers)
+**Core value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada — v1.3 adds FII screener with composite score + detail page with IA analysis
 
-**Current focus:** Phase 14 — differentiators-sophistication
+**Current focus:** Defining requirements
 
 ## Current Position
 
-Phase: 15
-Plan: Not started
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-04 — Milestone v1.3 started
 
 ## v1.1 Status Reference
 
@@ -104,6 +106,28 @@ Plan: Not started
 - [Phase 14]: days param validated with le=90 via FastAPI Query — days>90 returns 422 (not clamped)
 - [Phase 14]: BRAPI has no sector-listing endpoint — hardcoded _SECTOR_TICKERS dict with 11 B3 sectors is the correct peer lookup approach
 - [Phase 14]: fetch_fundamentals() does not return ticker field — inject as _ticker private key so calculate_sector_comparison() can identify each peer
+- [Phase 15]: on_earnings_release is sync and invalidates Redis key brapi:fundamentals:{TICKER}
+- [Phase 15]: check_earnings_releases Beat task runs nightly at 22h BRT Mon-Fri and polls at most 50 recent tickers
+- [Phase 15]: successful refreshes archive older completed jobs for the same tenant+ticker+analysis_type as stale
+- [Post-deploy 2026-04-03]: BRAPI can return `MODULES_NOT_AVAILABLE` for many tickers on the current plan; local adapter now falls back to base quote fields instead of treating that as a hard failure
+- [Post-deploy 2026-04-03]: `/portfolio/benchmarks` 500 was caused by legacy `market:quote:IBOV` shape in Redis; `refresh_quotes()` now writes normalized quote payloads and `MarketDataService.get_quote()` accepts the legacy `regularMarket*` payload during transition
+- [Post-deploy 2026-04-03]: Auth/dashboard/screener/wizard E2E specs were updated to current routes/UI copy; `/onde-investir` is no longer the active wizard route
+
+## Latest Session Handoff (2026-04-03 — session 2)
+
+### What was done
+- Deployed `backend/app/modules/market_data/adapters/brapi.py` (MODULES_NOT_AVAILABLE fallback) to VPS via `docker cp` + container restart (backend + celery-worker).
+- Validated fallback: BBDC4, WEGE3, ABEV3, BOVA11 all return data gracefully instead of raising 400.
+- Ran full 72-test Playwright suite → **72 passed, 0 failed**.
+
+### Current position
+- Phase 15 Plan 01: ✅ COMPLETE + DEPLOYED
+- Phase 15 Plan 02: NOT STARTED
+- All production validations closed.
+
+### Resume from
+- Start `15-02-PLAN.md` directly.
+- No pending deploys or validations.
 
 ## Open Questions (resolve in Phase 12)
 
@@ -138,7 +162,7 @@ Plan: Not started
 | 14 | 01-llm-narrative | Planned | TBD | Claude Haiku integration, narrative generation, validation |
 | 14 | 02-sensitivity | Planned | TBD | Bear/base/bull scenarios, input ranges, comparisons |
 | 14 | 03-customization | Planned | TBD | Frontend form, assumption inputs, recalculation |
-| 15 | 01-cache-invalidation | Planned | TBD | Event-driven invalidation, earnings feed integration |
+| 15 | 01-cache-invalidation | Complete | 2026-04-03 | Event-driven invalidation, earnings feed integration |
 | 15 | 02-data-quality | Planned | TBD | Peer audit, completeness flags, bias testing |
 | 15 | 03-performance | Planned | TBD | Load test, scaling validation, p95 latency <30s |
 | 16 | 01-detail-page | Planned | TBD | Stock detail layout, all analysis sections, disclaimer |

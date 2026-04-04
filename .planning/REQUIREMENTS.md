@@ -1,95 +1,62 @@
-# Requirements: InvestIQ v1.2 — AI Analysis Engine
+# Requirements: InvestIQ v1.3 — FII Screener
 
-**Defined:** 2026-03-31
-**Core Value:** O usuário vê análise fundamentalista de nível institucional (DCF, earnings, dividendos, peers) em um click — sem abrir Bloomberg, sem virar planilha
+**Defined:** 2026-04-04
+**Core Value:** O usuário encontra os melhores FIIs para o seu perfil em segundos — ranqueados por score composto, filtráveis por segmento e DY, com página de detalhe e análise IA
 
-## v1.2 Requirements
+## v1.3 Requirements
 
-### Core Analysis
+### FII Screener
 
-- [x] **AI-01**: User can view DCF valuation (intrinsic value calculation, sensitivity to assumptions)
-- [x] **AI-02**: User can view earnings analysis (historical + forecast, growth rates, earnings quality metrics)
-- [x] **AI-03**: User can view dividend yield + sustainability check (payout ratio, coverage, risk flag if unsustainable)
-- [x] **AI-04**: User can view sector peer comparison (stock vs 5-10 peers on valuation, growth, yield with data completeness)
+- [ ] **SCRF-01**: Usuário pode ver tabela de FIIs ranqueados por score composto calculado a partir de DY 12m, P/VP e liquidez diária
+- [ ] **SCRF-02**: Usuário pode filtrar FIIs por segmento (Logística, Lajes Corporativas, Shopping, CRI/CRA, FoF, Híbrido, Residencial)
+- [ ] **SCRF-03**: Usuário pode filtrar FIIs por DY mínimo dos últimos 12 meses (slider ou input numérico)
+- [ ] **SCRF-04**: Usuário pode ver página de detalhe de um FII (`/fii/[ticker]`) com histórico de DY, P/VP, dados básicos do portfólio e análise IA assíncrona (narrativa sobre qualidade de dividendo, P/VP e sustentabilidade dos proventos)
 
-### Differentiators
+## v2 Requirements (Deferred)
 
-- [x] **AI-05**: Analysis includes LLM narrative (plain English interpretation of numbers, key insights, caveats)
-- [x] **AI-06**: User can see sensitivity analysis (bear/base/bull scenarios, impact on intrinsic value)
-- [x] **AI-07**: User can customize DCF assumptions (growth rate, discount rate, terminal growth) and recalculate
+### FII Screener Avançado
 
-### Data Quality & Legal Compliance
+- **SCRF-05**: Usuário pode filtrar FIIs por vacância física máxima
+- **SCRF-06**: Usuário pode filtrar FIIs por número mínimo de imóveis no portfólio
+- **SCRF-07**: Usuário pode comparar 2-3 FIIs lado a lado
 
-- [ ] **AI-08**: All analyses timestamped with data version (show "Analysis as of [date] using [data source v1.2]")
-- [ ] **AI-09**: CVM-compliant disclaimers visible on-feature (educational, not investment advice; not personal recommendation)
-- [ ] **AI-10**: Peer comparison shows data completeness (e.g., "7 of 10 peers included; 2 missing earnings, 1 recent IPO")
+### Screener Ações Avançado
 
-### Operations & Cost Control
+- **SCRA-01**: Usuário pode filtrar screener de ações por DY mínimo
+- **SCRA-02**: Usuário pode filtrar screener de ações por P/L máximo
+- **SCRA-03**: Usuário pode filtrar screener de ações por setor B3
 
-- [ ] **AI-11**: Rate limiting + per-plan quotas enforced (Free: 0, Pro: 50/month, Enterprise: 500/month)
-- [ ] **AI-12**: Analysis jobs are async (Celery pattern, no sync LLM calls in request, status polling)
-- [ ] **AI-13**: Analysis cached 24h by default, auto-invalidated on earnings release or manual "Refresh"
+### Outros
 
-### User Experience
+- **RF-01–03**: Catálogo Renda Fixa frontend
+- **COMP-01–02**: Comparador RF vs RV
+- **SIM-01–03**: Simulador de Alocação
+- **MON-04**: Admin Dashboard
+- **AUTH-05**: PostgreSQL RLS enforcement
 
-- [ ] **AI-14**: Per-stock detail page displays analysis results (single unified view, not scattered)
-- [ ] **AI-15**: Analysis load time target 30-60s (async job, progress indicator, WebSocket notification on complete)
-
-## v2 Requirements
-
-Deferred to future release. Tracked but not in current roadmap.
-
-### Portfolio-Level Insights
-
-- **AI-16**: Portfolio concentration analysis (top 5 holdings risk, correlation heatmap)
-- **AI-17**: Rebalance suggestions (current allocation vs strategy target, reorder recommendations)
-- **AI-18**: Downside risk metrics (max drawdown, value at risk by sector)
-
-### Advanced Features
-
-- **AI-19**: Analysis export (PDF report with charts, assumptions, rationale)
-- **AI-20**: Analysis history (compare old vs new analysis, track estimate changes)
-- **AI-21**: Multi-currency support (BRL + USD + EUR valuations)
-
-## Out of Scope
+## Out of Scope (v1.3)
 
 | Feature | Reason |
 |---------|--------|
-| Real-time fundamental updates | Earnings released irregularly; daily batch sufficient |
-| Copy trading based on analysis | Regulatory complexity; outside initial scope |
-| Automated trading alerts | System designed for analysis, not execution |
-| Real estate/crypto analysis | Focus on B3 stocks only; other assets add complexity |
-| Backtesting historical analysis accuracy | Too early; launch first, audit results after 3 months |
+| Vacância física em tempo real | Sem API pública confiável — FIIs.community inconsistente; adiar para v1.4+ |
+| Comparação multi-FII | Aumenta complexidade sem ser bloqueante para o screener |
+| Alertas de DY por FII | Infraestrutura de notificação existe mas escopo não inclui FIIs ainda |
+| FII vs benchmark (IFIX) | Útil mas não crítico para o screener inicial |
 
 ## Traceability
 
-Mapping requirements to roadmap phases. Updated during roadmap creation.
-
-| Requirement | Phase | Category | Status |
-|-------------|-------|----------|--------|
-| AI-01 | 13 | Core Analysis | Pending |
-| AI-02 | 13 | Core Analysis | Pending |
-| AI-03 | 13 | Core Analysis | Pending |
-| AI-04 | 13 | Core Analysis | Pending |
-| AI-05 | 14 | Differentiators | Pending |
-| AI-06 | 14 | Differentiators | Pending |
-| AI-07 | 14 | Differentiators | Pending |
-| AI-08 | 12 | Data Quality/Legal | Pending |
-| AI-09 | 12 | Data Quality/Legal | Pending |
-| AI-10 | 15 | Data Quality/Legal | Pending |
-| AI-11 | 12 | Operations | Pending |
-| AI-12 | 12 | Operations | Pending |
-| AI-13 | 15 | Operations | Pending |
-| AI-14 | 16 | UX | Pending |
-| AI-15 | 16 | UX | Pending |
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| SCRF-01 | Phase 17 | Pending |
+| SCRF-02 | Phase 17 | Pending |
+| SCRF-03 | Phase 17 | Pending |
+| SCRF-04 | Phase 18 | Pending |
 
 **Coverage:**
-- v1.2 requirements: 15 total
-- Mapped to phases: 15 ✓
+- v1.3 requirements: 4 total
+- Mapped to phases: 4
 - Unmapped: 0 ✓
-- **Coverage: 100%**
 
 ---
-
-*Requirements defined: 2026-03-31*
-*Last updated: 2026-03-31 after roadmap creation*
+*Requirements defined: 2026-04-04*
+*Last updated: 2026-04-04 after v1.3 milestone start*

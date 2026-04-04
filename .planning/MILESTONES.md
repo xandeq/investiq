@@ -1,5 +1,28 @@
 # InvestIQ — Milestones
 
+## ✅ v1.2 — AI Analysis Engine (2026-04-04)
+
+**Phases:** 12–16 | **Plans:** 8 | **Timeline:** 2026-03-31 → 2026-04-04
+
+**Delivered:** Motor de análise assíncrono por ação com DCF, earnings, dividendos e comparação setorial. Página /stock/[ticker] em produção. Narrativas em PT-BR via Claude Haiku + Groq fallback. OpportunityAlerts no dashboard (top 30 IBOV + Bitcoin + RF). Cache invalidation automático em earnings release.
+
+**Key accomplishments:**
+1. Async Celery job pattern para análise (reusou wizard) — POST retorna job_id, GET /analysis/{job_id} retorna resultado
+2. DCF com bear/base/bull scenarios, pressupostos customizáveis (growth rate, discount rate, terminal growth)
+3. Earnings analysis: EPS histórico, accrual ratio, FCF conversion, qualidade via BRAPI
+4. Dividend sustainability: DY, payout ratio, coverage ratio, safety flag
+5. Sector comparison: 11 setores B3 hardcoded, 5-10 peers via BRAPI, completeness reporting
+6. LLM narratives: Claude Haiku → Groq fallback, PT-BR, CVM disclaimer on-feature
+7. OpportunityAlerts: UserInsight model, auto-refresh 15min, badge não lidos
+8. Frontend: /stock/[ticker] com 4 análise sections, progress spinners, WebSocket polling
+
+**Known Gaps (passed to v1.3+):**
+- SCRF-01–04 (FII screener) — backend pipeline pronto, frontend pendente
+- SCRA-01–03 (screener avançado ações), RF-01–03 (catálogo RF frontend)
+- COMP-01–02, SIM-01–03, MON-04, AUTH-05
+
+---
+
 ## ✅ v1.1 — Onde Investir (2026-03-28)
 
 **Phases:** 7, 11 | **Plans:** 4 | **Timeline:** 2026-03-21 → 2026-03-28

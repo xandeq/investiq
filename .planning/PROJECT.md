@@ -84,30 +84,34 @@ O usuário controla toda sua carteira em um lugar só, com análise financeira d
 - **DB Migrations:** 0019 (head)
 - **Stripe:** LIVE — price_1TC56FCA1CPHCF6PKQ5XmUWD (R$29,90/mês)
 
-## Current Milestone: v1.2 AI Analysis Engine
+## ✅ v1.2 AI Analysis Engine — SHIPPED 2026-04-04
 
-**Goal:** Give users institutional-grade analysis on any stock (DCF, earnings, dividend yield, sector comparison) in a per-stock detail page — async on-demand, 30-60s turnaround like the wizard.
-
-**Target features:**
-- Per-stock detail page with DCF valuation (intrinsic value vs market price)
-- Earnings analysis (historical + forecast, growth rates, quality metrics)
-- Dividend sustainability check (payout ratio, coverage, safety)
-- Sector comparison widget (stock vs peers on valuation, growth, yield)
-- Async Celery job infrastructure (reuse wizard pattern)
-- LLM-generated narrative (plain English interpretation of numbers)
-
-**Phase count:** TBD (roadmapper will define)
-**Timeline:** TBD
+Fases 12–16 completas e deployadas. Página /stock/[ticker] com DCF + earnings + dividendos + sector comparison + narrativa IA + OpportunityAlerts no dashboard.
 
 ---
 
-## Future Milestone Items (Post-v1.2)
+## Current Milestone: v1.3 FII Screener
+
+**Goal:** Dar ao usuário uma tela de screener de FIIs com score composto + filtros por segmento e DY mínimo, e uma página de detalhe por FII com histórico, portfólio e análise IA.
+
+**Target features:**
+- Tabela de FIIs ranqueados por score composto (DY 12m + P/VP + liquidez diária)
+- Filtros: segmento (Logística, Lajes, Shopping, CRI/CRA, FoF...) e DY mínimo 12m
+- Colunas: Score, Rank, DY 12m, P/VP, Liquidez Diária
+- Página detalhe /fii/[ticker] — igual /stock mas para FIIs: histórico DY, P/VP, portfólio de imóveis, narrativa IA
+
+**Phase count:** TBD (roadmapper will define)
+**Starts at:** Phase 17
+
+---
+
+## Future Milestone Items (Post-v1.3)
 
 Priority items from Active requirements:
-1. FII screener + Ações filtros avançados — SCRF + SCRA-01–03
-2. Renda fixa catalog frontend — RF-01–03
+1. Screener ações: filtros avançados — SCRA-01–03
+2. Catálogo Renda Fixa frontend — RF-01–03
 3. Simulador de alocação — SIM-01–03
 4. Admin dashboard — MON-04
 
 ---
-*Last updated: 2026-03-31 after v1.2 planning start*
+*Last updated: 2026-04-04 after v1.3 milestone start*
