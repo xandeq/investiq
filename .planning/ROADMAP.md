@@ -55,7 +55,11 @@ Plans:
 4. Usuário clica "Gerar Análise IA" e recebe job_id imediatamente; enquanto o job processa, vê spinner com "Analisando..."; ao completar, vê narrativa em PT-BR sobre qualidade do dividendo, sustentabilidade dos proventos e posicionamento do P/VP vs histórico
 5. Análise IA exibe CVM disclaimer visível antes do conteúdo gerado ("Análise educacional — não é recomendação de investimento")
 
-**Plans:** TBD
+**Plans:** 2 plans
+
+Plans:
+- [ ] 18-01-PLAN.md — Backend: fetch_fii_data helper, run_fii_analysis Celery task, POST /analysis/fii/{ticker} endpoint, tests
+- [ ] 18-02-PLAN.md — Frontend: /fii/[ticker] page, FIIDetailContent, DY/P/VP charts, portfolio section, IA analysis card
 
 ---
 
