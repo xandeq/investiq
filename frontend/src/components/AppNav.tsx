@@ -12,6 +12,7 @@ import {
   BrainCircuit,
   Eye,
   ListChecks,
+  Zap,
   User,
   Upload,
   CreditCard,
@@ -75,11 +76,12 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "IA & Análise",
     icon: Sparkles,
-    activePrefixes: ["/ai", "/insights"],
+    activePrefixes: ["/ai", "/insights", "/opportunity-detector"],
     items: [
       { href: "/ai/advisor", label: "Advisor de Carteira", icon: BrainCircuit },
       { href: "/ai", label: "Análise de Ativo", icon: BrainCircuit, exact: true },
       { href: "/insights", label: "Insights", icon: ListChecks },
+      { href: "/opportunity-detector", label: "Oportunidades", icon: Zap },
     ],
   },
   {
