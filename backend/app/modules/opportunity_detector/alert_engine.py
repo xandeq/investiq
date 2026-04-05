@@ -89,6 +89,53 @@ def send_email(subject: str, html_body: str, to_email: str | None = None) -> boo
         return False
 
 
+def save_opportunity_to_db(report) -> bool:
+    """Persist detected opportunity to detected_opportunities table.
+
+    Uses get_superuser_sync_db_session (sync) because this runs inside a
+    Celery task — async sessions are NOT allowed in synchronous Celery workers.
+    """
+    try:
+        from app.core.db_sync import get_superuser_sync_db_session
+        from app.modules.opportunity_detector.models import DetectedOpportunity
+        from datetime import datetime, timezone
+
+        with get_superuser_sync_db_session() as session:
+            opp = DetectedOpportunity(
+                ticker=report.ticker,
+                asset_type=report.asset_type,
+                drop_pct=report.drop_pct,
+                period=report.period,
+                current_price=report.current_price,
+                currency=report.currency,
+                risk_level=report.risk.level if report.risk else None,
+                is_opportunity=report.risk.is_opportunity if report.risk else False,
+                cause_category=report.cause.category if report.cause else None,
+                cause_explanation=report.cause.explanation if report.cause else None,
+                risk_rationale=report.risk.rationale if report.risk else None,
+                recommended_amount_brl=(
+                    report.recommendation.suggested_amount_brl
+                    if report.recommendation
+                    else None
+                ),
+                target_upside_pct=(
+                    report.recommendation.target_upside_pct
+                    if report.recommendation
+                    else None
+                ),
+                telegram_message=report.alert_message(),
+                followed=False,
+                detected_at=datetime.now(timezone.utc),
+            )
+            session.add(opp)
+            session.commit()
+        logger.info("save_opportunity_to_db: persisted %s to detected_opportunities", report.ticker)
+        return True
+    except Exception as exc:
+        logger.error("save_opportunity_to_db failed for %s: %s", report.ticker, exc)
+        return False
+
+
 def _get_admin_tenant_id() -> str | None:
     """Look up tenant_id for the admin email from the DB (superuser session)."""
     try:
@@ -166,6 +213,9 @@ def dispatch_opportunity(report) -> dict[str, bool]:
     assert isinstance(report, OpportunityReport)
 
     results = {}
+
+    # Persist to DB first (before any channel dispatch)
+    results["db"] = save_opportunity_to_db(report)
 
     # Telegram
     telegram_msg = report.alert_message()
