@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // Protected paths — require access_token cookie to be present
-const PROTECTED_PATHS = ["/dashboard", "/portfolio", "/analysis", "/stock"];
+const PROTECTED_PATHS = ["/dashboard", "/portfolio", "/analysis", "/stock", "/fii", "/opportunity-detector"];
 const PUBLIC_PATHS = [
   "/login",
   "/register",
