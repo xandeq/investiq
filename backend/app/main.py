@@ -37,6 +37,7 @@ from app.modules.simulador.router import router as simulador_router
 from app.modules.wizard.router import router as wizard_router
 from app.modules.analysis.router import router as analysis_router
 from app.modules.fii_screener.router import router as fii_screener_router
+from app.modules.opportunity_detector.router import router as opportunity_detector_router
 
 
 @asynccontextmanager
@@ -132,6 +133,8 @@ app.include_router(wizard_router, prefix="/wizard", tags=["wizard"])
 app.include_router(analysis_router, prefix="/analysis", tags=["analysis"])
 # Phase 17: FII Scored Screener
 app.include_router(fii_screener_router, prefix="/fii-screener", tags=["fii-screener"])
+# Phase 19: Opportunity Detector history API
+app.include_router(opportunity_detector_router, prefix="/opportunity-detector", tags=["opportunity-detector"])
 
 
 @app.get("/health")
