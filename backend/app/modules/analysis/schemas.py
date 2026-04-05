@@ -79,6 +79,12 @@ class AnalysisJobStatus(BaseModel):
     message: str | None = None
 
 
+class FIIAnalysisRequest(BaseModel):
+    """Request body for FII detail analysis (Phase 18)."""
+
+    ticker: str = Field(min_length=4, max_length=10)
+
+
 class AnalysisHistoryItem(BaseModel):
     """Single history entry for GET /analysis/history/{ticker}."""
 

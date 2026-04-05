@@ -1,10 +1,12 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { PremiumGate } from "./PremiumGate";
 import { AnalysisRequestForm } from "./AnalysisRequestForm";
 import { MacroResultCard } from "./MacroResultCard";
+import { SkillResultCard } from "./SkillResultCard";
 import { useAnalysisJob } from "../hooks/useAnalysisJob";
 import { useJobList } from "../hooks/useJobList";
 import { requestMacroAnalysis } from "../api";
@@ -75,8 +77,32 @@ function MacroSection() {
   );
 }
 
+function ExpandedJobResult({ jobId }: { jobId: string }) {
+  const { data: job } = useAnalysisJob(jobId);
+
+  if (!job?.result) {
+    return (
+      <div className="mt-3 space-y-2 px-1">
+        <div className="h-4 rounded bg-gray-200 animate-pulse w-3/4" />
+        <div className="h-20 rounded bg-gray-200 animate-pulse" />
+      </div>
+    );
+  }
+
+  const { result } = job;
+  return (
+    <div className="mt-3 space-y-3">
+      {result.macro && <MacroResultCard result={result.macro} />}
+      {result.dcf && <SkillResultCard result={result.dcf} title="DCF" defaultOpen />}
+      {result.valuation && <SkillResultCard result={result.valuation} title="Valuation" defaultOpen />}
+      {result.earnings && <SkillResultCard result={result.earnings} title="Earnings" defaultOpen />}
+    </div>
+  );
+}
+
 function JobHistory() {
   const { data: jobs, isLoading } = useJobList();
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -96,29 +122,41 @@ function JobHistory() {
 
   return (
     <div className="space-y-2">
-      {recent.map((job) => (
-        <div
-          key={job.id}
-          className="flex items-center justify-between rounded-md bg-gray-100 px-4 py-2.5 text-sm"
-        >
-          <span className="font-semibold">
-            {job.ticker ?? "Macro"}{" "}
-            <span className="text-muted-foreground font-normal text-xs">({job.job_type})</span>
-          </span>
-          <div className="flex items-center gap-3">
-            <span className={
-              job.status === "completed" ? "text-emerald-600 font-medium text-xs" :
-              job.status === "failed" ? "text-red-500 font-medium text-xs" :
-              "text-amber-600 font-medium text-xs"
-            }>
-              {job.status}
-            </span>
-            <span className="text-muted-foreground text-xs">
-              {new Date(job.created_at).toLocaleDateString("pt-BR")}
-            </span>
+      {recent.map((job) => {
+        const isExpanded = expandedId === job.id;
+        return (
+          <div key={job.id} className="rounded-md bg-gray-100 px-4 py-2.5 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold">
+                {job.ticker ?? "Macro"}{" "}
+                <span className="text-muted-foreground font-normal text-xs">({job.job_type})</span>
+              </span>
+              <div className="flex items-center gap-3">
+                <span className={
+                  job.status === "completed" ? "text-emerald-600 font-medium text-xs" :
+                  job.status === "failed" ? "text-red-500 font-medium text-xs" :
+                  "text-amber-600 font-medium text-xs"
+                }>
+                  {job.status}
+                </span>
+                <span className="text-muted-foreground text-xs">
+                  {new Date(job.created_at).toLocaleDateString("pt-BR")}
+                </span>
+                {job.status === "completed" && (
+                  <button
+                    onClick={() => setExpandedId(isExpanded ? null : job.id)}
+                    className="flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-800 transition-colors"
+                  >
+                    {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                    {isExpanded ? "Fechar" : "Ver Análise"}
+                  </button>
+                )}
+              </div>
+            </div>
+            {isExpanded && <ExpandedJobResult jobId={job.id} />}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

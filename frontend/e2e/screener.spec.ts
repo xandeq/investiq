@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { login, pageIsOk } from './helpers';
 
-test.describe('Screener — Smoke', () => {
+test.describe('Screener - Smoke', () => {
   test('/screener page loads', async ({ page }) => {
     await login(page);
     const status = await pageIsOk(page, '/screener');
@@ -26,12 +26,12 @@ test.describe('Screener — Smoke', () => {
     await login(page);
     await page.goto('/screener');
     await page.waitForTimeout(3000);
-    const body = await page.textContent('body');
-    expect(body).toMatch(/screener|filtro|busca|ação|FII|ativo/i);
+    const body = await page.locator('body').innerText();
+    expect(body).toMatch(/triagem|filtro|busca|setor|ativo/i);
   });
 });
 
-test.describe('Screener — Regression', () => {
+test.describe('Screener - Regression', () => {
   test('screener does not crash on load', async ({ page }) => {
     const jsErrors: string[] = [];
     page.on('pageerror', err => jsErrors.push(err.message));
@@ -55,32 +55,29 @@ test.describe('Screener — Regression', () => {
     await login(page);
     await page.goto('/screener');
     await page.waitForTimeout(3000);
-    const runBtn = page.locator('button').filter({ hasText: /filtrar|buscar|aplicar|executar|rodar|screen/i }).first();
+    const runBtn = page.locator('button').filter({ hasText: /iniciar|triagem|filtrar|buscar|aplicar|executar|rodar|screen/i }).first();
     const hasBtn = await runBtn.isVisible({ timeout: 3000 }).catch(() => false);
-    const body = await page.textContent('body');
-    expect(hasBtn || body!.match(/resultado|ativo|ticker/i)).toBeTruthy();
+    const body = await page.locator('body').innerText();
+    expect(hasBtn || body.match(/triagem|setor|notas|goldman/i)).toBeTruthy();
   });
 });
 
-test.describe('Screener — Integration', () => {
+test.describe('Screener - Integration', () => {
   test('screener run returns results or empty state', async ({ page }) => {
     await login(page);
     await page.goto('/screener');
     await page.waitForTimeout(3000);
 
-    const runBtn = page.locator('button').filter({ hasText: /filtrar|buscar|aplicar|executar|screen/i }).first();
+    const runBtn = page.locator('button').filter({ hasText: /iniciar|triagem|filtrar|buscar|aplicar|executar|screen/i }).first();
     if (await runBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
       await runBtn.click();
-      // Wait for API response
       await page.waitForTimeout(8000);
-      const body = await page.textContent('body');
+      const body = await page.locator('body').innerText();
       expect(body).not.toMatch(/application error|TypeError/i);
-      // Should show results or empty state message
-      expect(body).toMatch(/resultado|ativo|ticker|encontrado|nenhum|vazio|filtro/i);
+      expect(body).toMatch(/triagem|setor|ativo|ticker|conclu|andamento|goldman/i);
     } else {
-      // Results may already be shown
-      const body = await page.textContent('body');
-      expect(body).toMatch(/screener|ativo|filtro|P\/L|P\/VP/i);
+      const body = await page.locator('body').innerText();
+      expect(body).toMatch(/triagem|ativo|filtro|setor|goldman/i);
     }
   });
 
@@ -88,9 +85,8 @@ test.describe('Screener — Integration', () => {
     await login(page);
     await page.goto('/screener/acoes');
     await page.waitForTimeout(5000);
-    const body = await page.textContent('body');
+    const body = await page.locator('body').innerText();
     expect(body).not.toMatch(/application error/i);
-    // Should have typical stock metrics
-    expect(body).toMatch(/P\/L|P\/VP|dividend|ROE|ticker|ação|screener/i);
+    expect(body).toMatch(/P\/L|P\/VP|dividend|ROE|ticker|acao|screener/i);
   });
 });

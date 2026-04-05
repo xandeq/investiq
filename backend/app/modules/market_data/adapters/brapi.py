@@ -144,17 +144,6 @@ class BrapiClient:
         Returns dict with keys: pl, pvp, dy, ev_ebitda
         Values may be None if brapi.dev does not return them.
         """
-        time.sleep(_BATCH_SLEEP_SECONDS)
-        data = self._get(
-            f"/quote/{ticker.upper()}",
-            params={"modules": "defaultKeyStatistics,financialData"},
-        )
-        results = data.get("results", [{}])
-        r = results[0] if results else {}
-
-        key_stats = r.get("defaultKeyStatistics", {})
-        financial = r.get("financialData", {})
-
         def _extract(d: dict, key: str) -> float | None:
             val = d.get(key)
             if val is None:
@@ -163,18 +152,47 @@ class BrapiClient:
                 return val.get("raw")
             return val
 
-        pvp = _extract(key_stats, "priceToBook")
-        dy_raw = _extract(financial, "dividendYield")
-        ev_ebitda = _extract(key_stats, "enterpriseToEbitda")
-        # P/L from forwardPE or trailingPE
-        pl = _extract(key_stats, "forwardPE") or _extract(key_stats, "trailingPE")
+        def _parse_response(result: dict) -> dict:
+            key_stats = result.get("defaultKeyStatistics", {})
+            financial = result.get("financialData", {})
+            return {
+                "pl": (
+                    _extract(key_stats, "forwardPE")
+                    or _extract(key_stats, "trailingPE")
+                    or result.get("priceEarnings")
+                ),
+                "pvp": _extract(key_stats, "priceToBook"),
+                "dy": _extract(financial, "dividendYield"),
+                "ev_ebitda": _extract(key_stats, "enterpriseToEbitda"),
+            }
 
-        return {
-            "pl": pl,
-            "pvp": pvp,
-            "dy": dy_raw,
-            "ev_ebitda": ev_ebitda,
-        }
+        time.sleep(_BATCH_SLEEP_SECONDS)
+        try:
+            data = self._get(
+                f"/quote/{ticker.upper()}",
+                params={"modules": "defaultKeyStatistics,financialData"},
+            )
+        except requests.HTTPError as exc:
+            response = exc.response
+            error_code = None
+            if response is not None:
+                try:
+                    error_code = response.json().get("code")
+                except ValueError:
+                    error_code = None
+            if response is None or response.status_code != 400 or error_code != "MODULES_NOT_AVAILABLE":
+                raise
+
+            logger.info(
+                "brapi.dev modules unavailable for %s on current plan; "
+                "falling back to base quote fields",
+                ticker.upper(),
+            )
+            data = self._get(f"/quote/{ticker.upper()}")
+
+        results = data.get("results", [{}])
+        result = results[0] if results else {}
+        return _parse_response(result)
 
     def fetch_historical(self, ticker: str, range: str = "1y") -> list[dict]:
         """Fetch historical OHLCV data for a ticker.

@@ -120,7 +120,7 @@ def test_refresh_screener_universe_writes_db(fake_redis_sync):
     from app.modules.market_universe.tasks import refresh_screener_universe
 
     # Fake ticker list response from brapi /quote/list
-    fake_list_response = {"results": [{"stock": "PETR4"}]}
+    fake_list_response = {"stocks": [{"stock": "PETR4"}], "hasNextPage": False}
 
     # Fake fundamentals response — matches BrapiClient.fetch_fundamentals return dict
     fake_fundamentals = {

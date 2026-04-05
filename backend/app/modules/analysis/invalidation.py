@@ -13,7 +13,7 @@ import logging
 import os
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 
 from app.core.db_sync import get_superuser_sync_db_session
 from app.modules.analysis.models import AnalysisJob
@@ -31,7 +31,7 @@ def _get_sync_redis():
     )
 
 
-async def on_earnings_release(ticker: str, filing_date: datetime) -> int:
+def on_earnings_release(ticker: str, filing_date: datetime) -> int:
     """Invalidate cached analyses when new earnings are released.
 
     Marks all completed AnalysisJob rows for the given ticker that were
@@ -45,13 +45,14 @@ async def on_earnings_release(ticker: str, filing_date: datetime) -> int:
     Returns:
         Number of analyses marked as stale.
     """
+    normalized_ticker = ticker.upper()
     count = 0
 
     with get_superuser_sync_db_session() as session:
         stmt = (
             update(AnalysisJob)
             .where(
-                AnalysisJob.ticker == ticker,
+                AnalysisJob.ticker == normalized_ticker,
                 AnalysisJob.status == "completed",
                 AnalysisJob.completed_at < filing_date,
             )
@@ -66,7 +67,7 @@ async def on_earnings_release(ticker: str, filing_date: datetime) -> int:
     # Clear Redis cache for this ticker
     try:
         r = _get_sync_redis()
-        cache_key = f"analysis:cache:{ticker}"
+        cache_key = f"brapi:fundamentals:{normalized_ticker}"
         r.delete(cache_key)
     except Exception as exc:
         logger.warning("Redis cache clear failed for %s: %s", ticker, exc)
@@ -75,6 +76,19 @@ async def on_earnings_release(ticker: str, filing_date: datetime) -> int:
         "Invalidated %d analyses for %s due to earnings release", count, ticker
     )
     return count
+
+
+def get_last_analysis_data_timestamp(ticker: str) -> datetime | None:
+    """Return the latest completed analysis data timestamp for a ticker."""
+    with get_superuser_sync_db_session() as session:
+        stmt = select(func.max(AnalysisJob.data_timestamp)).where(
+            AnalysisJob.ticker == ticker.upper(),
+            AnalysisJob.status == "completed",
+        )
+        ts = session.execute(stmt).scalar_one_or_none()
+        if ts is not None and ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
+        return ts
 
 
 def get_analyzed_tickers_recent_7d() -> list[str]:

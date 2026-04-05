@@ -57,19 +57,28 @@ def test_refresh_quotes_writes_redis(fake_redis_sync, mock_brapi_client):
         "regularMarketChange": 500.0,
         "regularMarketChangePercent": 0.39,
     }
+    mock_fundamentals = {
+        "pl": 7.5,
+        "pvp": 1.2,
+        "dy": 0.085,
+        "ev_ebitda": 4.2,
+    }
 
     with patch.object(BrapiClient, "fetch_quotes", return_value=mock_quotes):
         with patch.object(BrapiClient, "fetch_ibovespa", return_value=mock_ibov):
-            # Patch redis.Redis.from_url to return our fakeredis instance
-            with patch("redis.Redis.from_url", return_value=fake_redis_sync):
-                refresh_quotes.apply()
+            with patch.object(BrapiClient, "fetch_fundamentals", return_value=mock_fundamentals):
+                # Patch redis.Redis.from_url to return our fakeredis instance
+                with patch("redis.Redis.from_url", return_value=fake_redis_sync):
+                    refresh_quotes.apply()
 
     raw = fake_redis_sync.get("market:quote:PETR4")
     assert raw is not None, "market:quote:PETR4 key was not written to Redis"
 
     data = json.loads(raw)
     assert data["symbol"] == "PETR4"
-    assert data["regularMarketPrice"] == 38.50
+    assert data["price"] == 38.50
+    assert data["change"] == 0.50
+    assert data["change_pct"] == 1.32
 
     # Check TTL is approximately 1200 (fakeredis stores TTL)
     ttl = fake_redis_sync.ttl("market:quote:PETR4")
@@ -89,16 +98,31 @@ def test_brapi_client_writes_redis(fake_redis_sync):
             "regularMarketChangePercent": -0.46,
         }
     ]
+    mock_fundamentals = {
+        "pl": 5.8,
+        "pvp": None,
+        "dy": None,
+        "ev_ebitda": None,
+    }
 
     with patch.object(BrapiClient, "fetch_quotes", return_value=mock_quotes):
         with patch.object(BrapiClient, "fetch_ibovespa", return_value={"symbol": "^BVSP", "regularMarketPrice": 128000.0, "regularMarketChange": 0.0, "regularMarketChangePercent": 0.0}):
-            with patch("redis.Redis.from_url", return_value=fake_redis_sync):
-                refresh_quotes.apply()
+            with patch.object(BrapiClient, "fetch_fundamentals", return_value=mock_fundamentals):
+                with patch("redis.Redis.from_url", return_value=fake_redis_sync):
+                    refresh_quotes.apply()
 
     raw = fake_redis_sync.get("market:quote:VALE3")
     assert raw is not None, "market:quote:VALE3 key was not written"
     data = json.loads(raw)
-    assert data["regularMarketPrice"] == 65.20
+    assert data["price"] == 65.20
+
+    ibov_raw = fake_redis_sync.get("market:quote:IBOV")
+    assert ibov_raw is not None, "market:quote:IBOV key was not written"
+    ibov_data = json.loads(ibov_raw)
+    assert ibov_data["symbol"] == "IBOV"
+    assert ibov_data["price"] == 128000.0
+    assert ibov_data["change"] == 0.0
+    assert ibov_data["change_pct"] == 0.0
 
 
 def test_refresh_macro_writes_redis(fake_redis_sync):
@@ -259,3 +283,29 @@ async def test_quote_stale_when_cache_empty(fake_redis_async):
     assert result.data_stale is True
     assert result.symbol == "PETR4"
     assert result.price == Decimal("0")
+
+
+@pytest.mark.asyncio
+async def test_quote_from_legacy_redis_shape(fake_redis_async):
+    """MarketDataService tolerates old quote payloads with regularMarket* keys."""
+    from app.modules.market_data.service import MarketDataService
+
+    await fake_redis_async.set(
+        "market:quote:IBOV",
+        json.dumps({
+            "symbol": "^BVSP",
+            "regularMarketPrice": 128000.0,
+            "regularMarketChange": 500.0,
+            "regularMarketChangePercent": 0.39,
+        }),
+        ex=1200,
+    )
+
+    service = MarketDataService(fake_redis_async)
+    result = await service.get_quote("IBOV")
+
+    assert result.symbol == "IBOV"
+    assert result.price == Decimal("128000.0")
+    assert result.change == Decimal("500.0")
+    assert result.change_pct == Decimal("0.39")
+    assert result.data_stale is False

@@ -23,9 +23,12 @@ Stale data policy:
 """
 from __future__ import annotations
 
+import json
 import logging
 from datetime import datetime, timezone
 from decimal import Decimal
+
+from pydantic import ValidationError
 
 from app.modules.market_data.schemas import (
     FundamentalsCache,
@@ -67,7 +70,31 @@ class MarketDataService:
                 fetched_at=_EPOCH_MIN,
                 data_stale=True,
             )
-        return QuoteCache.model_validate_json(raw)
+        try:
+            return QuoteCache.model_validate_json(raw)
+        except ValidationError:
+            payload = json.loads(raw)
+            if not isinstance(payload, dict):
+                raise
+
+            fetched_at_raw = payload.get("fetched_at")
+            try:
+                fetched_at = (
+                    datetime.fromisoformat(str(fetched_at_raw))
+                    if fetched_at_raw
+                    else _EPOCH_MIN
+                )
+            except ValueError:
+                fetched_at = _EPOCH_MIN
+
+            return QuoteCache(
+                symbol=ticker.upper(),
+                price=Decimal(str(payload.get("price", payload.get("regularMarketPrice", 0)))),
+                change=Decimal(str(payload.get("change", payload.get("regularMarketChange", 0)))),
+                change_pct=Decimal(str(payload.get("change_pct", payload.get("regularMarketChangePercent", 0)))),
+                fetched_at=fetched_at,
+                data_stale=bool(payload.get("data_stale", False)),
+            )
 
     async def get_macro(self) -> MacroCache:
         """Read macro indicators from Redis cache.

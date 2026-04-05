@@ -948,3 +948,156 @@ def check_earnings_releases() -> dict:
         "tickers_checked": len(tickers),
         "analyses_invalidated": invalidated,
     }
+
+
+# ---------------------------------------------------------------------------
+# Phase 18: FII detail analysis task
+# ---------------------------------------------------------------------------
+
+_STATIC_FALLBACK_NARRATIVE_FII = (
+    "Narrative generation unavailable. The FII analysis above is based on "
+    "quantitative data only. Please retry later for AI-generated commentary."
+)
+
+
+@shared_task(name="analysis.run_fii_analysis", bind=True, max_retries=0)
+def run_fii_analysis(
+    self,
+    job_id: str,
+    tenant_id: str,
+    ticker: str,
+) -> None:
+    """Run FII detail analysis as a Celery background task (Phase 18).
+
+    Steps:
+    1. Check quota
+    2. Set status -> running
+    3. Fetch FII data from BRAPI (fii_data.py)
+    4. Build PT-BR LLM prompt covering dividend quality, DY sustainability, P/VP
+    5. Call LLM for narrative (provider chain)
+    6. Build result dict
+    7. Update job -> completed
+    8. Log cost
+    """
+    from app.modules.analysis.fii_data import fetch_fii_data
+
+    logger.info("FII analysis started: job=%s ticker=%s", job_id, ticker)
+
+    # Step 1: Quota check
+    if not _check_and_increment_quota(tenant_id):
+        _update_job(job_id, "failed", error="Analysis quota exhausted")
+        log_analysis_cost(
+            tenant_id, job_id, "fii_detail", ticker, duration_ms=0, status="failed"
+        )
+        return
+
+    # Step 2: Mark running
+    _update_job(job_id, "running")
+    start_time = time.time()
+
+    llm_meta: dict = {}
+
+    try:
+        # Step 3: Fetch FII data
+        try:
+            fii_data = fetch_fii_data(ticker)
+        except DataFetchError as exc:
+            _update_job(job_id, "failed", error=f"Data fetch failed: {exc}")
+            duration_ms = int((time.time() - start_time) * 1000)
+            log_analysis_cost(
+                tenant_id, job_id, "fii_detail", ticker,
+                duration_ms=duration_ms, status="failed",
+            )
+            return
+
+        # Step 4 & 5: Build prompt and call LLM
+        narrative = _STATIC_FALLBACK_NARRATIVE_FII
+        try:
+            dy = fii_data.get("dy_12m")
+            dy_str = f"{dy:.1%}" if dy is not None else "N/A"
+            pvp = fii_data.get("pvp")
+            pvp_str = f"{pvp:.2f}" if pvp is not None else "N/A"
+            last_div = fii_data.get("last_dividend")
+            last_div_str = f"R${last_div:.2f}" if last_div is not None else "N/A"
+            num_divs = len(fii_data.get("dividends_monthly", []))
+            portfolio = fii_data.get("portfolio", {})
+            vacancia = portfolio.get("vacancia")
+            vacancia_str = f"{vacancia:.1%}" if isinstance(vacancia, float) else (str(vacancia) if vacancia else "N/A")
+
+            system_prompt = (
+                "Voce e um analista de fundos imobiliarios brasileiro. "
+                "Seja conciso e factual. Responda em portugues brasileiro."
+            )
+            user_prompt = (
+                f"Analise o FII {ticker.upper()}.\n"
+                f"DY 12 meses: {dy_str}.\n"
+                f"P/VP: {pvp_str}.\n"
+                f"Ultimo provento: {last_div_str}.\n"
+                f"Meses com pagamento nos ultimos 12 meses: {num_divs}/12.\n"
+                f"Vacancia: {vacancia_str}.\n"
+                f"Avalie: (1) qualidade e consistencia dos dividendos, "
+                f"(2) sustentabilidade do DY 12m, "
+                f"(3) posicionamento do P/VP em relacao ao valor patrimonial. "
+                f"Seja objetivo, 2-3 frases em portugues brasileiro."
+            )
+            full_prompt = f"{system_prompt}\n\n{user_prompt}"
+
+            narrative_text, llm_meta = asyncio.run(
+                call_analysis_llm(full_prompt, max_tokens=400)
+            )
+            narrative = narrative_text
+        except AIProviderError:
+            logger.warning(
+                "All LLM providers failed for FII job %s — using static fallback",
+                job_id,
+            )
+
+        # Step 6: Build result
+        data_version_id = build_data_version_id()
+        data_sources = get_data_sources()
+        data_timestamp = datetime.now(timezone.utc).isoformat()
+
+        result = {
+            "ticker": ticker.upper(),
+            "current_price": fii_data.get("current_price"),
+            "pvp": fii_data.get("pvp"),
+            "dy_12m": fii_data.get("dy_12m"),
+            "last_dividend": fii_data.get("last_dividend"),
+            "daily_liquidity": fii_data.get("daily_liquidity"),
+            "book_value": fii_data.get("book_value"),
+            "dividends_monthly": fii_data.get("dividends_monthly", []),
+            "portfolio": fii_data.get("portfolio", {}),
+            "narrative": narrative,
+            "data_version_id": data_version_id,
+            "data_timestamp": data_timestamp,
+            "data_sources": data_sources,
+            "disclaimer": CVM_DISCLAIMER_SHORT_PT,
+        }
+
+        # Step 7: Update job
+        _update_job(job_id, "completed", result_json=json.dumps(result, ensure_ascii=False))
+        _archive_superseded_job(ticker, tenant_id, "fii_detail", job_id)
+
+        # Step 8: Log cost
+        duration_ms = int((time.time() - start_time) * 1000)
+        log_analysis_cost(
+            tenant_id,
+            job_id,
+            "fii_detail",
+            ticker,
+            duration_ms=duration_ms,
+            status="completed",
+            llm_provider=llm_meta.get("provider_used"),
+            llm_model=llm_meta.get("model"),
+        )
+
+        logger.info("FII analysis completed: job=%s ticker=%s", job_id, ticker)
+
+    except Exception as exc:
+        logger.exception("FII analysis failed unexpectedly: job=%s %s", job_id, exc)
+        duration_ms = int((time.time() - start_time) * 1000)
+        _update_job(job_id, "failed", error=str(exc)[:500])
+        log_analysis_cost(
+            tenant_id, job_id, "fii_detail", ticker,
+            duration_ms=duration_ms, status="failed",
+        )

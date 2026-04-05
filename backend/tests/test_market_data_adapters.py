@@ -9,6 +9,7 @@ from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 import pytest
+import requests
 
 
 # ---------------------------------------------------------------------------
@@ -77,6 +78,47 @@ def test_brapi_client_fetch_fundamentals_returns_dict():
     assert isinstance(result, dict)
     assert "pvp" in result
     assert "dy" in result
+
+
+def test_brapi_client_fetch_fundamentals_falls_back_to_base_quote_when_modules_unavailable():
+    """fetch_fundamentals should degrade gracefully when BRAPI plan blocks modules."""
+    from app.modules.market_data.adapters.brapi import BrapiClient
+
+    module_error = MagicMock()
+    module_error.status_code = 400
+    module_error.json.return_value = {
+        "error": True,
+        "code": "MODULES_NOT_AVAILABLE",
+        "message": "modules blocked on current plan",
+    }
+    module_error.raise_for_status.side_effect = requests.HTTPError(
+        "400 Client Error",
+        response=module_error,
+    )
+
+    fallback_resp = MagicMock()
+    fallback_resp.status_code = 200
+    fallback_resp.json.return_value = {
+        "results": [
+            {
+                "symbol": "GMAT3",
+                "priceEarnings": 5.58,
+                "regularMarketPrice": 4.6,
+            }
+        ]
+    }
+    fallback_resp.raise_for_status = MagicMock()
+
+    with patch("requests.get", side_effect=[module_error, fallback_resp]):
+        client = BrapiClient(token="test-token")
+        result = client.fetch_fundamentals("GMAT3")
+
+    assert result == {
+        "pl": 5.58,
+        "pvp": None,
+        "dy": None,
+        "ev_ebitda": None,
+    }
 
 
 def test_brapi_client_fetch_historical_returns_ohlcv():

@@ -116,7 +116,15 @@ def refresh_quotes(self) -> None:
         # Also fetch IBOVESPA index — may fail on unauthenticated free tier
         try:
             ibov = client.fetch_ibovespa()
-            r.set("market:quote:IBOV", json.dumps(ibov), ex=_QUOTE_TTL)
+            ibov_cache_entry = {
+                "symbol": "IBOV",
+                "price": ibov.get("regularMarketPrice", 0.0),
+                "change": ibov.get("regularMarketChange", 0.0),
+                "change_pct": ibov.get("regularMarketChangePercent", 0.0),
+                "fetched_at": now_iso,
+                "data_stale": False,
+            }
+            r.set("market:quote:IBOV", json.dumps(ibov_cache_entry), ex=_QUOTE_TTL)
             logger.info("refresh_quotes: wrote IBOV to Redis")
         except Exception as ibov_exc:
             logger.warning("refresh_quotes: IBOV fetch skipped (%s) — stock quotes still written", ibov_exc)
