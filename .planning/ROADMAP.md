@@ -1,7 +1,7 @@
 # InvestIQ v1.3 — FII Screener Roadmap
 
 **Milestone:** v1.3 FII Screener
-**Phases:** 17–18 (continues from v1.2 Phase 16)
+**Phases:** 17–19 (continues from v1.2 Phase 16)
 **Granularity:** Coarse (2 phases — critical path only)
 **Status:** Active
 **Created:** 2026-04-04
@@ -11,7 +11,8 @@
 ## Phases
 
 - [x] **Phase 17: FII Screener Table** — Tabela de FIIs ranqueada por score composto com filtros por segmento e DY mínimo (completed 2026-04-04)
-- [ ] **Phase 18: FII Detail Page + IA Analysis** — Página /fii/[ticker] com histórico DY/P/VP, portfólio básico e análise IA assíncrona
+- [x] **Phase 18: FII Detail Page + IA Analysis** — Página /fii/[ticker] com histórico DY/P/VP, portfólio básico e análise IA assíncrona (completed 2026-04-04)
+- [ ] **Phase 19: Opportunity Detector Page** — Página /opportunity-detector exibindo oportunidades detectadas pelo bot Telegram, com histórico e filtros
 
 ---
 
@@ -61,16 +62,43 @@ Plans:
 - [ ] 18-01-PLAN.md — Backend: fetch_fii_data helper, run_fii_analysis Celery task, POST /analysis/fii/{ticker} endpoint, tests
 - [ ] 18-02-PLAN.md — Frontend: /fii/[ticker] page, FIIDetailContent, DY/P/VP charts, portfolio section, IA analysis card
 
+### Phase 19: Opportunity Detector Page
+
+**Goal:** Usuário vê na página /opportunity-detector as oportunidades detectadas pelo backend (as mesmas enviadas ao Telegram chat_id 721438452), com histórico, filtros e possibilidade de marcar como acompanhada.
+
+**Depends on:** Phase 18 (padrão de páginas FII estabelecido)
+
+**Requirements:** OPDET-01 (nova — não estava no v1.3 original)
+
+**Success Criteria** (what must be TRUE):
+1. Usuário acessa /opportunity-detector e vê lista de oportunidades detectadas (ticker, tipo, descrição, score, timestamp)
+2. Usuário pode filtrar por tipo de oportunidade (DY alto, P/VP baixo, etc.) e por período
+3. Cada oportunidade mostra os dados que foram enviados ao Telegram (mesma informação)
+4. Página é protegida por auth (PROTECTED_PATHS)
+5. Backend expõe endpoint GET /opportunity-detector/history (persiste as oportunidades detectadas em tabela)
+
+**Plans:** 2 plans
+
+Plans:
+- [ ] 19-01-PLAN.md — Backend: DetectedOpportunity model, migration 0022, persistence hook in dispatch_opportunity, GET /history + PATCH /{id}/follow endpoints, tests
+- [ ] 19-02-PLAN.md — Frontend: /opportunity-detector page with filters (asset type + days), risk badges, follow toggle, expandable detail rows
+
+**Telegram context:**
+- Bot configurado e funcionando — chat_id `721438452`
+- Backend já detecta e envia oportunidades via Telegram
+- Falta: persistir no DB + expor via API + página frontend
+
 ---
 
 ## Progress Tracking
 
 | Phase | Status | Plans Complete | Completed |
 |-------|--------|----------------|-----------|
-| 17 - FII Screener Table | 2/2 | Complete    | 2026-04-04 |
-| 18 - FII Detail Page + IA | Not started | 0/? | - |
+| 17 - FII Screener Table | ✅ DEPLOYED | 2/2 | 2026-04-04 |
+| 18 - FII Detail Page + IA | ✅ DEPLOYED | 2/2 | 2026-04-04 |
+| 19 - Opportunity Detector Page | 🟡 PLANNED | 0/2 | - |
 
-**Totals:** 2 phases | 4/4 requirements mapped | 0% complete
+**Totals:** 3 phases | 5/5 requirements mapped | 66% complete
 
 ---
 
@@ -84,10 +112,11 @@ Plans:
 | SCRF-02 | 17 | Filtro por segmento | Pending |
 | SCRF-03 | 17 | Filtro por DY mínimo 12m | Pending |
 | SCRF-04 | 18 | Página /fii/[ticker] com histórico DY/P/VP, portfólio e análise IA assíncrona | Pending |
+| OPDET-01 | 19 | Página /opportunity-detector com histórico, filtros e follow | Pending |
 
 **Coverage Summary:**
-- Total v1.3 requirements: 4
-- Mapped to phases: 4
+- Total v1.3 requirements: 5
+- Mapped to phases: 5
 - Unmapped: 0
 - **Coverage: 100% ✓**
 
@@ -123,4 +152,5 @@ Combining into 1 phase would create a monster phase. Splitting into 3+ phases wo
 
 *Roadmap created: 2026-04-04*
 *Milestone: InvestIQ v1.3 — FII Screener*
-*Status: Active — Phase 17 planned (2 plans)*
+*Status: Active — Phase 19 planned*
+*Last updated: 2026-04-04 — Phase 19 planned with 2 plans (backend + frontend)*
