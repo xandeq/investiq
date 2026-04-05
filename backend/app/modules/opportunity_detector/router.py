@@ -38,15 +38,11 @@ async def trigger_manual_scan(
     """Dispara os 3 scanners (ações, crypto, renda fixa) imediatamente via Celery.
     Os resultados aparecem na tabela em ~10–20s após o retorno.
     """
-    from app.modules.opportunity_detector.scanner import (
-        scan_acoes_opportunities,
-        scan_crypto_opportunities,
-        scan_fixed_income_opportunities,
-    )
+    from app.celery_app import celery_app
 
-    task_acoes = scan_acoes_opportunities.delay()
-    task_crypto = scan_crypto_opportunities.delay()
-    task_fixed = scan_fixed_income_opportunities.delay()
+    task_acoes = celery_app.send_task("opportunity_detector.scan_acoes")
+    task_crypto = celery_app.send_task("opportunity_detector.scan_crypto")
+    task_fixed = celery_app.send_task("opportunity_detector.scan_fixed_income")
 
     logger.info(
         "Manual scan triggered by user %s — tasks: acoes=%s crypto=%s fixed=%s",
