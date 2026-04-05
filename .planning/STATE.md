@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Requirements to Phases Mapping
 status: unknown
-last_updated: "2026-04-05T01:16:16.401Z"
+last_updated: "2026-04-05T08:45:09.833Z"
 progress:
   total_phases: 3
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 6
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # Project State
@@ -123,6 +123,8 @@ Phase 18: FII Detail + IA       [ NOT STARTED ]
 - [Phase 19-opportunity-detector-page]: save_opportunity_to_db uses get_superuser_sync_db_session (sync) — Celery workers are synchronous, async session raises RuntimeError
 - [Phase 19-opportunity-detector-page]: DB persistence fires BEFORE Telegram/email in dispatch_opportunity() so data is saved even if notification channels fail
 - [Phase 19-opportunity-detector-page]: GET /opportunity-detector/history uses get_global_db (not get_authed_db) — detected_opportunities has no tenant_id/RLS
+- [Phase 19]: Server-side filtering (API params) for opportunities instead of client-side useMemo — dataset can grow without bound unlike FII screener (~400 FIIs)
+- [Phase 19]: C:/Program Files/Git/fii added to PROTECTED_PATHS alongside /opportunity-detector — was previously missing from middleware auth coverage
 
 ## Open Questions (resolve in Phase 17)
 
@@ -152,3 +154,4 @@ Phase 18: FII Detail + IA       [ NOT STARTED ]
 | Phase 17 P01 | 590 | 2 tasks | 10 files |
 | Phase 17 P02 | 12m | 2 tasks | 6 files |
 | Phase 19-opportunity-detector-page P01 | 27 | 8 tasks | 8 files |
+| Phase 19 P02 | 30 | 7 tasks | 7 files |

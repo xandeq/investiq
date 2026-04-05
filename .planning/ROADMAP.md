@@ -12,7 +12,7 @@
 
 - [x] **Phase 17: FII Screener Table** — Tabela de FIIs ranqueada por score composto com filtros por segmento e DY mínimo (completed 2026-04-04)
 - [x] **Phase 18: FII Detail Page + IA Analysis** — Página /fii/[ticker] com histórico DY/P/VP, portfólio básico e análise IA assíncrona (completed 2026-04-04)
-- [ ] **Phase 19: Opportunity Detector Page** — Página /opportunity-detector exibindo oportunidades detectadas pelo bot Telegram, com histórico e filtros
+- [x] **Phase 19: Opportunity Detector Page** — Página /opportunity-detector exibindo oportunidades detectadas pelo bot Telegram, com histórico e filtros (completed 2026-04-05)
 
 ---
 
@@ -77,11 +77,11 @@ Plans:
 4. Página é protegida por auth (PROTECTED_PATHS)
 5. Backend expõe endpoint GET /opportunity-detector/history (persiste as oportunidades detectadas em tabela)
 
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 19-01-PLAN.md — Backend: DetectedOpportunity model, migration 0022, persistence hook in dispatch_opportunity, GET /history + PATCH /{id}/follow endpoints, tests
-- [ ] 19-02-PLAN.md — Frontend: /opportunity-detector page with filters (asset type + days), risk badges, follow toggle, expandable detail rows
+- [x] 19-02-PLAN.md — Frontend: /opportunity-detector page with filters (asset type + days), risk badges, follow toggle, expandable detail rows
 
 **Telegram context:**
 - Bot configurado e funcionando — chat_id `721438452`
@@ -96,7 +96,7 @@ Plans:
 |-------|--------|----------------|-----------|
 | 17 - FII Screener Table | ✅ DEPLOYED | 2/2 | 2026-04-04 |
 | 18 - FII Detail Page + IA | ✅ DEPLOYED | 2/2 | 2026-04-04 |
-| 19 - Opportunity Detector Page | 1/2 | In Progress|  |
+| 19 - Opportunity Detector Page | 2/2 | Complete   | 2026-04-05 |
 
 **Totals:** 3 phases | 5/5 requirements mapped | 66% complete
 
