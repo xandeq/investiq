@@ -96,7 +96,7 @@ Plans:
 |-------|--------|----------------|-----------|
 | 17 - FII Screener Table | ✅ DEPLOYED | 2/2 | 2026-04-04 |
 | 18 - FII Detail Page + IA | ✅ DEPLOYED | 2/2 | 2026-04-04 |
-| 19 - Opportunity Detector Page | 2/2 | Complete   | 2026-04-05 |
+| 19 - Opportunity Detector Page | 2/2 | Complete    | 2026-04-05 |
 
 **Totals:** 3 phases | 5/5 requirements mapped | 66% complete
 
