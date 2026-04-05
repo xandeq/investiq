@@ -77,10 +77,10 @@ Plans:
 4. Página é protegida por auth (PROTECTED_PATHS)
 5. Backend expõe endpoint GET /opportunity-detector/history (persiste as oportunidades detectadas em tabela)
 
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
-- [ ] 19-01-PLAN.md — Backend: DetectedOpportunity model, migration 0022, persistence hook in dispatch_opportunity, GET /history + PATCH /{id}/follow endpoints, tests
+- [x] 19-01-PLAN.md — Backend: DetectedOpportunity model, migration 0022, persistence hook in dispatch_opportunity, GET /history + PATCH /{id}/follow endpoints, tests
 - [ ] 19-02-PLAN.md — Frontend: /opportunity-detector page with filters (asset type + days), risk badges, follow toggle, expandable detail rows
 
 **Telegram context:**
@@ -96,7 +96,7 @@ Plans:
 |-------|--------|----------------|-----------|
 | 17 - FII Screener Table | ✅ DEPLOYED | 2/2 | 2026-04-04 |
 | 18 - FII Detail Page + IA | ✅ DEPLOYED | 2/2 | 2026-04-04 |
-| 19 - Opportunity Detector Page | 🟡 PLANNED | 0/2 | - |
+| 19 - Opportunity Detector Page | 1/2 | In Progress|  |
 
 **Totals:** 3 phases | 5/5 requirements mapped | 66% complete
 

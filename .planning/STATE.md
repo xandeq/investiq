@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Requirements to Phases Mapping
 status: unknown
-last_updated: "2026-04-04T19:42:31.041Z"
+last_updated: "2026-04-05T01:16:16.401Z"
 progress:
-  total_phases: 2
+  total_phases: 3
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  total_plans: 6
+  completed_plans: 3
 ---
 
 # Project State
@@ -19,12 +19,12 @@ See: .planning/PROJECT.md (updated 2026-04-04 after v1.3 milestone start)
 
 **Core value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada — v1.3 adds FII screener with composite score + filterable table + detail page with async IA analysis
 
-**Current focus:** Phase 17 — fii-screener-table
+**Current focus:** Phase 19 — opportunity-detector-page
 
 ## Current Position
 
-Phase: 18
-Plan: Not started
+Phase: 19 (opportunity-detector-page) — EXECUTING
+Plan: 2 of 2
 
 ## Progress Bar
 
@@ -120,6 +120,9 @@ Phase 18: FII Detail + IA       [ NOT STARTED ]
 - [Phase 17]: Score stored as Decimal(str(float)) to preserve precision without floating-point drift
 - [Phase 17]: Page created at frontend/app/fii/screener/ (not frontend/src/app/) — Next.js appDir is frontend/app/
 - [Phase 17]: Client-side filtering with useMemo avoids API roundtrips — ~400 FIIs fits in browser memory
+- [Phase 19-opportunity-detector-page]: save_opportunity_to_db uses get_superuser_sync_db_session (sync) — Celery workers are synchronous, async session raises RuntimeError
+- [Phase 19-opportunity-detector-page]: DB persistence fires BEFORE Telegram/email in dispatch_opportunity() so data is saved even if notification channels fail
+- [Phase 19-opportunity-detector-page]: GET /opportunity-detector/history uses get_global_db (not get_authed_db) — detected_opportunities has no tenant_id/RLS
 
 ## Open Questions (resolve in Phase 17)
 
@@ -148,3 +151,4 @@ Phase 18: FII Detail + IA       [ NOT STARTED ]
 | 18 | TBD | Not started | TBD | Detail page + historical charts + IA job + Playwright tests |
 | Phase 17 P01 | 590 | 2 tasks | 10 files |
 | Phase 17 P02 | 12m | 2 tasks | 6 files |
+| Phase 19-opportunity-detector-page P01 | 27 | 8 tasks | 8 files |
