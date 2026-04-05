@@ -71,6 +71,7 @@ import app.modules.market_universe.models as _mum  # noqa: F401 — registers Sc
 import app.modules.wizard.models as _wizm  # noqa: F401 — registers WizardJob
 import app.modules.screener.models as _scrm  # noqa: F401 — registers ScreenerRun
 import app.modules.analysis.models as _anm  # noqa: F401 — registers AnalysisJob, AnalysisQuotaLog, AnalysisCostLog
+import app.modules.opportunity_detector.models as _odm  # noqa: F401 — registers DetectedOpportunity
 
 
 # ---------------------------------------------------------------------------
