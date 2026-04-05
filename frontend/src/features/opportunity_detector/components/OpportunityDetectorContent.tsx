@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useOpportunityHistory } from "../hooks/useOpportunityHistory";
-import { markAsFollowed } from "../api";
+import { markAsFollowed, triggerScan } from "../api";
 import type { OpportunityRow } from "../types";
 
 const RISK_COLORS: Record<string, string> = {
@@ -197,10 +197,27 @@ export function OpportunityDetectorContent() {
   const [assetTypeFilter, setAssetTypeFilter] = useState<string>("");
   const [daysFilter, setDaysFilter] = useState<number>(30);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [scanMessage, setScanMessage] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const { data, isLoading, error } = useOpportunityHistory({
+  const { data, isLoading, error, refetch } = useOpportunityHistory({
     asset_type: assetTypeFilter || undefined,
     days: daysFilter,
+  });
+
+  const scanMutation = useMutation({
+    mutationFn: triggerScan,
+    onSuccess: () => {
+      setScanMessage("Scan iniciado — atualizando em 15s...");
+      setTimeout(() => {
+        refetch();
+        setScanMessage(null);
+      }, 15000);
+    },
+    onError: () => {
+      setScanMessage("Erro ao iniciar scan. Tente novamente.");
+      setTimeout(() => setScanMessage(null), 4000);
+    },
   });
 
   function clearFilters() {
@@ -247,15 +264,35 @@ export function OpportunityDetectorContent() {
               <option value={365}>1 ano</option>
             </select>
           </div>
-          <div className="flex items-end">
+          <div className="flex items-end gap-2">
             <button
               onClick={clearFilters}
-              className="px-4 py-2 rounded-md text-sm text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors w-full sm:w-auto"
+              className="px-4 py-2 rounded-md text-sm text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors"
             >
               Limpar filtros
             </button>
+            <button
+              onClick={() => scanMutation.mutate()}
+              disabled={scanMutation.isPending || !!scanMessage}
+              className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {scanMutation.isPending ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                  </svg>
+                  Escaneando...
+                </>
+              ) : (
+                "Escanear Agora"
+              )}
+            </button>
           </div>
         </div>
+        {scanMessage && (
+          <p className="mt-2 text-xs text-blue-600">{scanMessage}</p>
+        )}
       </div>
 
       {/* Status bar */}

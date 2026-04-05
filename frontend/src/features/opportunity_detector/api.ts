@@ -20,3 +20,10 @@ export async function markAsFollowed(id: string): Promise<{ id: string; followed
     { method: "PATCH" }
   );
 }
+
+export async function triggerScan(): Promise<{ status: string; tasks: Record<string, string> }> {
+  return apiClient<{ status: string; tasks: Record<string, string> }>(
+    `/opportunity-detector/scan`,
+    { method: "POST" }
+  );
+}

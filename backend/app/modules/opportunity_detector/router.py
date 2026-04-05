@@ -25,6 +25,46 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+@router.post(
+    "/scan",
+    summary="Acionar scan manual de oportunidades",
+    tags=["opportunity-detector"],
+)
+@limiter.limit("5/minute")
+async def trigger_manual_scan(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """Dispara os 3 scanners (ações, crypto, renda fixa) imediatamente via Celery.
+    Os resultados aparecem na tabela em ~10–20s após o retorno.
+    """
+    from app.modules.opportunity_detector.scanner import (
+        scan_acoes_opportunities,
+        scan_crypto_opportunities,
+        scan_fixed_income_opportunities,
+    )
+
+    task_acoes = scan_acoes_opportunities.delay()
+    task_crypto = scan_crypto_opportunities.delay()
+    task_fixed = scan_fixed_income_opportunities.delay()
+
+    logger.info(
+        "Manual scan triggered by user %s — tasks: acoes=%s crypto=%s fixed=%s",
+        current_user.get("sub"),
+        task_acoes.id,
+        task_crypto.id,
+        task_fixed.id,
+    )
+    return {
+        "status": "triggered",
+        "tasks": {
+            "acoes": task_acoes.id,
+            "crypto": task_crypto.id,
+            "fixed_income": task_fixed.id,
+        },
+    }
+
+
 @router.get(
     "/history",
     response_model=OpportunityHistoryResponse,
