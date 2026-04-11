@@ -13,6 +13,7 @@
 - [x] **Phase 17: FII Screener Table** — Tabela de FIIs ranqueada por score composto com filtros por segmento e DY mínimo (completed 2026-04-04)
 - [x] **Phase 18: FII Detail Page + IA Analysis** — Página /fii/[ticker] com histórico DY/P/VP, portfólio básico e análise IA assíncrona (completed 2026-04-04)
 - [x] **Phase 19: Opportunity Detector Page** — Página /opportunity-detector exibindo oportunidades detectadas pelo bot Telegram, com histórico e filtros (completed 2026-04-05)
+- [ ] **Phase 20: Swing Trade Page** — Página /swing-trade com sinais de compra/venda para carteira de dividendos, radar de oportunidades swing e registro manual de operações
 
 ---
 
@@ -90,15 +91,40 @@ Plans:
 
 ---
 
+### Phase 20: Swing Trade Page
+
+**Goal:** Usuário acessa /swing-trade e vê sinais de compra/venda para sua carteira de dividendos, radar de ações com desconto, e pode registrar/acompanhar operações swing manualmente.
+
+**Depends on:** Phase 19 (infrastructure established)
+
+**Requirements:** SWING-01, SWING-02, SWING-03, SWING-04
+
+**Success Criteria** (what must be TRUE):
+1. Usuário vê sua carteira de dividendos com badge de sinal: 🟢 COMPRAR (queda >12% do topo 30d) | 🔴 VENDER (alta >10% da entrada) | ⚪ NEUTRO
+2. Radar mostra top 30 ações IBOV com maior DY que estão em desconto (não necessariamente na carteira)
+3. Usuário registra operação swing manualmente: ticker, quantidade, preço de entrada, alvo, stop
+4. Tabela de operações abertas mostra P&L atual, dias abertos, progresso ao alvo
+5. Página protegida por auth (/swing-trade em PROTECTED_PATHS)
+6. Sinais calculados a partir de dados já em Redis (sem novas chamadas externas)
+
+**Plans:** 0/2 plans
+
+Plans:
+- [ ] 20-01-PLAN.md — Backend: SwingTradeOperation model + migration, signal computation service, 5 endpoints
+- [ ] 20-02-PLAN.md — Frontend: /swing-trade page com 3 seções (sinais carteira, radar, operações)
+
+---
+
 ## Progress Tracking
 
 | Phase | Status | Plans Complete | Completed |
 |-------|--------|----------------|-----------|
 | 17 - FII Screener Table | ✅ DEPLOYED | 2/2 | 2026-04-04 |
 | 18 - FII Detail Page + IA | ✅ DEPLOYED | 2/2 | 2026-04-04 |
-| 19 - Opportunity Detector Page | 2/2 | Complete    | 2026-04-05 |
+| 19 - Opportunity Detector Page | ✅ DEPLOYED | 2/2 | 2026-04-05 |
+| 20 - Swing Trade Page | ○ Planned | 0/2 | — |
 
-**Totals:** 3 phases | 5/5 requirements mapped | 66% complete
+**Totals:** 4 phases | 5/5 requirements mapped | 75% complete
 
 ---
 
@@ -152,5 +178,5 @@ Combining into 1 phase would create a monster phase. Splitting into 3+ phases wo
 
 *Roadmap created: 2026-04-04*
 *Milestone: InvestIQ v1.3 — FII Screener*
-*Status: Active — Phase 19 planned*
-*Last updated: 2026-04-04 — Phase 19 planned with 2 plans (backend + frontend)*
+*Status: Active — Phase 20 planning*
+*Last updated: 2026-04-05 — Phase 20 added: Swing Trade Page*
