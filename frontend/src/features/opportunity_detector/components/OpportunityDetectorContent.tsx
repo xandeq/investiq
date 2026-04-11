@@ -1,9 +1,10 @@
 "use client";
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useOpportunityHistory } from "../hooks/useOpportunityHistory";
-import { markAsFollowed, triggerScan } from "../api";
+import { fetchRadar, markAsFollowed, triggerRadarRefresh, triggerScan } from "../api";
 import type { OpportunityRow } from "../types";
+import { RadarReportView } from "./RadarReport";
 
 const RISK_COLORS: Record<string, string> = {
   baixo: "bg-green-100 text-green-700",
@@ -198,11 +199,39 @@ export function OpportunityDetectorContent() {
   const [daysFilter, setDaysFilter] = useState<number>(30);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
+  const [radarEnabled, setRadarEnabled] = useState(false);
+  const [radarError, setRadarError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data, isLoading, error, refetch } = useOpportunityHistory({
     asset_type: assetTypeFilter || undefined,
     days: daysFilter,
+  });
+
+  // Radar query — only fires when radarEnabled
+  const {
+    data: radarData,
+    isLoading: radarLoading,
+    refetch: radarRefetch,
+  } = useQuery({
+    queryKey: ["opportunity-radar"],
+    queryFn: () => fetchRadar(),
+    enabled: radarEnabled,
+    staleTime: 1000 * 60 * 25, // 25 min (cache is 30min)
+    retry: 1,
+  });
+
+  const radarRefreshMutation = useMutation({
+    mutationFn: triggerRadarRefresh,
+    onSuccess: () => {
+      // Wait 45s then refetch
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["opportunity-radar"] });
+      }, 45000);
+    },
+    onError: () => {
+      setRadarError("Erro ao atualizar radar. Tente novamente.");
+    },
   });
 
   const scanMutation = useMutation({
@@ -219,6 +248,16 @@ export function OpportunityDetectorContent() {
       setTimeout(() => setScanMessage(null), 4000);
     },
   });
+
+  // Escanear Agora = trigger scan alerts + enable radar
+  function handleScan() {
+    scanMutation.mutate();
+    if (!radarEnabled) {
+      setRadarEnabled(true);
+    } else {
+      radarRefreshMutation.mutate();
+    }
+  }
 
   function clearFilters() {
     setAssetTypeFilter("");
@@ -272,20 +311,20 @@ export function OpportunityDetectorContent() {
               Limpar filtros
             </button>
             <button
-              onClick={() => scanMutation.mutate()}
-              disabled={scanMutation.isPending || !!scanMessage}
+              onClick={handleScan}
+              disabled={scanMutation.isPending || !!scanMessage || radarLoading}
               className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {scanMutation.isPending ? (
+              {(scanMutation.isPending || radarLoading) ? (
                 <>
                   <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
                   </svg>
-                  Escaneando...
+                  Analisando...
                 </>
               ) : (
-                "Escanear Agora"
+                "🔍 Escanear Agora"
               )}
             </button>
           </div>
@@ -294,6 +333,25 @@ export function OpportunityDetectorContent() {
           <p className="mt-2 text-xs text-blue-600">{scanMessage}</p>
         )}
       </div>
+
+      {/* Radar Report */}
+      {radarEnabled && (
+        <RadarReportView
+          report={radarData ?? null}
+          isLoading={radarLoading}
+          error={radarError}
+          onRefresh={() => radarRefreshMutation.mutate()}
+        />
+      )}
+
+      {/* Divider between radar and alerts */}
+      {radarEnabled && radarData && (
+        <div className="flex items-center gap-3">
+          <div className="flex-1 border-t border-gray-200" />
+          <span className="text-xs text-gray-400 whitespace-nowrap">Alertas de crash automáticos</span>
+          <div className="flex-1 border-t border-gray-200" />
+        </div>
+      )}
 
       {/* Status bar */}
       <div className="flex items-center justify-between text-xs text-gray-500">

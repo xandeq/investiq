@@ -371,3 +371,17 @@ def scan_fixed_income_opportunities() -> dict:
 
     logger.info("scan_fixed_income done: %d bonds scanned, %d opportunities", len(tesouro_keys), len(found))
     return {"scanned": len(tesouro_keys), "opportunities": found}
+
+
+@shared_task(name="opportunity_detector.generate_radar")
+def generate_radar_task() -> dict:
+    """Celery task to generate/refresh the radar report cache."""
+    from app.modules.opportunity_detector.radar import generate_radar_report
+    report = generate_radar_report(force_refresh=True)
+    return {
+        "generated_at": report.get("generated_at"),
+        "acoes": len(report.get("acoes", [])),
+        "fiis": len(report.get("fiis", [])),
+        "crypto": len(report.get("crypto", [])),
+        "renda_fixa": len(report.get("renda_fixa", [])),
+    }

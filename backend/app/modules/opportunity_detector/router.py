@@ -1,9 +1,10 @@
-"""Opportunity Detector history and follow endpoints (Phase 19).
+"""Opportunity Detector history, follow and radar endpoints.
 
-GET  /opportunity-detector/history        — paginated history with filters
+GET  /opportunity-detector/history        — paginated alert history
+GET  /opportunity-detector/radar          — comprehensive market opportunity radar
+POST /opportunity-detector/scan           — trigger alert scanners
+POST /opportunity-detector/radar/refresh  — force-refresh radar report
 PATCH /opportunity-detector/{id}/follow   — toggle followed flag
-
-Both endpoints use get_global_db (detected_opportunities is a global table, no RLS).
 """
 from __future__ import annotations
 
@@ -18,6 +19,7 @@ from app.core.db import get_global_db
 from app.core.limiter import limiter
 from app.core.security import get_current_user
 from app.modules.opportunity_detector.models import DetectedOpportunity
+from app.modules.opportunity_detector.radar import generate_radar_report, get_cached_radar_report
 from app.modules.opportunity_detector.schemas import OpportunityHistoryResponse
 
 logger = logging.getLogger(__name__)
@@ -59,6 +61,56 @@ async def trigger_manual_scan(
             "fixed_income": task_fixed.id,
         },
     }
+
+
+@router.get(
+    "/radar",
+    summary="Radar de oportunidades — relatório completo de ativos descontados",
+    tags=["opportunity-detector"],
+)
+@limiter.limit("10/minute")
+async def get_radar(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    force: bool = Query(default=False, description="Forçar atualização ignorando cache"),
+) -> dict:
+    """Retorna relatório com ações, FIIs, crypto e renda fixa avaliados quanto ao desconto.
+
+    Cache de 30 minutos no Redis. Use ?force=true para forçar atualização (mais lento).
+    """
+    if force:
+        # Run in thread pool to avoid blocking event loop
+        import asyncio
+        loop = asyncio.get_event_loop()
+        report = await loop.run_in_executor(None, lambda: generate_radar_report(force_refresh=True))
+    else:
+        cached = get_cached_radar_report()
+        if cached:
+            return cached
+        # No cache — generate synchronously in thread pool
+        import asyncio
+        loop = asyncio.get_event_loop()
+        report = await loop.run_in_executor(None, lambda: generate_radar_report(force_refresh=False))
+
+    return report
+
+
+@router.post(
+    "/radar/refresh",
+    summary="Força atualização do radar de oportunidades em background",
+    tags=["opportunity-detector"],
+)
+@limiter.limit("2/minute")
+async def refresh_radar(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """Dispara geração do radar via Celery em background. Retorna imediatamente.
+    O novo relatório estará disponível em ~45s via GET /radar.
+    """
+    from app.celery_app import celery_app
+    celery_app.send_task("opportunity_detector.generate_radar")
+    return {"status": "refresh_triggered", "ready_in_seconds": 45}
 
 
 @router.get(
