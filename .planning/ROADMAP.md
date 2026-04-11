@@ -13,7 +13,7 @@
 - [x] **Phase 17: FII Screener Table** — Tabela de FIIs ranqueada por score composto com filtros por segmento e DY mínimo (completed 2026-04-04)
 - [x] **Phase 18: FII Detail Page + IA Analysis** — Página /fii/[ticker] com histórico DY/P/VP, portfólio básico e análise IA assíncrona (completed 2026-04-04)
 - [x] **Phase 19: Opportunity Detector Page** — Página /opportunity-detector exibindo oportunidades detectadas pelo bot Telegram, com histórico e filtros (completed 2026-04-05)
-- [ ] **Phase 20: Swing Trade Page** — Página /swing-trade com sinais de compra/venda para carteira de dividendos, radar de oportunidades swing e registro manual de operações
+- [x] **Phase 20: Swing Trade Page** — Página /swing-trade com sinais de compra/venda para carteira de dividendos, radar de oportunidades swing e registro manual de operações (completed 2026-04-11)
 
 ---
 
@@ -107,11 +107,11 @@ Plans:
 5. Página protegida por auth (/swing-trade em PROTECTED_PATHS)
 6. Sinais calculados a partir de dados já em Redis (sem novas chamadas externas)
 
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 20-01-PLAN.md — Backend: SwingTradeOperation model + migration, signal computation service, 5 endpoints
-- [ ] 20-02-PLAN.md — Frontend: /swing-trade page com 3 seções (sinais carteira, radar, operações)
+- [x] 20-02-PLAN.md — Frontend: /swing-trade page com 3 seções (sinais carteira, radar, operações)
 
 ---
 
@@ -122,7 +122,7 @@ Plans:
 | 17 - FII Screener Table | ✅ DEPLOYED | 2/2 | 2026-04-04 |
 | 18 - FII Detail Page + IA | ✅ DEPLOYED | 2/2 | 2026-04-04 |
 | 19 - Opportunity Detector Page | ✅ DEPLOYED | 2/2 | 2026-04-05 |
-| 20 - Swing Trade Page | 1/2 | In Progress|  |
+| 20 - Swing Trade Page | 2/2 | Complete   | 2026-04-11 |
 
 **Totals:** 4 phases | 5/5 requirements mapped | 75% complete
 

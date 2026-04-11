@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Requirements to Phases Mapping
 status: unknown
-last_updated: "2026-04-11T21:43:55.170Z"
+last_updated: "2026-04-11T21:59:39.401Z"
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 8
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # Project State
@@ -129,6 +129,9 @@ Phase 18: FII Detail + IA       [ NOT STARTED ]
 - [Phase 20]: Migration 0023 gates RLS SQL behind postgres dialect so sqlite-based tests can upgrade to head
 - [Phase 20]: live_signal (sell/stop/hold) computed read-side in _enrich_operation — not a DB column
 - [Phase 20]: Radar universe = RADAR_ACOES union portfolio_tickers so held stocks always surface
+- [Phase 20-swing-trade-page]: [Phase 20-02]: Page placed at frontend/app/swing-trade/ (not src/app/) — appDir is frontend/app/ per Phase 17 precedent
+- [Phase 20-swing-trade-page]: [Phase 20-02]: Tabs share single useSwingSignals query so switching Sinais<->Radar does not refetch
+- [Phase 20-swing-trade-page]: [Phase 20-02]: Client-side P&L fallback for closed operation rows when backend enrichment is absent
 
 ## Open Questions (resolve in Phase 17)
 
@@ -160,3 +163,4 @@ Phase 18: FII Detail + IA       [ NOT STARTED ]
 | Phase 19-opportunity-detector-page P01 | 27 | 8 tasks | 8 files |
 | Phase 19 P02 | 30 | 7 tasks | 7 files |
 | Phase 20 P01 | 15min | 6 tasks | 9 files |
+| Phase 20-swing-trade-page P20-02 | 8min | 7 tasks | 12 files |
