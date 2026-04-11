@@ -57,6 +57,11 @@ postgres_data/
 
 # Playwright local artifacts / secrets
 .playwright-mcp/
+frontend/test-results/
+frontend/playwright-report/
+
+# TypeScript incremental build info
+*.tsbuildinfo
 
 # Planning outputs (generated, not source)
 # .planning/ is committed — it is source
