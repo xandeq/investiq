@@ -38,6 +38,7 @@ from app.modules.wizard.router import router as wizard_router
 from app.modules.analysis.router import router as analysis_router
 from app.modules.fii_screener.router import router as fii_screener_router
 from app.modules.opportunity_detector.router import router as opportunity_detector_router
+from app.modules.swing_trade.router import router as swing_trade_router
 
 
 @asynccontextmanager
@@ -135,6 +136,8 @@ app.include_router(analysis_router, prefix="/analysis", tags=["analysis"])
 app.include_router(fii_screener_router, prefix="/fii-screener", tags=["fii-screener"])
 # Phase 19: Opportunity Detector history API
 app.include_router(opportunity_detector_router, prefix="/opportunity-detector", tags=["opportunity-detector"])
+# Phase 20: Swing Trade signals + manual operations
+app.include_router(swing_trade_router, prefix="/swing-trade", tags=["swing-trade"])
 
 
 @app.get("/health")
