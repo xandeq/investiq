@@ -107,10 +107,10 @@ Plans:
 5. Página protegida por auth (/swing-trade em PROTECTED_PATHS)
 6. Sinais calculados a partir de dados já em Redis (sem novas chamadas externas)
 
-**Plans:** 0/2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
-- [ ] 20-01-PLAN.md — Backend: SwingTradeOperation model + migration, signal computation service, 5 endpoints
+- [x] 20-01-PLAN.md — Backend: SwingTradeOperation model + migration, signal computation service, 5 endpoints
 - [ ] 20-02-PLAN.md — Frontend: /swing-trade page com 3 seções (sinais carteira, radar, operações)
 
 ---
@@ -122,7 +122,7 @@ Plans:
 | 17 - FII Screener Table | ✅ DEPLOYED | 2/2 | 2026-04-04 |
 | 18 - FII Detail Page + IA | ✅ DEPLOYED | 2/2 | 2026-04-04 |
 | 19 - Opportunity Detector Page | ✅ DEPLOYED | 2/2 | 2026-04-05 |
-| 20 - Swing Trade Page | ○ Planned | 0/2 | — |
+| 20 - Swing Trade Page | 1/2 | In Progress|  |
 
 **Totals:** 4 phases | 5/5 requirements mapped | 75% complete
 

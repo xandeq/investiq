@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Requirements to Phases Mapping
 status: unknown
-last_updated: "2026-04-05T08:53:22.837Z"
+last_updated: "2026-04-11T21:43:55.170Z"
 progress:
-  total_phases: 3
+  total_phases: 4
   completed_phases: 2
-  total_plans: 6
-  completed_plans: 4
+  total_plans: 8
+  completed_plans: 5
 ---
 
 # Project State
@@ -19,12 +19,12 @@ See: .planning/PROJECT.md (updated 2026-04-04 after v1.3 milestone start)
 
 **Core value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada — v1.3 adds FII screener with composite score + filterable table + detail page with async IA analysis
 
-**Current focus:** Phase 19 — opportunity-detector-page
+**Current focus:** Phase 20 — swing-trade-page
 
 ## Current Position
 
-Phase: 19
-Plan: Not started
+Phase: 20 (swing-trade-page) — EXECUTING
+Plan: 2 of 2
 
 ## Progress Bar
 
@@ -125,6 +125,10 @@ Phase 18: FII Detail + IA       [ NOT STARTED ]
 - [Phase 19-opportunity-detector-page]: GET /opportunity-detector/history uses get_global_db (not get_authed_db) — detected_opportunities has no tenant_id/RLS
 - [Phase 19]: Server-side filtering (API params) for opportunities instead of client-side useMemo — dataset can grow without bound unlike FII screener (~400 FIIs)
 - [Phase 19]: C:/Program Files/Git/fii added to PROTECTED_PATHS alongside /opportunity-detector — was previously missing from middleware auth coverage
+- [Phase 20]: BUY rule: drop>=12% AND (dy unknown OR dy>=5%) — unknown DY must not mask genuine 30d dips
+- [Phase 20]: Migration 0023 gates RLS SQL behind postgres dialect so sqlite-based tests can upgrade to head
+- [Phase 20]: live_signal (sell/stop/hold) computed read-side in _enrich_operation — not a DB column
+- [Phase 20]: Radar universe = RADAR_ACOES union portfolio_tickers so held stocks always surface
 
 ## Open Questions (resolve in Phase 17)
 
@@ -155,3 +159,4 @@ Phase 18: FII Detail + IA       [ NOT STARTED ]
 | Phase 17 P02 | 12m | 2 tasks | 6 files |
 | Phase 19-opportunity-detector-page P01 | 27 | 8 tasks | 8 files |
 | Phase 19 P02 | 30 | 7 tasks | 7 files |
+| Phase 20 P01 | 15min | 6 tasks | 9 files |
