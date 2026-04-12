@@ -52,7 +52,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 21. Screener de Ações | 3/3 | Complete   | 2026-04-12 |
+| 21. Screener de Ações | 3/3 | Complete    | 2026-04-12 |
 | 22. Catálogo Renda Fixa | 0/TBD | Not started | - |
 
 ---
