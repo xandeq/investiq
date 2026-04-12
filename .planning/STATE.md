@@ -1,40 +1,53 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.3
-milestone_name: Requirements to Phases Mapping
-status: unknown
-last_updated: "2026-04-11T21:59:39.401Z"
+milestone: v1.4
+milestone_name: Ferramentas de Analise
+status: roadmap_created
+last_updated: "2026-04-12T00:00:00.000Z"
 progress:
-  total_phases: 4
-  completed_phases: 3
-  total_plans: 8
-  completed_plans: 6
+  total_phases: 2
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-04 after v1.3 milestone start)
+See: .planning/PROJECT.md
 
-**Core value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada — v1.3 adds FII screener with composite score + filterable table + detail page with async IA analysis
+**Core value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada — v1.4 adiciona screener de ações filtrável e catálogo de renda fixa com retorno líquido real.
 
-**Current focus:** Phase 20 — swing-trade-page
+**Current focus:** Phase 21 — Screener de Ações (not started)
 
 ## Current Position
 
-Phase: 20 (swing-trade-page) — EXECUTING
-Plan: 2 of 2
+Phase: Not started
+Plan: —
+Status: Roadmap created, ready to plan Phase 21
+Last activity: 2026-04-12 — Roadmap v1.4 created
 
 ## Progress Bar
 
 ```
-v1.3 FII Screener
+v1.4 Ferramentas de Análise
 [░░░░░░░░░░░░░░░░░░░░] 0% (0/2 phases)
 
-Phase 17: FII Screener Table    [ NOT STARTED ]
-Phase 18: FII Detail + IA       [ NOT STARTED ]
+Phase 21: Screener de Ações     [ NOT STARTED ]
+Phase 22: Catálogo Renda Fixa   [ NOT STARTED ]
 ```
+
+## v1.3 Status Reference
+
+✅ SHIPPED 2026-04-11
+
+| Phase | Status | Completed |
+|-------|--------|-----------|
+| 17. FII Screener Table | Complete | 2026-04-04 |
+| 18. FII Detail Page + IA | Complete | 2026-04-04 |
+| 19. Opportunity Detector Page | Complete | 2026-04-05 |
+| 20. Swing Trade Page | Complete | 2026-04-11 |
 
 ## v1.2 Status Reference
 
@@ -57,110 +70,79 @@ Phase 18: FII Detail + IA       [ NOT STARTED ]
 - **VPS:** 185.173.110.180, path: /app/financas/
 - **Production:** https://investiq.com.br (frontend port 3100) + https://api.investiq.com.br (backend port 8100)
 - **Stripe LIVE:** price_1TC56FCA1CPHCF6PKQ5XmUWD (R$29,90/mês)
+- **Frontend appDir:** `frontend/app/` (NOT `frontend/src/app/`) — confirmed Phase 17
 
 ### Data Sources
 
 - **BRAPI:** Token available (free, 15k req/month) — B3 quotes + dividendsData + summaryProfile
-- **FII endpoint:** `/v2/quote/{ticker}?modules=dividendsData,summaryProfile`
-- **DY 12m:** Sum of dividendsData.cashDividends for last 12 months / current price
-- **MODULES_NOT_AVAILABLE:** BRAPI can return this for some tickers — adapter must fall back to base quote fields (already implemented in v1.2 brapi.py)
+- **python-bcb:** Macro data including CDI/IPCA rates
+- **screener_snapshots:** ~900 tickers populated nightly by Celery beat (from v1.1)
+- **fixed_income_catalog:** Tesouro Direto + CDB + LCI/LCA populated nightly by Celery beat (from v1.1)
+- **TaxEngine:** IR regressivo (22.5%→15%) + LCI/LCA isenção — fully operational (v1.1)
 
-### Existing FII Infrastructure (from v1.1)
+### Existing Infrastructure Relevant to v1.4
 
-- `global_fiis` table exists with FII metadata (ticker, segmento, nome)
-- Celery beat FII metadata pipeline runs nightly — already fetches basic data
-- `get_global_db` pattern established for global (non-tenant) tables
+- `screener_snapshots` table: Celery beat pipeline, ~900 tickers universe — **Phase 21 backend foundation**
+- `fixed_income_catalog` table: Celery beat pipeline, Tesouro/CDB/LCI/LCA data — **Phase 22 backend foundation**
+- `TaxEngine`: calculates net return after IR by prazo bracket — **Phase 22 core engine**
+- `get_global_db`: pattern for non-tenant global tables — reuse for both phases
+- Goldman Sachs screener endpoint `/screener/` — returns top 10 only, Phase 21 needs `/screener/universe` instead
 
-### v1.2 Patterns to Reuse in v1.3
+### Patterns to Reuse in v1.4
 
-- **Async job pattern:** POST analysis → returns job_id immediately → GET /analysis/{job_id} for result (Celery)
-- **LLM provider chain:** Claude Haiku (OpenRouter) → Groq fallback — never hardcode keys
-- **CVM disclaimer component:** Built in Phase 12 — reuse as-is for FII IA analysis
-- **WebSocket polling:** Frontend polls job status, sections populate on completion
-- **`get_global_db`:** FII screener data is global (not per-tenant) — same pattern as existing screener
+- **Phase 17 FII Screener:** client-side useMemo filtering, table + filter UX, Tailwind table styling — reuse for Phase 21
+- **`get_global_db`:** global (non-tenant) table session — reuse for screener universe + RF catalog
+- **Nav link pattern:** add /acoes/screener and /renda-fixa to sidebar/nav
 
 ### Testing
 
-- **Current test count:** 257+ passing (v1.2 baseline)
+- **Test count:** 257+ passing (v1.2 baseline, maintained through v1.3)
 - **Playwright E2E:** 72 tests passing — maintain when adding new pages
+- **DB Migrations:** 0023 (head at v1.3 end)
 
-## v1.3 Architecture Decisions
+## v1.4 Architecture Decisions
 
-### Score Formula
+### Phase 21 Approach
+- New `GET /screener/universe` endpoint returns full ~900 ticker universe with DY, P/L, Setor, Market Cap, Variação 12m
+- Client-side filtering with useMemo — same as Phase 17 FII Screener, fits in browser memory
+- Paginação client-side for consistency
 
-- `normalized_score = (DY_rank * 0.5) + (P_VP_rank * 0.3) + (liquidity_rank * 0.2)`
-- Ranks are percentile (0–100) within FII universe
-- DY: higher = better (higher rank = higher DY)
-- P/VP: lower = better (invert rank — lower P/VP gets higher rank)
-- Liquidity: higher = better (higher ADV = higher rank)
-- Recalculated nightly via Celery beat after FII metadata pipeline
-
-### Migration Strategy
-
-- Add columns to `global_fiis`: `score`, `dy_rank`, `pvp_rank`, `liquidity_rank`, `dy_12m`, `pvp`, `daily_liquidity`, `score_updated_at`
-- New migration (0020+)
-
-### FII IA Analysis
-
-- New Celery task: `run_fii_analysis` — reuses AnalysisJob model or new FiiAnalysisJob model
-- Prompt scope: dividend quality, DY sustainability (payout > income = unsustainable), P/VP vs historical average, portfolio concentration risk
-- Reuse LLM provider fallback chain from v1.2
-
-### Frontend Pages
-
-- `/fii/screener` — new page with table + filters (segment dropdown + DY slider)
-- `/fii/[ticker]` — detail page with historical charts + portfolio section + IA analysis card
+### Phase 22 Approach
+- Check if RF API endpoint already exists before creating new one
+- Frontend-only if backend complete; thin route + TaxEngine wrapper if not
+- CDI/IPCA beat indicator uses CDI rate from python-bcb or DB
 
 ## Decisions
 
-- **2026-04-04 Roadmap:** 2 phases for 4 requirements — natural split: screener table (Phase 17) vs detail page (Phase 18)
-- **2026-04-04 Roadmap:** Reuse all v1.2 patterns: async jobs, LLM provider chain, CVM disclaimer, WebSocket polling
-- **2026-04-04 Roadmap:** Score formula with percentile ranks (not absolute values) — normalizes across FII universe regardless of absolute DY/P/VP levels
-- [Phase 17]: Percentile rank single-element returns 50 (median) to avoid unfair extreme ranking in sparse FII data
-- [Phase 17]: Score stored as Decimal(str(float)) to preserve precision without floating-point drift
-- [Phase 17]: Page created at frontend/app/fii/screener/ (not frontend/src/app/) — Next.js appDir is frontend/app/
-- [Phase 17]: Client-side filtering with useMemo avoids API roundtrips — ~400 FIIs fits in browser memory
-- [Phase 19-opportunity-detector-page]: save_opportunity_to_db uses get_superuser_sync_db_session (sync) — Celery workers are synchronous, async session raises RuntimeError
-- [Phase 19-opportunity-detector-page]: DB persistence fires BEFORE Telegram/email in dispatch_opportunity() so data is saved even if notification channels fail
-- [Phase 19-opportunity-detector-page]: GET /opportunity-detector/history uses get_global_db (not get_authed_db) — detected_opportunities has no tenant_id/RLS
-- [Phase 19]: Server-side filtering (API params) for opportunities instead of client-side useMemo — dataset can grow without bound unlike FII screener (~400 FIIs)
-- [Phase 19]: C:/Program Files/Git/fii added to PROTECTED_PATHS alongside /opportunity-detector — was previously missing from middleware auth coverage
-- [Phase 20]: BUY rule: drop>=12% AND (dy unknown OR dy>=5%) — unknown DY must not mask genuine 30d dips
-- [Phase 20]: Migration 0023 gates RLS SQL behind postgres dialect so sqlite-based tests can upgrade to head
-- [Phase 20]: live_signal (sell/stop/hold) computed read-side in _enrich_operation — not a DB column
-- [Phase 20]: Radar universe = RADAR_ACOES union portfolio_tickers so held stocks always surface
-- [Phase 20-swing-trade-page]: [Phase 20-02]: Page placed at frontend/app/swing-trade/ (not src/app/) — appDir is frontend/app/ per Phase 17 precedent
-- [Phase 20-swing-trade-page]: [Phase 20-02]: Tabs share single useSwingSignals query so switching Sinais<->Radar does not refetch
-- [Phase 20-swing-trade-page]: [Phase 20-02]: Client-side P&L fallback for closed operation rows when backend enrichment is absent
+- **2026-04-12 Roadmap:** 2 phases for 7 requirements — SCRA-01–04 in Phase 21 (screener), RF-01–03 in Phase 22 (catálogo RF)
+- **2026-04-12 Roadmap:** Phase 21 reuses Phase 17 FII Screener client-side useMemo pattern
+- **2026-04-12 Roadmap:** Phase 22 is frontend-only (backend fully operational since v1.1)
+- **Phase 17 established:** Page created at frontend/app/ (not frontend/src/app/) — appDir is frontend/app/
+- **Phase 17 established:** Client-side filtering with useMemo avoids API roundtrips — dataset fits in browser memory
+- **Phase 19:** Server-side filtering for opportunity detector (dataset unbounded) vs client-side for screeners (bounded ~400–900 items)
+- **Phase 20:** Migration gates RLS SQL behind postgres dialect so sqlite-based tests can upgrade to head
 
-## Open Questions (resolve in Phase 17)
+## Open Questions (resolve in Phase 21)
 
-1. Does BRAPI summaryProfile return `segmento` (sector) for FIIs or must it come from another source?
-2. BRAPI free tier has 15k req/month — at ~400 FIIs * 2 modules = ~800 req/night for pipeline. Confirm this fits quota.
-3. Is `global_fiis` already populated with all ~400 B3 FIIs or a subset? Confirm universe size before score calculation.
+1. Does `screener_snapshots` table include all required columns (DY, P/L, Setor, Market Cap, Variação 12m) or do they need to be added/populated?
+2. Does a `/renda-fixa` or `/fixed-income` API endpoint already exist, or does Phase 22 need to create it?
+3. What is current DB migration head number after v1.3? (0023 assumed — confirm before Phase 21 migration)
 
 ## Performance Metrics
 
-**v1.2 baseline:**
-
+**v1.3 baseline:**
 - Test count: 257+ passing
 - Playwright E2E: 72 passing
 - Lines of code: ~24K Python backend + ~12K TypeScript frontend
+- DB Migrations: 0023 (head)
 
-**v1.3 targets:**
-
+**v1.4 targets:**
 - Maintain 257+ unit tests passing
-- Maintain 72 Playwright tests passing (+ new FII screener E2E)
+- Maintain 72 Playwright tests passing (+ new screener + RF catalog E2E)
 - Screener table load: <500ms (data pre-calculated nightly)
-- FII IA analysis job: <30s (same SLA as stock analysis)
+- RF catalog load: <300ms (static catalog from DB + TaxEngine calculations)
 
 | Phase | Plan | Status | Duration | Notes |
 |-------|------|--------|----------|-------|
-| 17 | TBD | Not started | TBD | Score calc + Celery task + API endpoint + frontend screener table |
-| 18 | TBD | Not started | TBD | Detail page + historical charts + IA job + Playwright tests |
-| Phase 17 P01 | 590 | 2 tasks | 10 files |
-| Phase 17 P02 | 12m | 2 tasks | 6 files |
-| Phase 19-opportunity-detector-page P01 | 27 | 8 tasks | 8 files |
-| Phase 19 P02 | 30 | 7 tasks | 7 files |
-| Phase 20 P01 | 15min | 6 tasks | 9 files |
-| Phase 20-swing-trade-page P20-02 | 8min | 7 tasks | 12 files |
+| 21 | TBD | Not started | TBD | New /screener/universe endpoint + /acoes/screener frontend |
+| 22 | TBD | Not started | TBD | /renda-fixa frontend (backend exists) |

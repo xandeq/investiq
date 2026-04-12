@@ -90,28 +90,32 @@ Fases 12–16 completas e deployadas. Página /stock/[ticker] com DCF + earnings
 
 ---
 
-## Current Milestone: v1.3 FII Screener
+## ✅ v1.3 FII Screener + Swing Trade — SHIPPED 2026-04-12
 
-**Goal:** Dar ao usuário uma tela de screener de FIIs com score composto + filtros por segmento e DY mínimo, e uma página de detalhe por FII com histórico, portfólio e análise IA.
+Fases 17–20 completas e deployadas. FII Screener com score composto, página detalhe FII com IA, Opportunity Detector e Swing Trade Page com sinais, radar e registro de operações manuais.
+
+---
+
+## Current Milestone: v1.4 Ferramentas de Análise
+
+**Goal:** Entregar ao usuário as ferramentas de análise que faltam: screener de ações com filtros avançados e catálogo de renda fixa com retorno líquido IR por prazo.
 
 **Target features:**
-- Tabela de FIIs ranqueados por score composto (DY 12m + P/VP + liquidez diária)
-- Filtros: segmento (Logística, Lajes, Shopping, CRI/CRA, FoF...) e DY mínimo 12m
-- Colunas: Score, Rank, DY 12m, P/VP, Liquidez Diária
-- Página detalhe /fii/[ticker] — igual /stock mas para FIIs: histórico DY, P/VP, portfólio de imóveis, narrativa IA
+- Screener de ações: tabela filtrável por DY, P/L, Setor, Market Cap — ordenável, paginado, link para /stock/[ticker]
+- Catálogo RF: Tesouro Direto + CDB + LCI/LCA com retorno líquido (TaxEngine), destaque isenção LCI/LCA, indicador bate CDI/IPCA
 
+**Requirements:** SCRA-01–04, RF-01–03
 **Phase count:** TBD (roadmapper will define)
-**Starts at:** Phase 17
+**Starts at:** Phase 21
 
 ---
 
-## Future Milestone Items (Post-v1.3)
+## Future Milestone Items (Post-v1.4)
 
-Priority items from Active requirements:
-1. Screener ações: filtros avançados — SCRA-01–03
-2. Catálogo Renda Fixa frontend — RF-01–03
-3. Simulador de alocação — SIM-01–03
-4. Admin dashboard — MON-04
+1. v1.5 — AI Portfolio Advisor (Health Check da carteira + recomendações IA personalizadas com contexto da carteira real + Smart Screener personalizado + Entry Signals com contexto fundamentalista)
+2. v1.6 — Comparador RF vs RV + Simulador de Alocação (COMP-01–02, SIM-01–03)
+3. Admin dashboard — MON-04
+4. PostgreSQL RLS enforcement — AUTH-05
 
 ---
-*Last updated: 2026-04-04 after v1.3 milestone start*
+*Last updated: 2026-04-12 after v1.4 milestone start*
