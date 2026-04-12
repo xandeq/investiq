@@ -27,6 +27,7 @@ from app.modules.screener_v2.schemas import (
     FIIScreenerParams,
     FixedIncomeCatalogRow,
     IRBreakdown,
+    ScreenerUniverseRow,
     TesouroRateRow,
     HOLDING_PERIODS,
 )
@@ -361,6 +362,41 @@ async def query_fixed_income_catalog(
         ))
 
     return results
+
+
+async def query_screener_universe(db: AsyncSession) -> list[ScreenerUniverseRow]:
+    """Return all tickers from the latest snapshot date, ordered by market_cap desc.
+
+    No server-side filtering -- the frontend applies filters client-side with useMemo.
+    """
+    latest_date_result = await db.execute(
+        select(func.max(ScreenerSnapshot.snapshot_date))
+    )
+    latest_date = latest_date_result.scalar_one_or_none()
+    if latest_date is None:
+        return []
+
+    stmt = (
+        select(ScreenerSnapshot)
+        .where(ScreenerSnapshot.snapshot_date == latest_date)
+        .order_by(ScreenerSnapshot.market_cap.desc().nullslast())
+    )
+    result = await db.execute(stmt)
+    snapshots = result.scalars().all()
+
+    return [
+        ScreenerUniverseRow(
+            ticker=s.ticker,
+            short_name=s.short_name,
+            sector=s.sector,
+            regular_market_price=_safe_decimal(s.regular_market_price),
+            variacao_12m_pct=_safe_decimal(s.variacao_12m_pct),
+            dy=_safe_decimal(s.dy),
+            pl=_safe_decimal(s.pl),
+            market_cap=s.market_cap,
+        )
+        for s in snapshots
+    ]
 
 
 async def query_tesouro_rates() -> list[TesouroRateRow]:

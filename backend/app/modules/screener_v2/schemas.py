@@ -74,6 +74,31 @@ class AcaoScreenerResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Universe screener (client-side filtering — per D-09, D-10)
+# ---------------------------------------------------------------------------
+
+
+class ScreenerUniverseRow(BaseModel):
+    """Single row in the full universe screener (client-side filtering)."""
+
+    ticker: str
+    short_name: str | None
+    sector: str | None
+    regular_market_price: Decimal | None
+    variacao_12m_pct: Decimal | None
+    dy: Decimal | None
+    pl: Decimal | None
+    market_cap: int | None
+
+
+class ScreenerUniverseResponse(BaseModel):
+    """Response for GET /screener/universe -- all tickers, no pagination."""
+
+    disclaimer: str = CVM_DISCLAIMER
+    results: list[ScreenerUniverseRow]
+
+
+# ---------------------------------------------------------------------------
 # FII screener
 # ---------------------------------------------------------------------------
 
