@@ -141,7 +141,7 @@ class BrapiClient:
     def fetch_fundamentals(self, ticker: str) -> dict:
         """Fetch fundamental analysis data for a single ticker.
 
-        Returns dict with keys: pl, pvp, dy, ev_ebitda
+        Returns dict with keys: pl, pvp, dy, ev_ebitda, variacao_12m
         Values may be None if brapi.dev does not return them.
         """
         def _extract(d: dict, key: str) -> float | None:
@@ -164,6 +164,7 @@ class BrapiClient:
                 "pvp": _extract(key_stats, "priceToBook"),
                 "dy": _extract(financial, "dividendYield"),
                 "ev_ebitda": _extract(key_stats, "enterpriseToEbitda"),
+                "variacao_12m": _extract(key_stats, "52WeekChange"),
             }
 
         time.sleep(_BATCH_SLEEP_SECONDS)

@@ -239,6 +239,7 @@ def refresh_screener_universe(self) -> None:
                     "pvp": stmt.excluded.pvp,
                     "dy": stmt.excluded.dy,
                     "ev_ebitda": stmt.excluded.ev_ebitda,
+                    "variacao_12m_pct": stmt.excluded.variacao_12m_pct,
                 },
             )
             session.execute(stmt)
@@ -287,6 +288,7 @@ def refresh_screener_universe(self) -> None:
             "pvp": _safe_decimal(fund.get("pvp")) if fund else None,
             "dy": _safe_decimal(fund.get("dy")) if fund else None,
             "ev_ebitda": _safe_decimal(fund.get("ev_ebitda")) if fund else None,
+            "variacao_12m_pct": _safe_decimal(fund.get("variacao_12m")) if fund else None,
         }
         batch_rows.append(row)
 
