@@ -42,6 +42,7 @@ class ScreenerSnapshot(Base):
     pvp: Mapped[Decimal | None] = mapped_column(Numeric(10, 4), nullable=True)
     dy: Mapped[Decimal | None] = mapped_column(Numeric(10, 6), nullable=True)
     ev_ebitda: Mapped[Decimal | None] = mapped_column(Numeric(10, 4), nullable=True)
+    variacao_12m_pct: Mapped[Decimal | None] = mapped_column(Numeric(10, 6), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
