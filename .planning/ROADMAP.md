@@ -11,7 +11,7 @@
 ## Phases
 
 - [x] **Phase 21: Screener de Ações** — Tabela filtrável de ~900 ações com endpoint filterable, paginação e link para /stock/[ticker] (completed 2026-04-12)
-- [ ] **Phase 22: Catálogo Renda Fixa** — Frontend do catálogo RF com retorno líquido IR por prazo, filtros e indicadores visuais (backend exists from v1.1)
+- [x] **Phase 22: Catálogo Renda Fixa** — Frontend do catálogo RF com retorno líquido IR por prazo, filtros e indicadores visuais (backend exists from v1.1) (completed 2026-04-12)
 
 ---
 
@@ -44,11 +44,11 @@ Plans:
   2. Cada produto exibe retorno líquido calculado pelo TaxEngine para prazos 90d, 1a, 2a, 5a — produtos LCI/LCA têm badge ou destaque visual de isenção IR
   3. Usuário filtra catálogo por tipo (Tesouro/CDB/LCI/LCA) e prazo mínimo e ordena por retorno líquido — tabela atualiza sem reload
   4. Cada produto exibe indicador visual (ícone verde/vermelho ou texto) se o retorno líquido supera CDI ou IPCA no prazo selecionado
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 22-01-PLAN.md — Backend: GET /renda-fixa/macro-rates endpoint (schema + service + router + tests)
-- [ ] 22-02-PLAN.md — Frontend: filters, sort by retorno liquido, beat indicator in RendaFixaContent.tsx
+- [x] 22-02-PLAN.md — Frontend: filters, sort by retorno liquido, beat indicator in RendaFixaContent.tsx
 
 ---
 
@@ -57,7 +57,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 21. Screener de Ações | 3/3 | Complete    | 2026-04-12 |
-| 22. Catálogo Renda Fixa | 1/2 | In Progress|  |
+| 22. Catálogo Renda Fixa | 2/2 | Complete   | 2026-04-12 |
 
 ---
 

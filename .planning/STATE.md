@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: - Client-side filtering with useMemo
 status: unknown
-last_updated: "2026-04-12T19:31:52.342Z"
+last_updated: "2026-04-12T19:35:20.494Z"
 progress:
   total_phases: 2
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 5
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Project State
@@ -128,6 +128,8 @@ Phase 22: Catálogo Renda Fixa   [ NOT STARTED ]
 - [Phase 21]: Market cap tier buttons toggle: clicking active tier deselects it in client-side filter
 - [Phase 22]: MacroRatesResponse imported at top level in service.py -- no circular import risk confirmed
 - [Phase 22]: No main.py changes needed -- /renda-fixa prefix already registered on screener_v2 router
+- [Phase 22]: annualizeRate uses compound math matching Python _compound_return() formula exactly
+- [Phase 22]: Beat indicator gated on macroRates load state -- no-flash guard prevents showing wrong colors during data fetch
 
 ## Open Questions (resolve in Phase 21)
 
@@ -159,3 +161,4 @@ Phase 22: Catálogo Renda Fixa   [ NOT STARTED ]
 | Phase 21 P02 | 8 | 2 tasks | 4 files |
 | Phase 21 P03 | 197s | 2 tasks | 5 files |
 | Phase 22 P01 | 4m | 2 tasks | 4 files |
+| Phase 22 P02 | 4m | 2 tasks | 4 files |
