@@ -26,7 +26,12 @@
   2. Usuário aplica filtros (DY mínimo slider, P/L máximo input, Setor dropdown B3, Market Cap small/mid/large) e a tabela atualiza instantaneamente sem reload de página
   3. Usuário clica em qualquer ticker da tabela e é navegado para /stock/[ticker] — a página de análise completa já existente abre corretamente
   4. Tabela exibe paginação e usuário navega entre páginas de resultados
-**Plans:** TBD
+**Plans:** 3 plans
+
+Plans:
+- [ ] 21-01-PLAN.md — Migration 0024 + brapi 52WeekChange + Celery upsert for variacao_12m_pct
+- [ ] 21-02-PLAN.md — GET /screener/universe endpoint (schemas, service, router, tests)
+- [ ] 21-03-PLAN.md — Frontend /acoes/screener page (feature dir, filters, sort, pagination)
 
 ---
 
@@ -47,7 +52,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 21. Screener de Ações | 0/TBD | Not started | - |
+| 21. Screener de Ações | 0/3 | Planned | - |
 | 22. Catálogo Renda Fixa | 0/TBD | Not started | - |
 
 ---
