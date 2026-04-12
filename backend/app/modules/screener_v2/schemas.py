@@ -202,3 +202,15 @@ class TesouroRatesResponse(BaseModel):
     disclaimer: str = CVM_DISCLAIMER
     note: str = "Taxas de referencia de mercado — nao constitui oferta ao vivo"
     results: list[TesouroRateRow]
+
+
+# ---------------------------------------------------------------------------
+# Macro rates (CDI / IPCA from Redis)
+# ---------------------------------------------------------------------------
+
+
+class MacroRatesResponse(BaseModel):
+    """Response for GET /renda-fixa/macro-rates."""
+
+    cdi: Decimal | None = Field(None, description="CDI annual rate as percentage, e.g. 10.65")
+    ipca: Decimal | None = Field(None, description="IPCA annual rate as percentage, e.g. 5.06")

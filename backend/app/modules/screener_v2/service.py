@@ -27,6 +27,7 @@ from app.modules.screener_v2.schemas import (
     FIIScreenerParams,
     FixedIncomeCatalogRow,
     IRBreakdown,
+    MacroRatesResponse,
     ScreenerUniverseRow,
     TesouroRateRow,
     HOLDING_PERIODS,
@@ -436,3 +437,24 @@ async def query_tesouro_rates() -> list[TesouroRateRow]:
     except Exception as exc:
         logger.error("query_tesouro_rates: Redis unavailable: %s", exc)
         return []
+
+
+async def query_macro_rates() -> MacroRatesResponse:
+    """Fetch CDI and IPCA annual rates from Redis macro cache.
+
+    Keys set by refresh_macro Celery beat task (every 7h).
+    Falls back to None values if Redis unavailable.
+    """
+    try:
+        import redis as redis_lib
+        redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+        r = redis_lib.Redis.from_url(redis_url, decode_responses=True)
+        cdi_raw = r.get("market:macro:cdi")
+        ipca_raw = r.get("market:macro:ipca")
+        return MacroRatesResponse(
+            cdi=_safe_decimal(cdi_raw),
+            ipca=_safe_decimal(ipca_raw),
+        )
+    except Exception as exc:
+        logger.error("query_macro_rates: Redis unavailable: %s", exc)
+        return MacroRatesResponse(cdi=None, ipca=None)

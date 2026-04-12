@@ -27,6 +27,7 @@ from app.modules.screener_v2.schemas import (
     FIIScreenerParams,
     FIIScreenerResponse,
     FixedIncomeCatalogResponse,
+    MacroRatesResponse,
     ScreenerUniverseResponse,
     TesouroRatesResponse,
 )
@@ -34,6 +35,7 @@ from app.modules.screener_v2.service import (
     query_acoes,
     query_fiis,
     query_fixed_income_catalog,
+    query_macro_rates,
     query_screener_universe,
     query_tesouro_rates,
 )
@@ -264,3 +266,27 @@ async def tesouro_rates(
     rows = await query_tesouro_rates()
 
     return TesouroRatesResponse(results=rows)
+
+
+# ---------------------------------------------------------------------------
+# Macro rates (CDI / IPCA)
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/macro-rates",
+    response_model=MacroRatesResponse,
+    summary="CDI e IPCA anuais do cache Redis",
+    tags=["renda-fixa"],
+)
+@limiter.limit("30/minute")
+async def macro_rates(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+) -> MacroRatesResponse:
+    """Return current CDI and IPCA annual rates from Redis cache.
+
+    Rates populated by refresh_macro Celery beat task (every 7h).
+    Returns null values if Redis is unavailable.
+    """
+    return await query_macro_rates()
