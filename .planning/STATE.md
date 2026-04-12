@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: - Client-side filtering with useMemo
 status: unknown
-last_updated: "2026-04-12T14:29:36.022Z"
+last_updated: "2026-04-12T14:34:03.048Z"
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md
 ## Current Position
 
 Phase: 21 (screener-de-acoes) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 
 ## Progress Bar
 
@@ -122,6 +122,8 @@ Phase 22: Catálogo Renda Fixa   [ NOT STARTED ]
 - **Phase 19:** Server-side filtering for opportunity detector (dataset unbounded) vs client-side for screeners (bounded ~400–900 items)
 - **Phase 20:** Migration gates RLS SQL behind postgres dialect so sqlite-based tests can upgrade to head
 - [Phase 21]: Used Numeric(10,6) for variacao_12m_pct to match existing precision pattern (dy column); no dialect gate needed in migration
+- [Phase 21]: No server-side filtering on /universe -- frontend does all filtering with useMemo (per D-09)
+- [Phase 21]: Reused existing screener_v2 router for /universe endpoint -- no new router or main.py changes needed
 
 ## Open Questions (resolve in Phase 21)
 
@@ -150,3 +152,4 @@ Phase 22: Catálogo Renda Fixa   [ NOT STARTED ]
 | 21 | TBD | Not started | TBD | New /screener/universe endpoint + /acoes/screener frontend |
 | 22 | TBD | Not started | TBD | /renda-fixa frontend (backend exists) |
 | Phase 21 P01 | 62s | 2 tasks | 4 files |
+| Phase 21 P02 | 8 | 2 tasks | 4 files |
