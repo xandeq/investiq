@@ -8,8 +8,8 @@
 ### Screener de Ações
 
 - [x] **SCRA-01**: Usuário pode ver tabela de ações com colunas Ticker, Nome, Setor, Preço Atual, Variação 12m%, DY 12m, P/L e Market Cap — ordenável por qualquer coluna
-- [ ] **SCRA-02**: Usuário pode filtrar ações por DY mínimo (slider), P/L máximo (input), Setor B3 (dropdown) e Market Cap (small/mid/large cap)
-- [ ] **SCRA-03**: Usuário clica em qualquer ticker da tabela e é levado para `/stock/[ticker]` (página de análise completa já existente)
+- [x] **SCRA-02**: Usuário pode filtrar ações por DY mínimo (slider), P/L máximo (input), Setor B3 (dropdown) e Market Cap (small/mid/large cap)
+- [x] **SCRA-03**: Usuário clica em qualquer ticker da tabela e é levado para `/stock/[ticker]` (página de análise completa já existente)
 - [x] **SCRA-04**: Tabela suporta paginação
 
 ### Catálogo Renda Fixa
@@ -54,8 +54,8 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | SCRA-01 | Phase 21 | Complete |
-| SCRA-02 | Phase 21 | Pending |
-| SCRA-03 | Phase 21 | Pending |
+| SCRA-02 | Phase 21 | Complete |
+| SCRA-03 | Phase 21 | Complete |
 | SCRA-04 | Phase 21 | Complete |
 | RF-01 | Phase 22 | Pending |
 | RF-02 | Phase 22 | Pending |

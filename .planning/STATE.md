@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: - Client-side filtering with useMemo
 status: unknown
-last_updated: "2026-04-12T14:34:03.048Z"
+last_updated: "2026-04-12T14:39:34.468Z"
 progress:
   total_phases: 2
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 # Project State
@@ -124,6 +124,8 @@ Phase 22: Catálogo Renda Fixa   [ NOT STARTED ]
 - [Phase 21]: Used Numeric(10,6) for variacao_12m_pct to match existing precision pattern (dy column); no dialect gate needed in migration
 - [Phase 21]: No server-side filtering on /universe -- frontend does all filtering with useMemo (per D-09)
 - [Phase 21]: Reused existing screener_v2 router for /universe endpoint -- no new router or main.py changes needed
+- [Phase 21]: Sector dropdown dynamically built from data.results via useMemo (not hardcoded) for /acoes/screener
+- [Phase 21]: Market cap tier buttons toggle: clicking active tier deselects it in client-side filter
 
 ## Open Questions (resolve in Phase 21)
 
@@ -153,3 +155,4 @@ Phase 22: Catálogo Renda Fixa   [ NOT STARTED ]
 | 22 | TBD | Not started | TBD | /renda-fixa frontend (backend exists) |
 | Phase 21 P01 | 62s | 2 tasks | 4 files |
 | Phase 21 P02 | 8 | 2 tasks | 4 files |
+| Phase 21 P03 | 197s | 2 tasks | 5 files |
