@@ -1,62 +1,71 @@
-# Requirements: InvestIQ v1.3 — FII Screener
+# Requirements: InvestIQ v1.4 — Ferramentas de Análise
 
-**Defined:** 2026-04-04
-**Core Value:** O usuário encontra os melhores FIIs para o seu perfil em segundos — ranqueados por score composto, filtráveis por segmento e DY, com página de detalhe e análise IA
+**Defined:** 2026-04-12
+**Core Value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada — sem precisar de planilha, sem abrir mil plataformas.
 
-## v1.3 Requirements
+## v1.4 Requirements
 
-### FII Screener
+### Screener de Ações
 
-- [x] **SCRF-01**: Usuário pode ver tabela de FIIs ranqueados por score composto calculado a partir de DY 12m, P/VP e liquidez diária
-- [x] **SCRF-02**: Usuário pode filtrar FIIs por segmento (Logística, Lajes Corporativas, Shopping, CRI/CRA, FoF, Híbrido, Residencial)
-- [x] **SCRF-03**: Usuário pode filtrar FIIs por DY mínimo dos últimos 12 meses (slider ou input numérico)
-- [ ] **SCRF-04**: Usuário pode ver página de detalhe de um FII (`/fii/[ticker]`) com histórico de DY, P/VP, dados básicos do portfólio e análise IA assíncrona (narrativa sobre qualidade de dividendo, P/VP e sustentabilidade dos proventos)
+- [ ] **SCRA-01**: Usuário pode ver tabela de ações com colunas Ticker, Nome, Setor, Preço Atual, Variação 12m%, DY 12m, P/L e Market Cap — ordenável por qualquer coluna
+- [ ] **SCRA-02**: Usuário pode filtrar ações por DY mínimo (slider), P/L máximo (input), Setor B3 (dropdown) e Market Cap (small/mid/large cap)
+- [ ] **SCRA-03**: Usuário clica em qualquer ticker da tabela e é levado para `/stock/[ticker]` (página de análise completa já existente)
+- [ ] **SCRA-04**: Tabela suporta paginação
+
+### Catálogo Renda Fixa
+
+- [ ] **RF-01**: Usuário pode ver catálogo com Tesouro Direto, CDB, LCI/LCA agrupados por tipo, mostrando taxa, vencimento e valor mínimo de aplicação
+- [ ] **RF-02**: Cada produto exibe retorno líquido IR por prazo (90d, 1a, 2a, 5a) calculado via TaxEngine — LCI/LCA têm destaque visual de isenção IR
+- [ ] **RF-03**: Usuário pode filtrar catálogo por tipo e prazo mínimo, ordenar por retorno líquido, e ver indicador visual se produto bate CDI/IPCA no prazo
 
 ## v2 Requirements (Deferred)
 
-### FII Screener Avançado
+### AI Portfolio Advisor (v1.5)
 
-- **SCRF-05**: Usuário pode filtrar FIIs por vacância física máxima
-- **SCRF-06**: Usuário pode filtrar FIIs por número mínimo de imóveis no portfólio
-- **SCRF-07**: Usuário pode comparar 2-3 FIIs lado a lado
+- **ADVI-01**: Usuário vê Portfolio Health Check automático (concentração por setor/tipo, exposição individual, renda passiva projetada, ativos underperforming)
+- **ADVI-02**: Usuário recebe recomendações IA personalizadas referenciando ativos que ele tem na carteira
+- **ADVI-03**: Smart Screener filtra ativos que complementam a carteira atual do usuário
+- **ADVI-04**: Entry Signals com RSI + médias móveis + contexto fundamentalista para cada ativo
 
-### Screener Ações Avançado
+### Comparador e Simulador (v1.6)
 
-- **SCRA-01**: Usuário pode filtrar screener de ações por DY mínimo
-- **SCRA-02**: Usuário pode filtrar screener de ações por P/L máximo
-- **SCRA-03**: Usuário pode filtrar screener de ações por setor B3
+- **COMP-01**: Usuário compara retorno líquido histórico da RF vs carteira de RV por prazo
+- **COMP-02**: Comparador mostra rentabilidade real (descontando inflação)
+- **SIM-01**: Usuário informa valor a investir e recebe 3 cenários de alocação (conservador/moderado/arrojado)
+- **SIM-02**: Simulador mostra delta entre cenário sugerido e carteira atual
+- **SIM-03**: Usuário pode ajustar parâmetros do cenário (prazo, tolerância a risco)
 
 ### Outros
 
-- **RF-01–03**: Catálogo Renda Fixa frontend
-- **COMP-01–02**: Comparador RF vs RV
-- **SIM-01–03**: Simulador de Alocação
-- **MON-04**: Admin Dashboard
-- **AUTH-05**: PostgreSQL RLS enforcement
+- **MON-04**: Admin dashboard (assinantes, status Stripe, churn)
+- **AUTH-05**: PostgreSQL RLS enforcement no nível DB
 
-## Out of Scope (v1.3)
+## Out of Scope (v1.4)
 
 | Feature | Reason |
 |---------|--------|
-| Vacância física em tempo real | Sem API pública confiável — FIIs.community inconsistente; adiar para v1.4+ |
-| Comparação multi-FII | Aumenta complexidade sem ser bloqueante para o screener |
-| Alertas de DY por FII | Infraestrutura de notificação existe mas escopo não inclui FIIs ainda |
-| FII vs benchmark (IFIX) | Útil mas não crítico para o screener inicial |
+| Rating de risco do emissor CDB | Sem API pública confiável para ratings em tempo real |
+| Comparador RF vs RV | Depende do catálogo RF — v1.6 |
+| Simulador de alocação | Requer advisor layer — v1.5/v1.6 |
+| AI Portfolio Advisor | Milestone próprio — v1.5 |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SCRF-01 | Phase 17 | Complete |
-| SCRF-02 | Phase 17 | Complete |
-| SCRF-03 | Phase 17 | Complete |
-| SCRF-04 | Phase 18 | Pending |
+| SCRA-01 | Phase 21 | Pending |
+| SCRA-02 | Phase 21 | Pending |
+| SCRA-03 | Phase 21 | Pending |
+| SCRA-04 | Phase 21 | Pending |
+| RF-01 | Phase 22 | Pending |
+| RF-02 | Phase 22 | Pending |
+| RF-03 | Phase 22 | Pending |
 
 **Coverage:**
-- v1.3 requirements: 4 total
-- Mapped to phases: 4
+- v1.4 requirements: 7 total
+- Mapped to phases: 7
 - Unmapped: 0 ✓
 
 ---
-*Requirements defined: 2026-04-04*
-*Last updated: 2026-04-04 after v1.3 milestone start*
+*Requirements defined: 2026-04-12*
+*Last updated: 2026-04-12 — Traceability assigned by roadmapper (Phase 21: SCRA-01–04, Phase 22: RF-01–03)*
