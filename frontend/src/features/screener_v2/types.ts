@@ -106,3 +106,8 @@ export interface TesouroRateRow {
 export interface TesouroRatesResponse {
   results: TesouroRateRow[];
 }
+
+export interface MacroRatesResponse {
+  cdi: string | null;   // Annual CDI rate as percentage string, e.g. "10.65"
+  ipca: string | null;  // Annual IPCA rate as percentage string, e.g. "5.06"
+}

@@ -6,6 +6,7 @@ import type {
   FIIScreenerResponse,
   FixedIncomeCatalogResponse,
   TesouroRatesResponse,
+  MacroRatesResponse,
 } from "./types";
 
 function buildQuery(params: Record<string, unknown>): string {
@@ -37,4 +38,8 @@ export async function getFixedIncomeCatalog(): Promise<FixedIncomeCatalogRespons
 
 export async function getTesouroRates(): Promise<TesouroRatesResponse> {
   return apiClient<TesouroRatesResponse>("/renda-fixa/tesouro");
+}
+
+export async function getMacroRates(): Promise<MacroRatesResponse> {
+  return apiClient<MacroRatesResponse>("/renda-fixa/macro-rates");
 }
