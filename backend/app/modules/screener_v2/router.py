@@ -27,12 +27,14 @@ from app.modules.screener_v2.schemas import (
     FIIScreenerParams,
     FIIScreenerResponse,
     FixedIncomeCatalogResponse,
+    ScreenerUniverseResponse,
     TesouroRatesResponse,
 )
 from app.modules.screener_v2.service import (
     query_acoes,
     query_fiis,
     query_fixed_income_catalog,
+    query_screener_universe,
     query_tesouro_rates,
 )
 
@@ -110,6 +112,32 @@ async def screener_acoes(
         offset=offset,
         results=rows,
     )
+
+
+# ---------------------------------------------------------------------------
+# Universe endpoint (all tickers, client-side filtering — per D-09)
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/universe",
+    response_model=ScreenerUniverseResponse,
+    summary="Universo completo de acoes B3 (snapshot diario, sem filtros)",
+    tags=["screener-v2"],
+)
+@limiter.limit("30/minute")
+async def screener_universe(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    global_db: AsyncSession = Depends(get_global_db),
+) -> ScreenerUniverseResponse:
+    """Return all ~900 tickers from the latest daily screener snapshot.
+
+    No server-side filtering -- the frontend applies filters client-side with useMemo.
+    The CVM disclaimer is included in the response body per Res. 19/2021.
+    """
+    rows = await query_screener_universe(db=global_db)
+    return ScreenerUniverseResponse(results=rows)
 
 
 # ---------------------------------------------------------------------------
