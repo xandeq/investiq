@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: - Client-side filtering with useMemo
 status: unknown
-last_updated: "2026-04-12T14:45:06.878Z"
+last_updated: "2026-04-12T19:31:52.342Z"
 progress:
   total_phases: 2
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 5
+  completed_plans: 4
 ---
 
 # Project State
@@ -19,12 +19,12 @@ See: .planning/PROJECT.md
 
 **Core value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada — v1.4 adiciona screener de ações filtrável e catálogo de renda fixa com retorno líquido real.
 
-**Current focus:** Phase 21 — screener-de-acoes
+**Current focus:** Phase 22 — catalogo-renda-fixa
 
 ## Current Position
 
-Phase: 22
-Plan: Not started
+Phase: 22 (catalogo-renda-fixa) — EXECUTING
+Plan: 2 of 2
 
 ## Progress Bar
 
@@ -126,6 +126,8 @@ Phase 22: Catálogo Renda Fixa   [ NOT STARTED ]
 - [Phase 21]: Reused existing screener_v2 router for /universe endpoint -- no new router or main.py changes needed
 - [Phase 21]: Sector dropdown dynamically built from data.results via useMemo (not hardcoded) for /acoes/screener
 - [Phase 21]: Market cap tier buttons toggle: clicking active tier deselects it in client-side filter
+- [Phase 22]: MacroRatesResponse imported at top level in service.py -- no circular import risk confirmed
+- [Phase 22]: No main.py changes needed -- /renda-fixa prefix already registered on screener_v2 router
 
 ## Open Questions (resolve in Phase 21)
 
@@ -156,3 +158,4 @@ Phase 22: Catálogo Renda Fixa   [ NOT STARTED ]
 | Phase 21 P01 | 62s | 2 tasks | 4 files |
 | Phase 21 P02 | 8 | 2 tasks | 4 files |
 | Phase 21 P03 | 197s | 2 tasks | 5 files |
+| Phase 22 P01 | 4m | 2 tasks | 4 files |
