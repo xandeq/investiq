@@ -1,14 +1,14 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.4
-milestone_name: Ferramentas de Analise
-status: roadmap_created
-last_updated: "2026-04-12T00:00:00.000Z"
+milestone: v1.3
+milestone_name: - Client-side filtering with useMemo
+status: unknown
+last_updated: "2026-04-12T14:29:36.022Z"
 progress:
   total_phases: 2
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 3
+  completed_plans: 1
 ---
 
 # Project State
@@ -19,14 +19,12 @@ See: .planning/PROJECT.md
 
 **Core value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada — v1.4 adiciona screener de ações filtrável e catálogo de renda fixa com retorno líquido real.
 
-**Current focus:** Phase 21 — Screener de Ações (not started)
+**Current focus:** Phase 21 — screener-de-acoes
 
 ## Current Position
 
-Phase: Not started
-Plan: —
-Status: Roadmap created, ready to plan Phase 21
-Last activity: 2026-04-12 — Roadmap v1.4 created
+Phase: 21 (screener-de-acoes) — EXECUTING
+Plan: 2 of 3
 
 ## Progress Bar
 
@@ -103,11 +101,13 @@ Phase 22: Catálogo Renda Fixa   [ NOT STARTED ]
 ## v1.4 Architecture Decisions
 
 ### Phase 21 Approach
+
 - New `GET /screener/universe` endpoint returns full ~900 ticker universe with DY, P/L, Setor, Market Cap, Variação 12m
 - Client-side filtering with useMemo — same as Phase 17 FII Screener, fits in browser memory
 - Paginação client-side for consistency
 
 ### Phase 22 Approach
+
 - Check if RF API endpoint already exists before creating new one
 - Frontend-only if backend complete; thin route + TaxEngine wrapper if not
 - CDI/IPCA beat indicator uses CDI rate from python-bcb or DB
@@ -121,6 +121,7 @@ Phase 22: Catálogo Renda Fixa   [ NOT STARTED ]
 - **Phase 17 established:** Client-side filtering with useMemo avoids API roundtrips — dataset fits in browser memory
 - **Phase 19:** Server-side filtering for opportunity detector (dataset unbounded) vs client-side for screeners (bounded ~400–900 items)
 - **Phase 20:** Migration gates RLS SQL behind postgres dialect so sqlite-based tests can upgrade to head
+- [Phase 21]: Used Numeric(10,6) for variacao_12m_pct to match existing precision pattern (dy column); no dialect gate needed in migration
 
 ## Open Questions (resolve in Phase 21)
 
@@ -131,12 +132,14 @@ Phase 22: Catálogo Renda Fixa   [ NOT STARTED ]
 ## Performance Metrics
 
 **v1.3 baseline:**
+
 - Test count: 257+ passing
 - Playwright E2E: 72 passing
 - Lines of code: ~24K Python backend + ~12K TypeScript frontend
 - DB Migrations: 0023 (head)
 
 **v1.4 targets:**
+
 - Maintain 257+ unit tests passing
 - Maintain 72 Playwright tests passing (+ new screener + RF catalog E2E)
 - Screener table load: <500ms (data pre-calculated nightly)
@@ -146,3 +149,4 @@ Phase 22: Catálogo Renda Fixa   [ NOT STARTED ]
 |-------|------|--------|----------|-------|
 | 21 | TBD | Not started | TBD | New /screener/universe endpoint + /acoes/screener frontend |
 | 22 | TBD | Not started | TBD | /renda-fixa frontend (backend exists) |
+| Phase 21 P01 | 62s | 2 tasks | 4 files |
