@@ -1,150 +1,101 @@
-# InvestIQ v1.3 — FII Screener Roadmap
+# InvestIQ v1.4 — Ferramentas de Análise — Roadmap
 
-**Milestone:** v1.3 FII Screener
-**Phases:** 17–19 (continues from v1.2 Phase 16)
-**Granularity:** Coarse (2 phases — critical path only)
+**Milestone:** v1.4 Ferramentas de Análise
+**Phases:** 21–22 (continues from v1.3 Phase 20)
+**Granularity:** Coarse (2 phases — natural delivery boundaries)
 **Status:** Active
-**Created:** 2026-04-04
+**Created:** 2026-04-12
 
 ---
 
 ## Phases
 
-- [x] **Phase 17: FII Screener Table** — Tabela de FIIs ranqueada por score composto com filtros por segmento e DY mínimo (completed 2026-04-04)
-- [x] **Phase 18: FII Detail Page + IA Analysis** — Página /fii/[ticker] com histórico DY/P/VP, portfólio básico e análise IA assíncrona (completed 2026-04-04)
-- [x] **Phase 19: Opportunity Detector Page** — Página /opportunity-detector exibindo oportunidades detectadas pelo bot Telegram, com histórico e filtros (completed 2026-04-05)
-- [x] **Phase 20: Swing Trade Page** — Página /swing-trade com sinais de compra/venda para carteira de dividendos, radar de oportunidades swing e registro manual de operações (completed 2026-04-11)
+- [ ] **Phase 21: Screener de Ações** — Tabela filtrável de ~900 ações com endpoint filterable, paginação e link para /stock/[ticker]
+- [ ] **Phase 22: Catálogo Renda Fixa** — Frontend do catálogo RF com retorno líquido IR por prazo, filtros e indicadores visuais (backend exists from v1.1)
 
 ---
 
 ## Phase Details
 
-### Phase 17: FII Screener Table
-
-**Goal:** Usuário vê tabela de FIIs ranqueados por score composto e consegue filtrar por segmento e DY mínimo em segundos.
-
-**Depends on:** v1.2 complete (Phase 16) — global_fiis table and Celery FII metadata pipeline already exist from v1.1
-
-**Requirements:** SCRF-01, SCRF-02, SCRF-03
-
+### Phase 21: Screener de Ações
+**Goal:** Usuário pode explorar e filtrar o universo completo de ações brasileiras por fundamentos diretamente na plataforma
+**Depends on:** Nothing (screener universe ~900 tickers already populated nightly by Celery beat from v1.1; screener_snapshots table exists)
+**Requirements:** SCRA-01, SCRA-02, SCRA-03, SCRA-04
 **Success Criteria** (what must be TRUE):
-1. Usuário acessa /fii/screener e vê tabela com colunas Score, Rank, Ticker, Segmento, DY 12m, P/VP e Liquidez Diária para todos os FIIs do universo
-2. Tabela vem ordenada do maior para o menor score composto por padrão, com ranks visíveis (1, 2, 3...)
-3. Usuário seleciona um segmento no dropdown (Logística, Lajes Corporativas, Shopping, CRI/CRA, FoF, Híbrido, Residencial) e a tabela filtra instantaneamente sem reload de página
-4. Usuário digita ou arrasta slider de DY mínimo (ex: 8%) e a tabela exibe apenas FIIs com DY 12m >= esse valor
-5. Usuário clica no ticker de qualquer FII na tabela e é levado para a página /fii/[ticker]
-
-**Plans:** 2/2 plans complete
-
-Plans:
-- [x] 17-01-PLAN.md — Backend: migration, model, Celery score task, API endpoint, tests
-- [x] 17-02-PLAN.md — Frontend: screener table component, filters, page route, nav link
+  1. Usuário acessa /acoes/screener e vê tabela com colunas Ticker, Nome, Setor, Preço Atual, Variação 12m%, DY 12m, P/L e Market Cap — cada coluna é clicável para ordenar
+  2. Usuário aplica filtros (DY mínimo slider, P/L máximo input, Setor dropdown B3, Market Cap small/mid/large) e a tabela atualiza instantaneamente sem reload de página
+  3. Usuário clica em qualquer ticker da tabela e é navegado para /stock/[ticker] — a página de análise completa já existente abre corretamente
+  4. Tabela exibe paginação e usuário navega entre páginas de resultados
+**Plans:** TBD
 
 ---
 
-### Phase 18: FII Detail Page + IA Analysis
-
-**Goal:** Usuário vê dados históricos, portfólio e análise IA de um FII específico na página /fii/[ticker], com o mesmo padrão de UX assíncrona já estabelecido em /stock/[ticker].
-
-**Depends on:** Phase 17 (screener table working; /fii/[ticker] navigation exists)
-
-**Requirements:** SCRF-04
-
+### Phase 22: Catálogo Renda Fixa
+**Goal:** Usuário compara produtos de renda fixa com retorno líquido real (após IR regressivo) por prazo, sem precisar sair da plataforma
+**Depends on:** Nothing (fixed_income_catalog table + TaxEngine + Celery pipeline fully operational from v1.1; RF API endpoint may already exist)
+**Requirements:** RF-01, RF-02, RF-03
 **Success Criteria** (what must be TRUE):
-1. Usuário acessa /fii/[ticker] e vê dados básicos do FII: nome, segmento, P/VP atual, DY 12m, último dividendo, liquidez diária
-2. Usuário vê gráfico histórico de DY mensal dos últimos 12 meses (barras) e gráfico histórico de P/VP (linha), ambos alimentados por dados do BRAPI dividendsData
-3. Usuário vê seção "Portfólio" com dados básicos disponíveis via BRAPI (número de imóveis, tipo de contrato, vacância quando disponível) — campos ausentes exibem "Dado não disponível"
-4. Usuário clica "Gerar Análise IA" e recebe job_id imediatamente; enquanto o job processa, vê spinner com "Analisando..."; ao completar, vê narrativa em PT-BR sobre qualidade do dividendo, sustentabilidade dos proventos e posicionamento do P/VP vs histórico
-5. Análise IA exibe CVM disclaimer visível antes do conteúdo gerado ("Análise educacional — não é recomendação de investimento")
-
-**Plans:** 2 plans
-
-Plans:
-- [ ] 18-01-PLAN.md — Backend: fetch_fii_data helper, run_fii_analysis Celery task, POST /analysis/fii/{ticker} endpoint, tests
-- [ ] 18-02-PLAN.md — Frontend: /fii/[ticker] page, FIIDetailContent, DY/P/VP charts, portfolio section, IA analysis card
-
-### Phase 19: Opportunity Detector Page
-
-**Goal:** Usuário vê na página /opportunity-detector as oportunidades detectadas pelo backend (as mesmas enviadas ao Telegram chat_id 721438452), com histórico, filtros e possibilidade de marcar como acompanhada.
-
-**Depends on:** Phase 18 (padrão de páginas FII estabelecido)
-
-**Requirements:** OPDET-01 (nova — não estava no v1.3 original)
-
-**Success Criteria** (what must be TRUE):
-1. Usuário acessa /opportunity-detector e vê lista de oportunidades detectadas (ticker, tipo, descrição, score, timestamp)
-2. Usuário pode filtrar por tipo de oportunidade (DY alto, P/VP baixo, etc.) e por período
-3. Cada oportunidade mostra os dados que foram enviados ao Telegram (mesma informação)
-4. Página é protegida por auth (PROTECTED_PATHS)
-5. Backend expõe endpoint GET /opportunity-detector/history (persiste as oportunidades detectadas em tabela)
-
-**Plans:** 2/2 plans complete
-
-Plans:
-- [x] 19-01-PLAN.md — Backend: DetectedOpportunity model, migration 0022, persistence hook in dispatch_opportunity, GET /history + PATCH /{id}/follow endpoints, tests
-- [x] 19-02-PLAN.md — Frontend: /opportunity-detector page with filters (asset type + days), risk badges, follow toggle, expandable detail rows
-
-**Telegram context:**
-- Bot configurado e funcionando — chat_id `721438452`
-- Backend já detecta e envia oportunidades via Telegram
-- Falta: persistir no DB + expor via API + página frontend
+  1. Usuário acessa /renda-fixa e vê catálogo agrupado por tipo (Tesouro Direto, CDB, LCI/LCA) com taxa, vencimento e valor mínimo de aplicação por produto
+  2. Cada produto exibe retorno líquido calculado pelo TaxEngine para prazos 90d, 1a, 2a, 5a — produtos LCI/LCA têm badge ou destaque visual de isenção IR
+  3. Usuário filtra catálogo por tipo (Tesouro/CDB/LCI/LCA) e prazo mínimo e ordena por retorno líquido — tabela atualiza sem reload
+  4. Cada produto exibe indicador visual (ícone verde/vermelho ou texto) se o retorno líquido supera CDI ou IPCA no prazo selecionado
+**Plans:** TBD
 
 ---
 
-### Phase 20: Swing Trade Page
+## Progress Table
 
-**Goal:** Usuário acessa /swing-trade e vê sinais de compra/venda para sua carteira de dividendos, radar de ações com desconto, e pode registrar/acompanhar operações swing manualmente.
-
-**Depends on:** Phase 19 (infrastructure established)
-
-**Requirements:** SWING-01, SWING-02, SWING-03, SWING-04
-
-**Success Criteria** (what must be TRUE):
-1. Usuário vê sua carteira de dividendos com badge de sinal: 🟢 COMPRAR (queda >12% do topo 30d) | 🔴 VENDER (alta >10% da entrada) | ⚪ NEUTRO
-2. Radar mostra top 30 ações IBOV com maior DY que estão em desconto (não necessariamente na carteira)
-3. Usuário registra operação swing manualmente: ticker, quantidade, preço de entrada, alvo, stop
-4. Tabela de operações abertas mostra P&L atual, dias abertos, progresso ao alvo
-5. Página protegida por auth (/swing-trade em PROTECTED_PATHS)
-6. Sinais calculados a partir de dados já em Redis (sem novas chamadas externas)
-
-**Plans:** 2/2 plans complete
-
-Plans:
-- [x] 20-01-PLAN.md — Backend: SwingTradeOperation model + migration, signal computation service, 5 endpoints
-- [x] 20-02-PLAN.md — Frontend: /swing-trade page com 3 seções (sinais carteira, radar, operações)
-
----
-
-## Progress Tracking
-
-| Phase | Status | Plans Complete | Completed |
-|-------|--------|----------------|-----------|
-| 17 - FII Screener Table | ✅ DEPLOYED | 2/2 | 2026-04-04 |
-| 18 - FII Detail Page + IA | ✅ DEPLOYED | 2/2 | 2026-04-04 |
-| 19 - Opportunity Detector Page | ✅ DEPLOYED | 2/2 | 2026-04-05 |
-| 20 - Swing Trade Page | 2/2 | Complete   | 2026-04-11 |
-
-**Totals:** 4 phases | 5/5 requirements mapped | 75% complete
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 21. Screener de Ações | 0/TBD | Not started | - |
+| 22. Catálogo Renda Fixa | 0/TBD | Not started | - |
 
 ---
 
 ## Requirements Coverage
 
-### v1.3 Requirements to Phases Mapping
-
 | Requirement | Phase | Description | Status |
 |-------------|-------|-------------|--------|
-| SCRF-01 | 17 | Tabela FIIs ranqueados por score composto (DY 12m + P/VP + liquidez) | Pending |
-| SCRF-02 | 17 | Filtro por segmento | Pending |
-| SCRF-03 | 17 | Filtro por DY mínimo 12m | Pending |
-| SCRF-04 | 18 | Página /fii/[ticker] com histórico DY/P/VP, portfólio e análise IA assíncrona | Pending |
-| OPDET-01 | 19 | Página /opportunity-detector com histórico, filtros e follow | Pending |
+| SCRA-01 | Phase 21 | Tabela de ações ordenável (Ticker, Nome, Setor, Preço, Var 12m%, DY, P/L, Market Cap) | Pending |
+| SCRA-02 | Phase 21 | Filtros DY mínimo / P/L máximo / Setor B3 / Market Cap | Pending |
+| SCRA-03 | Phase 21 | Click ticker → /stock/[ticker] | Pending |
+| SCRA-04 | Phase 21 | Paginação da tabela | Pending |
+| RF-01 | Phase 22 | Catálogo agrupado por tipo com taxa, vencimento, valor mínimo | Pending |
+| RF-02 | Phase 22 | Retorno líquido IR por prazo (90d/1a/2a/5a) + destaque isenção LCI/LCA | Pending |
+| RF-03 | Phase 22 | Filtros por tipo/prazo, ordenação por retorno líquido, indicador CDI/IPCA | Pending |
 
-**Coverage Summary:**
-- Total v1.3 requirements: 5
-- Mapped to phases: 5
-- Unmapped: 0
-- **Coverage: 100% ✓**
+**Coverage:** 7/7 ✓
+
+---
+
+## Architecture Notes
+
+### Phase 21 — Screener de Ações
+
+**Backend exists:**
+- `screener_snapshots` table populated nightly by Celery beat (~900 tickers, from v1.1)
+- Goldman Sachs screener endpoint at `/screener/` — returns top 10 scored stocks only
+- **What's missing:** New endpoint returning full universe with filterable columns (DY, P/L, Setor, Market Cap, Variação 12m)
+
+**Approach:**
+- New `GET /screener/universe` endpoint returns all tickers with the required columns
+- Frontend filters client-side with useMemo (same approach as Phase 17 FII Screener — ~900 tickers fits in browser memory)
+- Paginação client-side or server-side (prefer client-side for consistency with Phase 17)
+
+**Pattern to reuse:** Phase 17 FII Screener — same table + filter UX, same useMemo client-side approach, same Tailwind table styling
+
+### Phase 22 — Catálogo Renda Fixa
+
+**Backend exists (verify before creating new):**
+- `fixed_income_catalog` table populated nightly by Celery beat (from v1.1)
+- TaxEngine fully operational — IR regressivo (22.5%→15%) + LCI/LCA isenção
+- RF API endpoint may already exist at `/renda-fixa` or `/fixed-income` — check before building new one
+
+**Approach:**
+- Frontend-only phase if backend endpoint exists
+- If endpoint missing: thin FastAPI route wrapping TaxEngine calculations against fixed_income_catalog
+- Retorno líquido calculation: TaxEngine.calculate(principal, rate, days) → net return per prazo bracket
+- CDI/IPCA beat indicator: compare product net return vs current CDI rate (stored in DB or fetched from python-bcb)
 
 ---
 
@@ -152,31 +103,34 @@ Plans:
 
 ### Why 2 Phases
 
-Coarse granularity with 4 requirements maps naturally to 2 delivery boundaries:
+Coarse granularity with 7 requirements maps to 2 natural delivery boundaries:
 
-- **Phase 17** (SCRF-01/02/03): All three requirements deliver one coherent capability — a filterable screener table. Backend needs score calculation added to global_fiis pipeline; frontend needs new /fii/screener page. These 3 requirements cannot ship partially — the table is only useful with filters.
-- **Phase 18** (SCRF-04): The detail page is a distinct, deeper capability that depends on the screener table for navigation. Reuses the async Celery job pattern from /stock/[ticker] analysis (v1.2 Phase 12–13 pattern).
+- **Phase 21** (SCRA-01/02/03/04): All four requirements deliver one coherent capability — a filterable ações screener table. They cannot ship partially (table is only useful with filters + navigation + paging). Backend universe already exists; work is a new API endpoint + frontend page.
+- **Phase 22** (RF-01/02/03): All three requirements deliver one coherent capability — a usable RF catalog. Backend is fully operational; work is primarily frontend with TaxEngine integration. This is a distinct, independent capability with no dependency on Phase 21.
 
-Combining into 1 phase would create a monster phase. Splitting into 3+ phases would over-engineer 4 requirements.
+Each phase has 1–2 plans max (consistent with coarse granularity).
 
-### Backend Architecture Notes
+### Reuse from v1.3
 
-- **Score formula:** `normalized_score = (DY_rank * 0.5) + (P_VP_rank * 0.3) + (liquidity_rank * 0.2)` where ranks are percentile within FII universe (0–100). Higher = better for DY and liquidity; lower P/VP = better (invert rank).
-- **Data source:** BRAPI `/v2/quote/{ticker}?modules=dividendsData,summaryProfile` for FII quotes + dividends history.
-- **DY 12m calculation:** Sum of dividendsData.cashDividends for last 12 months / current price.
-- **Score pipeline:** Add Celery beat task to recalculate scores nightly after FII metadata pipeline completes. Store score + ranks in global_fiis table (add columns via migration).
-- **IA analysis pattern:** Reuse exact Celery job pattern from stock analysis (POST returns job_id, GET /fii-analysis/{job_id}). New FII-specific prompt focused on dividend quality, P/VP vs NAV, portfolio sustainability.
-
-### Reuse from v1.2
-
-- Async job pattern (POST → job_id → WebSocket polling) — Phase 12/13
-- LLM provider chain (Claude Haiku → Groq fallback) — Phase 14
-- CVM disclaimer component — Phase 12
-- `get_global_db` pattern for FII global tables — v1.1
+- Client-side filtering with useMemo (Phase 17 FII Screener) — same pattern for Phase 21
+- Table + filter UX component patterns — reuse as-is
+- `get_global_db` pattern for global (non-tenant) data tables
+- Nav link addition pattern for new pages
 
 ---
 
-*Roadmap created: 2026-04-04*
-*Milestone: InvestIQ v1.3 — FII Screener*
-*Status: Active — Phase 20 planning*
-*Last updated: 2026-04-05 — Phase 20 added: Swing Trade Page*
+## v1.3 Reference (Archived)
+
+v1.3 phases (17–20) completed 2026-04-11. Archive: `.planning/milestones/v1.3-ROADMAP.md` (if created).
+
+| Phase | Status | Completed |
+|-------|--------|-----------|
+| 17 - FII Screener Table | ✅ DEPLOYED | 2026-04-04 |
+| 18 - FII Detail Page + IA | ✅ DEPLOYED | 2026-04-04 |
+| 19 - Opportunity Detector Page | ✅ DEPLOYED | 2026-04-05 |
+| 20 - Swing Trade Page | ✅ DEPLOYED | 2026-04-11 |
+
+---
+
+*Roadmap created: 2026-04-12*
+*Milestone: InvestIQ v1.4 — Ferramentas de Análise*
