@@ -81,7 +81,7 @@ function AlertInline({ ticker, current }: { ticker: string; current: string | nu
       />
       <button
         onClick={async () => {
-          await updateMut.mutateAsync({ ticker, data: { price_alert_target: val || null } });
+          await updateMut.mutateAsync({ ticker, data: { price_alert_target: val ? parseFloat(val) : null } });
           setEditing(false);
         }}
         disabled={updateMut.isPending}
