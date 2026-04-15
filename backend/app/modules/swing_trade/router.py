@@ -58,12 +58,12 @@ def _get_redis():
 # ---------------------------------------------------------------------------
 
 
+@limiter.limit("30/minute")
 @router.get(
     "/signals",
     response_model=SwingSignalsResponse,
     summary="Swing trade signals — portfolio + radar from Redis cache",
 )
-@limiter.limit("30/minute")
 async def get_signals(
     request: Request,
     db: AsyncSession = Depends(get_authed_db),
@@ -88,12 +88,12 @@ async def get_signals(
 # ---------------------------------------------------------------------------
 
 
+@limiter.limit("60/minute")
 @router.get(
     "/operations",
     response_model=OperationListResponse,
     summary="List swing trade operations for current tenant",
 )
-@limiter.limit("60/minute")
 async def list_operations(
     request: Request,
     db: AsyncSession = Depends(get_authed_db),
@@ -119,13 +119,13 @@ async def list_operations(
 # ---------------------------------------------------------------------------
 
 
+@limiter.limit("30/minute")
 @router.post(
     "/operations",
     response_model=OperationResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create a manual swing trade operation",
 )
-@limiter.limit("30/minute")
 async def create_operation_endpoint(
     request: Request,
     data: OperationCreate,
@@ -142,12 +142,12 @@ async def create_operation_endpoint(
 # ---------------------------------------------------------------------------
 
 
+@limiter.limit("30/minute")
 @router.patch(
     "/operations/{operation_id}/close",
     response_model=OperationResponse,
     summary="Close an open swing trade operation with exit price",
 )
-@limiter.limit("30/minute")
 async def close_operation_endpoint(
     request: Request,
     operation_id: str,
@@ -169,20 +169,20 @@ async def close_operation_endpoint(
 # ---------------------------------------------------------------------------
 
 
+@limiter.limit("30/minute")
 @router.delete(
     "/operations/{operation_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
+    status_code=status.HTTP_200_OK,
     summary="Soft delete a swing trade operation",
 )
-@limiter.limit("30/minute")
 async def delete_operation_endpoint(
     request: Request,
     operation_id: str,
     db: AsyncSession = Depends(get_authed_db),
     tenant_id: str = Depends(get_current_tenant_id),
     current_user: dict = Depends(get_current_user),
-) -> None:
+) -> dict:
     ok = await delete_operation(db=db, tenant_id=tenant_id, op_id=operation_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Operation not found")
-    return None
+    return {"deleted": True}

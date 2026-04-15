@@ -14,9 +14,9 @@
 
 ### Catálogo Renda Fixa
 
-- [ ] **RF-01**: Usuário pode ver catálogo com Tesouro Direto, CDB, LCI/LCA agrupados por tipo, mostrando taxa, vencimento e valor mínimo de aplicação
-- [ ] **RF-02**: Cada produto exibe retorno líquido IR por prazo (90d, 1a, 2a, 5a) calculado via TaxEngine — LCI/LCA têm destaque visual de isenção IR
-- [ ] **RF-03**: Usuário pode filtrar catálogo por tipo e prazo mínimo, ordenar por retorno líquido, e ver indicador visual se produto bate CDI/IPCA no prazo
+- [x] **RF-01**: Usuário pode ver catálogo com Tesouro Direto, CDB, LCI/LCA agrupados por tipo, mostrando taxa, vencimento e valor mínimo de aplicação
+- [x] **RF-02**: Cada produto exibe retorno líquido IR por prazo (90d, 1a, 2a, 5a) calculado via TaxEngine — LCI/LCA têm destaque visual de isenção IR
+- [x] **RF-03**: Usuário pode filtrar catálogo por tipo e prazo mínimo, ordenar por retorno líquido, e ver indicador visual se produto bate CDI/IPCA no prazo
 
 ## v2 Requirements (Deferred)
 
@@ -57,9 +57,9 @@
 | SCRA-02 | Phase 21 | Complete |
 | SCRA-03 | Phase 21 | Complete |
 | SCRA-04 | Phase 21 | Complete |
-| RF-01 | Phase 22 | Pending |
-| RF-02 | Phase 22 | Pending |
-| RF-03 | Phase 22 | Pending |
+| RF-01 | Phase 22 | Complete |
+| RF-02 | Phase 22 | Complete |
+| RF-03 | Phase 22 | Complete |
 
 **Coverage:**
 - v1.4 requirements: 7 total
