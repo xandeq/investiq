@@ -16,7 +16,9 @@ class MetricsResponse(BaseModel):
     pro_users: int
     active_subscriptions: int
     past_due_subscriptions: int
+    canceled_subscriptions: int
     total_conversions: int  # checkout.session.completed events with status=success
+    churn_rate_pct: float  # canceled / (canceled + active) * 100
 
 
 class UsageResponse(BaseModel):

@@ -207,18 +207,24 @@ async def billing_metrics(
     pro_users = await db.scalar(select(func.count()).select_from(User).where(User.plan == "pro")) or 0
     active_subs = await db.scalar(select(func.count()).select_from(User).where(User.subscription_status == "active")) or 0
     past_due = await db.scalar(select(func.count()).select_from(User).where(User.subscription_status == "past_due")) or 0
+    canceled = await db.scalar(select(func.count()).select_from(User).where(User.subscription_status == "canceled")) or 0
     conversions = await db.scalar(
         select(func.count()).select_from(StripeEvent)
         .where(StripeEvent.event_type == "checkout.session.completed")
         .where(StripeEvent.status == "success")
     ) or 0
 
+    ever_paid = active_subs + canceled  # base for churn rate
+    churn_rate = round((canceled / ever_paid * 100), 1) if ever_paid > 0 else 0.0
+
     return MetricsResponse(
         free_users=free_users,
         pro_users=pro_users,
         active_subscriptions=active_subs,
         past_due_subscriptions=past_due,
+        canceled_subscriptions=canceled,
         total_conversions=conversions,
+        churn_rate_pct=churn_rate,
     )
 
 
