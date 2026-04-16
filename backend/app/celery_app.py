@@ -43,6 +43,7 @@ def create_celery_app() -> Celery:
             "app.modules.opportunity_detector.scanner",
             "app.modules.dashboard.tasks",
             "app.modules.dashboard.digest_tasks",
+            "app.modules.billing.tasks",
         ],
     )
 
@@ -138,6 +139,12 @@ def create_celery_app() -> Celery:
                 "task": "opportunity_detector.scan_fixed_income",
                 # Every 6h -- aligned with tesouro rate refresh
                 "schedule": crontab(minute=30, hour="*/6"),
+                "args": [],
+            },
+            # Trial expiry warnings — daily 09:00 BRT
+            "check-expiring-trials": {
+                "task": "app.modules.billing.tasks.check_expiring_trials",
+                "schedule": crontab(minute=0, hour=9),
                 "args": [],
             },
             # Weekly portfolio digest — every Monday 08:00 BRT

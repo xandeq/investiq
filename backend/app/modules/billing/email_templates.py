@@ -266,6 +266,76 @@ def payment_failed_email(user_email: str) -> tuple[str, str]:
     return subject, _build_email(header_title=subject, body_html=body)
 
 
+def trial_expiring_soon_email(
+    user_email: str, days_remaining: int, trial_ends_at: datetime | None
+) -> tuple[str, str]:
+    """Returns (subject, html_content) for trial expiry warning.
+
+    Sent 3 days before trial_ends_at. Uses trial_warning_sent flag to prevent
+    duplicate sends.
+    """
+    subject = f"Seu período de teste InvestIQ expira em {days_remaining} {'dia' if days_remaining == 1 else 'dias'}"
+
+    features_html = "".join(
+        f'<tr><td style="padding:4px 0;font-family:{_FONT};font-size:14px;color:{_BODY_TEXT};">'
+        f'&#10003;&nbsp; {item}</td></tr>'
+        for item in [
+            "Análise de IA ilimitada (DCF, Valuation, Macro)",
+            "Advisor de Carteira personalizado",
+            "Screener avançado (Goldman Method)",
+            "Importação ilimitada de extratos B3",
+            "Alertas de preço por email",
+            "Histórico completo e relatórios IR",
+        ]
+    )
+
+    body = f"""
+      <p style="margin:0 0 4px;font-family:{_FONT};font-size:13px;font-weight:600;
+                 color:{_BLUE};text-transform:uppercase;letter-spacing:0.5px;">
+        Aviso de trial
+      </p>
+      <h1 style="margin:0 0 8px;font-family:{_FONT};font-size:24px;
+                 font-weight:700;color:{_DARK};">
+        Seu trial expira em {days_remaining} {'dia' if days_remaining == 1 else 'dias'}
+      </h1>
+      <p style="margin:16px 0 0;font-family:{_FONT};font-size:15px;
+                color:{_BODY_TEXT};line-height:1.6;">
+        Sua avaliação gratuita do InvestIQ Premium termina em
+        <strong>{_format_date(trial_ends_at)}</strong>.
+        Para continuar tendo acesso a todas as funcionalidades, assine o plano Premium agora.
+      </p>
+
+      <!-- Features included -->
+      <table role="presentation" cellspacing="0" cellpadding="0"
+             style="margin:24px 0;width:100%;">
+        <tr>
+          <td style="background-color:{_LIGHT_BG};border-radius:8px;padding:20px 24px;">
+            <p style="margin:0 0 12px;font-family:{_FONT};font-size:13px;font-weight:700;
+                       color:{_GRAY_TEXT};text-transform:uppercase;letter-spacing:0.5px;">
+              O que você perde sem o Premium
+            </p>
+            <table role="presentation" cellspacing="0" cellpadding="0" width="100%">
+              {features_html}
+            </table>
+          </td>
+        </tr>
+      </table>
+
+      <p style="margin:0;font-family:{_FONT};font-size:15px;color:{_BODY_TEXT};line-height:1.6;">
+        Seus dados e carteira ficam preservados independente do plano.
+        Assine agora e mantenha seu acesso completo sem interrupção.
+      </p>
+
+      {_cta_button("Assinar Premium — Manter Acesso", "https://investiq.com.br/planos")}
+
+      <p style="margin:16px 0 0;font-family:{_FONT};font-size:12px;color:{_GRAY_TEXT};">
+        Você recebeu este aviso porque seu trial está próximo do vencimento ({user_email}).
+      </p>
+    """
+
+    return subject, _build_email(header_title=subject, body_html=body)
+
+
 def subscription_canceled_email(user_email: str) -> tuple[str, str]:
     """Returns (subject, html_content) for subscription cancellation notice.
 
