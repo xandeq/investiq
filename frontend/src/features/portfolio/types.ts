@@ -21,6 +21,8 @@ export interface PnLResponse {
   realized_pnl_total: string;
   unrealized_pnl_total: string;
   total_portfolio_value: string;
+  total_invested: string;
+  total_return_pct: string | null;
   allocation: AllocationItem[];
 }
 

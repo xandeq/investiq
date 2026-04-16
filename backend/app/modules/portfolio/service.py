@@ -229,11 +229,24 @@ class PortfolioService:
             )
             allocation.append(AllocationItem(asset_class=ac, total_value=val, percentage=pct))
 
+        # Cost basis of all open positions (sum of individual total_cost)
+        total_invested = sum(p.total_cost for p in positions)
+
+        # Total return % = (unrealized + realized) / invested × 100
+        # Realized included so selling at profit doesn't reduce the return metric
+        total_return_pct: Decimal | None = None
+        if total_invested > Decimal("0"):
+            total_return_pct = (
+                (unrealized_total + realized_total) / total_invested * Decimal("100")
+            ).quantize(Decimal("0.01"))
+
         return PnLResponse(
             positions=positions,
             realized_pnl_total=realized_total,
             unrealized_pnl_total=unrealized_total,
             total_portfolio_value=total_portfolio_value,
+            total_invested=total_invested,
+            total_return_pct=total_return_pct,
             allocation=allocation,
         )
 

@@ -114,11 +114,18 @@ class AllocationItem(BaseModel):
 
 
 class PnLResponse(BaseModel):
-    """Portfolio-level P&L and allocation breakdown."""
+    """Portfolio-level P&L and allocation breakdown.
+
+    total_invested: sum of total_cost across all open positions (cost basis).
+    total_return_pct: (unrealized + realized) / total_invested * 100.
+      None when total_invested == 0 (empty portfolio).
+    """
     positions: list[PositionResponse]
     realized_pnl_total: Decimal
     unrealized_pnl_total: Decimal
     total_portfolio_value: Decimal
+    total_invested: Decimal                  # cost basis of all open positions
+    total_return_pct: Decimal | None         # (unrealized + realized) / invested * 100
     allocation: list[AllocationItem]
 
 

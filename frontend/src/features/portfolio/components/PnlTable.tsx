@@ -76,8 +76,12 @@ export function PnlTable() {
             <tr className="border-t-2 border-gray-100 font-semibold bg-gray-50/50">
               <td colSpan={4} className="py-2.5 px-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Total</td>
               <td className="py-2.5 px-3 text-right tabular-nums font-bold">{formatBRL(pnl.total_portfolio_value)}</td>
-              <td />
               <td className="py-2.5 px-3 text-right">
+                <div className="text-[10px] text-muted-foreground font-normal">Realizado</div>
+                <PnlCell value={pnl.realized_pnl_total} pct={null} />
+              </td>
+              <td className="py-2.5 px-3 text-right">
+                <div className="text-[10px] text-muted-foreground font-normal">Não Realizado</div>
                 <PnlCell value={pnl.unrealized_pnl_total} pct={null} />
               </td>
             </tr>

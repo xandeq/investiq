@@ -40,6 +40,7 @@ from app.modules.fii_screener.router import router as fii_screener_router
 from app.modules.opportunity_detector.router import router as opportunity_detector_router
 from app.modules.swing_trade.router import router as swing_trade_router
 from app.modules.advisor.router import router as advisor_router
+from app.modules.health.router import router as health_router
 
 
 @asynccontextmanager
@@ -141,6 +142,8 @@ app.include_router(opportunity_detector_router, prefix="/opportunity-detector", 
 app.include_router(swing_trade_router, prefix="/swing-trade", tags=["swing-trade"])
 # Phase 23: Portfolio Advisor — health check + AI narrative
 app.include_router(advisor_router, prefix="/advisor", tags=["advisor"])
+# System health & data freshness (public, no auth)
+app.include_router(health_router, prefix="/health", tags=["health"])
 
 
 @app.get("/health")
