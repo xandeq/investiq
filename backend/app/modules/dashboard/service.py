@@ -150,25 +150,47 @@ class DashboardService:
         db: AsyncSession,
         positions,
     ) -> list[TimeseriesPoint]:
-        """Build monthly portfolio value snapshots from transaction history.
+        """Build portfolio value timeseries for the dashboard chart.
 
-        Approximation for v1: loads all buy/sell transactions, accumulates
-        running quantity×cmp per ticker per month, sums to portfolio value.
-        Uses CMP (not current price) for historical points — acceptable for trend chart.
+        Strategy (two-tier):
+        1. PRIMARY: read from portfolio_daily_value (populated nightly by Celery at 18h30 BRT).
+           Returns last 90 days of real EOD market values.
+        2. FALLBACK: if table is empty (user is new or Celery hasn't run yet), compute
+           a cost-basis approximation from transaction history. Uses CMP as price proxy —
+           shows cost trend rather than market value, but is honest about the limitation.
         """
+        from sqlalchemy import text as _text
+        from datetime import date as _date, timedelta as _timedelta
+
+        # ── Primary: real EOD snapshots ───────────────────────────────────────
+        since = _date.today() - _timedelta(days=90)
+        snap_result = await db.execute(
+            _text(
+                "SELECT snapshot_date, total_value FROM portfolio_daily_value "
+                "WHERE snapshot_date >= :since ORDER BY snapshot_date ASC"
+            ),
+            {"since": since},
+        )
+        snaps = snap_result.fetchall()
+
+        if snaps:
+            return [
+                TimeseriesPoint(date=row[0], value=Decimal(str(row[1])))
+                for row in snaps
+            ]
+
+        # ── Fallback: cost-basis approximation from transactions ───────────────
+        # Used for new users whose first Celery snapshot hasn't run yet.
         result = await db.execute(
             select(Transaction)
             .where(Transaction.transaction_type.in_(["buy", "sell"]))
             .order_by(Transaction.transaction_date)
         )
         all_txs = result.scalars().all()
-
         if not all_txs:
             return []
 
-        # Group by year-month, accumulate running position costs
         monthly_values: dict[str, Decimal] = {}
-        # running state: ticker → (quantity, avg_cost)
         running: dict[str, tuple[Decimal, Decimal]] = {}
 
         for tx in all_txs:
@@ -176,24 +198,19 @@ class DashboardService:
             ticker = tx.ticker
             qty = tx.quantity
             price = tx.unit_price
-
             prev_qty, prev_cost = running.get(ticker, (Decimal("0"), Decimal("0")))
-
             tx_type = str(tx.transaction_type.value) if hasattr(tx.transaction_type, "value") else str(tx.transaction_type)
+
             if tx_type == "buy":
                 new_qty = prev_qty + qty
-                # Weighted average cost
                 new_cost = ((prev_qty * prev_cost) + (qty * price)) / new_qty if new_qty > 0 else price
                 running[ticker] = (new_qty, new_cost)
             elif tx_type == "sell":
-                new_qty = max(Decimal("0"), prev_qty - qty)
-                running[ticker] = (new_qty, prev_cost)
+                running[ticker] = (max(Decimal("0"), prev_qty - qty), prev_cost)
 
-            # Portfolio value at this month = sum(qty × avg_cost) for all positions
-            total = sum(q * c for (q, c) in running.values())
-            monthly_values[month_key] = total
+            monthly_values[month_key] = sum(q * c for (q, c) in running.values())
 
         return [
-            TimeseriesPoint(date=date.fromisoformat(d), value=v)
+            TimeseriesPoint(date=_date.fromisoformat(d), value=v)
             for d, v in sorted(monthly_values.items())
         ]
