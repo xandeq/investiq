@@ -10,9 +10,9 @@ interface MetricsResponse {
   pro_users: number;
   active_subscriptions: number;
   past_due_subscriptions: number;
-  canceled_subscriptions: number;
-  total_conversions: number;
+  churned_last_30d: number;
   churn_rate_pct: number;
+  total_conversions: number;
 }
 
 function MetricCard({
@@ -128,18 +128,18 @@ export default function AdminDashboardPage() {
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
               <MetricCard
-                label="Cancelados"
-                value={data.canceled_subscriptions}
-                sub="total histórico"
+                label="Churn (30 dias)"
+                value={data.churned_last_30d}
+                sub="cancelamentos no período"
                 icon={XCircle}
                 color="bg-red-500/20 text-red-400"
               />
               <MetricCard
                 label="Churn Rate"
                 value={`${data.churn_rate_pct}%`}
-                sub="cancelados / (ativos + cancelados)"
+                sub="rolling 30d — meta: < 5%"
                 icon={TrendingDown}
-                color={data.churn_rate_pct > 10 ? "bg-red-500/20 text-red-400" : "bg-green-500/20 text-green-400"}
+                color={data.churn_rate_pct > 10 ? "bg-red-500/20 text-red-400" : data.churn_rate_pct > 5 ? "bg-amber-500/20 text-amber-400" : "bg-green-500/20 text-green-400"}
               />
               <MetricCard
                 label="Conversões Totais"

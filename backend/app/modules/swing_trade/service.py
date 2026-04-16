@@ -205,18 +205,35 @@ async def get_operations(
     tenant_id: str,
     redis_client=None,
     status_filter: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
 ) -> OperationListResponse:
-    """Return the tenant's swing trade operations enriched with live P&L."""
+    """Return the tenant's swing trade operations enriched with live P&L.
+
+    Counts (open_count, closed_count, total) are computed over the full
+    unfiltered set so the UI can display totals independently of pagination.
+    """
+    from sqlalchemy import func as sqlfunc
+
+    base_where = [
+        SwingTradeOperation.tenant_id == tenant_id,
+        SwingTradeOperation.deleted_at.is_(None),
+    ]
+    if status_filter:
+        base_where.append(SwingTradeOperation.status == status_filter)
+
+    # Total count (unfiltered by page) — one round-trip
+    total = await db.scalar(
+        select(sqlfunc.count()).select_from(SwingTradeOperation).where(*base_where)
+    ) or 0
+
     stmt = (
         select(SwingTradeOperation)
-        .where(
-            SwingTradeOperation.tenant_id == tenant_id,
-            SwingTradeOperation.deleted_at.is_(None),
-        )
+        .where(*base_where)
         .order_by(SwingTradeOperation.entry_date.desc())
+        .limit(limit)
+        .offset(offset)
     )
-    if status_filter:
-        stmt = stmt.where(SwingTradeOperation.status == status_filter)
 
     result = await db.execute(stmt)
     rows = list(result.scalars().all())
@@ -239,6 +256,7 @@ async def get_operations(
     closed_count = sum(1 for r in rows if r.status in ("closed", "stopped"))
 
     return OperationListResponse(
+        total=total,
         open_count=open_count,
         closed_count=closed_count,
         results=enriched,

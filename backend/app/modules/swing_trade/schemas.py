@@ -95,6 +95,7 @@ class OperationResponse(BaseModel):
 class OperationListResponse(BaseModel):
     """GET /swing-trade/operations response envelope."""
 
+    total: int
     open_count: int
     closed_count: int
     results: list[OperationResponse]

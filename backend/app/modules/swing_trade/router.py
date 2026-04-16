@@ -105,12 +105,16 @@ async def list_operations(
         alias="status",
         description="Filter by operation status: open | closed | stopped",
     ),
+    limit: int = Query(default=50, ge=1, le=200, description="Page size"),
+    offset: int = Query(default=0, ge=0, description="Page offset"),
 ) -> OperationListResponse:
     return await get_operations(
         db=db,
         tenant_id=tenant_id,
         redis_client=redis,
         status_filter=status_filter,
+        limit=limit,
+        offset=offset,
     )
 
 

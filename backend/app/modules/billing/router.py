@@ -203,28 +203,52 @@ async def billing_metrics(
     if not admin_user or admin_user.email not in settings.ADMIN_EMAILS:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
-    free_users = await db.scalar(select(func.count()).select_from(User).where(User.plan == "free")) or 0
-    pro_users = await db.scalar(select(func.count()).select_from(User).where(User.plan == "pro")) or 0
-    active_subs = await db.scalar(select(func.count()).select_from(User).where(User.subscription_status == "active")) or 0
-    past_due = await db.scalar(select(func.count()).select_from(User).where(User.subscription_status == "past_due")) or 0
-    canceled = await db.scalar(select(func.count()).select_from(User).where(User.subscription_status == "canceled")) or 0
+    from datetime import datetime, timedelta, timezone
+    from sqlalchemy import case
+
+    # Single query — no 5 round-trips
+    counts_row = (await db.execute(
+        select(
+            func.sum(case((User.plan == "free", 1), else_=0)).label("free_users"),
+            func.sum(case((User.plan == "pro", 1), else_=0)).label("pro_users"),
+            func.sum(case((User.subscription_status == "active", 1), else_=0)).label("active_subs"),
+            func.sum(case((User.subscription_status == "past_due", 1), else_=0)).label("past_due"),
+        )
+    )).one()
+
+    free_users = int(counts_row.free_users or 0)
+    pro_users = int(counts_row.pro_users or 0)
+    active_subs = int(counts_row.active_subs or 0)
+    past_due = int(counts_row.past_due or 0)
+
+    # Rolling 30-day churn: cancellation events from Stripe, not snapshot of current status.
+    # Source: StripeEvent table — customer.subscription.deleted is the canonical churn signal.
+    # Denominator: active now + churned in period = approximate cohort at start of window.
+    thirty_days_ago = datetime.now(tz=timezone.utc) - timedelta(days=30)
+    churned_last_30d = await db.scalar(
+        select(func.count()).select_from(StripeEvent)
+        .where(StripeEvent.event_type == "customer.subscription.deleted")
+        .where(StripeEvent.processed_at >= thirty_days_ago)
+        .where(StripeEvent.status == "success")
+    ) or 0
+
+    cohort = active_subs + churned_last_30d
+    churn_rate = round(churned_last_30d / cohort * 100, 1) if cohort > 0 else 0.0
+
     conversions = await db.scalar(
         select(func.count()).select_from(StripeEvent)
         .where(StripeEvent.event_type == "checkout.session.completed")
         .where(StripeEvent.status == "success")
     ) or 0
 
-    ever_paid = active_subs + canceled  # base for churn rate
-    churn_rate = round((canceled / ever_paid * 100), 1) if ever_paid > 0 else 0.0
-
     return MetricsResponse(
         free_users=free_users,
         pro_users=pro_users,
         active_subscriptions=active_subs,
         past_due_subscriptions=past_due,
-        canceled_subscriptions=canceled,
-        total_conversions=conversions,
+        churned_last_30d=churned_last_30d,
         churn_rate_pct=churn_rate,
+        total_conversions=conversions,
     )
 
 
