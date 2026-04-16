@@ -13,7 +13,9 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change-me-in-production"
     JWT_PRIVATE_KEY: str = ""   # RSA PEM — loaded from AWS SM at runtime
     JWT_PUBLIC_KEY: str = ""    # RSA PEM — loaded from AWS SM at runtime
-    BREVO_API_KEY: str = ""
+    # Email — Resend (primary, 3k/mo free) or Brevo (legacy fallback)
+    RESEND_API_KEY: str = ""          # set this to use Resend API (resend.com)
+    BREVO_API_KEY: str = ""           # legacy — used only when RESEND_API_KEY is empty
     BREVO_FROM_EMAIL: str = "noreply@investiq.com.br"
     BREVO_FROM_NAME: str = "InvestIQ"
     APP_URL: str = "http://localhost:3100"

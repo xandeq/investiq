@@ -26,12 +26,11 @@ import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
 
-import httpx
 import redis as sync_redis
 from celery import shared_task
 from sqlalchemy import text
 
-from app.core.config import settings
+from app.core.email import send_price_alert_email
 
 logger = logging.getLogger(__name__)
 
@@ -90,43 +89,13 @@ def _get_user_email(tenant_id: str) -> str | None:
 
 
 def _send_alert_email(to_email: str, ticker: str, target: Decimal, current_price: Decimal) -> None:
-    """Send price alert email via Brevo (sync HTTP call)."""
-    try:
-        direction = "subiu para" if current_price >= target else "caiu para"
-        html = f"""
-        <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:24px;">
-          <h2 style="color:#1a1a2e;margin-bottom:8px;">Alerta de Preco — {ticker}</h2>
-          <p style="color:#555;font-size:15px;line-height:1.6;">
-            O ativo <strong>{ticker}</strong> {direction}
-            <strong>R$ {current_price:.2f}</strong>,
-            proximo do seu alvo de <strong>R$ {target:.2f}</strong>.
-          </p>
-          <a href="https://investiq.com.br/watchlist"
-             style="display:inline-block;margin-top:16px;padding:12px 24px;
-                    background:#6c63ff;color:#fff;border-radius:8px;
-                    text-decoration:none;font-weight:600;">
-            Ver Watchlist
-          </a>
-          <p style="margin-top:24px;color:#999;font-size:12px;">
-            Para remover este alerta, acesse a Watchlist e limpe o preco-alvo do ativo.
-          </p>
-        </div>
-        """
-        with httpx.Client(timeout=10.0) as client:
-            resp = client.post(
-                "https://api.brevo.com/v3/smtp/email",
-                headers={"api-key": settings.BREVO_API_KEY, "Content-Type": "application/json"},
-                json={
-                    "sender": {"name": settings.BREVO_FROM_NAME, "email": settings.BREVO_FROM_EMAIL},
-                    "to": [{"email": to_email}],
-                    "subject": f"InvestIQ — Alerta de preco: {ticker} atingiu R$ {current_price:.2f}",
-                    "htmlContent": html,
-                },
-            )
-            resp.raise_for_status()
-            logger.info("Price alert email sent: %s -> %s (R$ %.2f)", ticker, to_email, current_price)
-    except Exception as exc:
-        logger.error("Failed to send price alert email for %s: %s", ticker, exc)
+    """Send price alert email via core/email.py (Resend primary, Brevo fallback)."""
+    send_price_alert_email(
+        to=to_email,
+        ticker=ticker,
+        target=str(target),
+        current_price=str(current_price),
+    )
 
 
 def _save_alert_insight(tenant_id: str, ticker: str, target: Decimal, current_price: Decimal) -> None:

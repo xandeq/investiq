@@ -102,35 +102,46 @@ function AlertInline({ ticker, current }: { ticker: string; current: string | nu
 function AlertBadge({ item }: { item: WatchlistQuote }) {
   if (!item.price_alert_target) return null;
 
-  // Alert recently fired (within last 25h — covers the 23h dedup window + buffer)
+  // ✅ Alert fired within last 25h (covers 23h dedup window + buffer)
   if (item.alert_triggered_at) {
     const firedAt = new Date(item.alert_triggered_at);
     const hoursAgo = (Date.now() - firedAt.getTime()) / 3_600_000;
     if (hoursAgo < 25) {
+      const day = firedAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+      const time = firedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
       return (
-        <span className="text-xs bg-emerald-100 text-emerald-700 font-semibold px-1.5 py-0.5 rounded-md whitespace-nowrap">
-          Disparado {firedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+        <span
+          title="Email de alerta enviado"
+          className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+        >
+          ✅ Disparado em {day} {time}
         </span>
       );
     }
   }
 
-  // Alert is active (live price within ±2% of target)
-  if (item.price) {
+  // 🔔 Price is within ±2% of target right now
+  if (item.price && Number(item.price_alert_target) > 0) {
     const diff = Math.abs(Number(item.price) - Number(item.price_alert_target)) / Number(item.price_alert_target);
     if (diff <= 0.02) {
       return (
-        <span className="text-xs bg-amber-100 text-amber-700 font-bold px-1.5 py-0.5 rounded-md animate-pulse">
-          Alerta ativo!
+        <span
+          title="Preco proximo do alvo — email sera enviado no proximo ciclo (15 min)"
+          className="text-xs bg-amber-50 text-amber-700 border border-amber-300 font-bold px-2 py-0.5 rounded-full animate-pulse"
+        >
+          🔔 Alerta ativo
         </span>
       );
     }
   }
 
-  // Alert configured but not yet triggered
+  // Silent monitoring (configured, not yet triggered)
   return (
-    <span className="text-xs bg-blue-50 text-blue-500 px-1.5 py-0.5 rounded-md">
-      Monitorando
+    <span
+      title={`Monitorando R$ ${Number(item.price_alert_target).toFixed(2)}`}
+      className="text-xs bg-blue-50 text-blue-400 border border-blue-100 px-2 py-0.5 rounded-full"
+    >
+      🔕 Aguardando
     </span>
   );
 }
