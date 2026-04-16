@@ -92,13 +92,16 @@ class DashboardService:
             for item in pnl.allocation
         ]
 
-        # Daily P&L: derive previous_close from quote.price - quote.change
+        # Daily P&L: batch-fetch all quotes in ONE Redis round-trip
+        enriched_tickers = [p.ticker for p in positions if p.current_price is not None]
+        batch_quotes = await mds.get_quotes_batch(enriched_tickers) if enriched_tickers else {}
+
         daily_pnl = Decimal("0")
         for p in positions:
             if p.current_price is not None:
-                quote = await mds.get_quote(p.ticker)
-                if not quote.data_stale:
-                    # previous_close = current_price - price_change (no separate field in QuoteCache)
+                quote = batch_quotes.get(p.ticker.upper())
+                if quote and not quote.data_stale:
+                    # previous_close = current_price - price_change
                     previous_close = quote.price - quote.change
                     daily_pnl += (quote.price - previous_close) * p.quantity
 

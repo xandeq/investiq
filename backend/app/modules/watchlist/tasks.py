@@ -2,10 +2,10 @@
 
 Logic:
   - Query all watchlist_items with price_alert_target IS NOT NULL
-  - Read current price from Redis (market:quote:{TICKER})
+  - Batch-read current prices from Redis via MGET pipeline (single round-trip)
   - Alert when |current_price - target| / target <= 2% (price "reached" target)
-  - Dedup via Redis key price_alert:sent:{tenant_id}:{ticker} (TTL 24h)
-  - On alert: send email via Brevo (sync) + save UserInsight record
+  - Dedup via Redis key price_alert:sent:{tenant_id}:{ticker} (TTL 23h)
+  - On alert: send email via Brevo (sync) + save UserInsight + update alert_triggered_at in DB
 
 Redis key schema:
   market:quote:{TICKER}              — live price cache (written by refresh_quotes)
@@ -15,6 +15,7 @@ Notes:
   - Uses psycopg2 (sync) — never asyncpg inside Celery tasks
   - Email is sync httpx call (not the async brevo_email_sender from auth)
   - target comparison: ±2% tolerance so a target of 30.00 triggers at 29.40–30.60
+  - MGET batching: all Redis reads happen in a single pipeline call (O(1) round-trips)
 """
 from __future__ import annotations
 
@@ -45,9 +46,8 @@ def _get_redis() -> sync_redis.Redis:
     return sync_redis.Redis.from_url(url, decode_responses=True)
 
 
-def _get_current_price(r: sync_redis.Redis, ticker: str) -> Decimal | None:
-    """Read latest price from Redis cache. Returns None if quote not cached."""
-    raw = r.get(f"market:quote:{ticker.upper()}")
+def _parse_price_from_raw(raw: str | None) -> Decimal | None:
+    """Parse price from Redis quote JSON. Returns None on cache miss or parse error."""
     if not raw:
         return None
     try:
@@ -95,11 +95,11 @@ def _send_alert_email(to_email: str, ticker: str, target: Decimal, current_price
         direction = "subiu para" if current_price >= target else "caiu para"
         html = f"""
         <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:24px;">
-          <h2 style="color:#1a1a2e;margin-bottom:8px;">🎯 Alerta de Preço — {ticker}</h2>
+          <h2 style="color:#1a1a2e;margin-bottom:8px;">Alerta de Preco — {ticker}</h2>
           <p style="color:#555;font-size:15px;line-height:1.6;">
             O ativo <strong>{ticker}</strong> {direction}
             <strong>R$ {current_price:.2f}</strong>,
-            próximo do seu alvo de <strong>R$ {target:.2f}</strong>.
+            proximo do seu alvo de <strong>R$ {target:.2f}</strong>.
           </p>
           <a href="https://investiq.com.br/watchlist"
              style="display:inline-block;margin-top:16px;padding:12px 24px;
@@ -108,7 +108,7 @@ def _send_alert_email(to_email: str, ticker: str, target: Decimal, current_price
             Ver Watchlist
           </a>
           <p style="margin-top:24px;color:#999;font-size:12px;">
-            Para remover este alerta, acesse a Watchlist e limpe o preço-alvo do ativo.
+            Para remover este alerta, acesse a Watchlist e limpe o preco-alvo do ativo.
           </p>
         </div>
         """
@@ -119,12 +119,12 @@ def _send_alert_email(to_email: str, ticker: str, target: Decimal, current_price
                 json={
                     "sender": {"name": settings.BREVO_FROM_NAME, "email": settings.BREVO_FROM_EMAIL},
                     "to": [{"email": to_email}],
-                    "subject": f"InvestIQ — Alerta de preço: {ticker} atingiu R$ {current_price:.2f}",
+                    "subject": f"InvestIQ — Alerta de preco: {ticker} atingiu R$ {current_price:.2f}",
                     "htmlContent": html,
                 },
             )
             resp.raise_for_status()
-            logger.info("Price alert email sent: %s → %s (R$ %.2f)", ticker, to_email, current_price)
+            logger.info("Price alert email sent: %s -> %s (R$ %.2f)", ticker, to_email, current_price)
     except Exception as exc:
         logger.error("Failed to send price alert email for %s: %s", ticker, exc)
 
@@ -143,10 +143,10 @@ def _save_alert_insight(tenant_id: str, ticker: str, target: Decimal, current_pr
                 "id": str(uuid.uuid4()),
                 "tid": tenant_id,
                 "type": "price_alert",
-                "title": f"Alerta de preço atingido: {ticker}",
+                "title": f"Alerta de preco atingido: {ticker}",
                 "body": (
                     f"{ticker} {direction} R$ {current_price:.2f}, "
-                    f"próximo do seu alvo de R$ {target:.2f}."
+                    f"proximo do seu alvo de R$ {target:.2f}."
                 ),
                 "sev": "info",
                 "ticker": ticker,
@@ -156,42 +156,80 @@ def _save_alert_insight(tenant_id: str, ticker: str, target: Decimal, current_pr
         logger.error("Failed to save price alert insight for %s/%s: %s", tenant_id, ticker, exc)
 
 
+def _update_alert_triggered_at(tenant_id: str, ticker: str, triggered_at: datetime) -> None:
+    """Write alert_triggered_at to watchlist_items for frontend display."""
+    try:
+        from app.core.db_sync import get_sync_db_session
+        with get_sync_db_session() as session:
+            session.execute(text(
+                "UPDATE watchlist_items "
+                "SET alert_triggered_at = :ts "
+                "WHERE tenant_id = :tid AND ticker = :ticker"
+            ), {"ts": triggered_at, "tid": tenant_id, "ticker": ticker})
+    except Exception as exc:
+        logger.error("Failed to update alert_triggered_at for %s/%s: %s", tenant_id, ticker, exc)
+
+
 @shared_task(name="app.modules.watchlist.tasks.check_price_alerts")
 def check_price_alerts() -> None:
-    """Check all watchlist price targets and fire alerts when price is within tolerance."""
+    """Check all watchlist price targets and fire alerts when price is within tolerance.
+
+    Performance: all Redis reads are batched via MGET pipeline (single round-trip
+    regardless of how many watchlist items exist).
+    """
     items = _get_watchlist_items_with_alerts()
     if not items:
         logger.debug("check_price_alerts: no items with price_alert_target")
         return
 
     r = _get_redis()
+
+    # ── Batch-read all quotes in ONE Redis round-trip ─────────────────────────
+    unique_tickers = list({item["ticker"] for item in items})
+    keys = [f"market:quote:{t.upper()}" for t in unique_tickers]
+    raw_values = r.mget(keys)  # single MGET call — O(1) network round-trips
+    price_map: dict[str, Decimal | None] = {
+        ticker: _parse_price_from_raw(raw)
+        for ticker, raw in zip(unique_tickers, raw_values)
+    }
+
+    # ── Batch-check dedup flags in ONE pipeline ───────────────────────────────
+    dedup_keys = [f"price_alert:sent:{item['tenant_id']}:{item['ticker']}" for item in items]
+    dedup_exists = r.mget(dedup_keys)  # 1 = exists (dedup), None = new alert allowed
+    dedup_map = {key: val is not None for key, val in zip(dedup_keys, dedup_exists)}
+
     alerted = 0
+    now = datetime.now(tz=timezone.utc)
 
     for item in items:
         tenant_id = item["tenant_id"]
         ticker = item["ticker"]
         target = item["target"]
 
-        current_price = _get_current_price(r, ticker)
+        current_price = price_map.get(ticker)
         if current_price is None:
             logger.debug("check_price_alerts: no cached quote for %s, skipping", ticker)
             continue
 
-        # Check if price is within ±2% of target
         if target <= 0:
             continue
+
+        # Check if price is within ±2% of target
         diff_pct = abs(current_price - target) / target
         if diff_pct > _ALERT_TOLERANCE:
             continue
 
-        # Dedup: skip if already alerted today for this tenant+ticker
+        # Dedup check
         dedup_key = f"price_alert:sent:{tenant_id}:{ticker}"
-        if r.exists(dedup_key):
+        if dedup_map.get(dedup_key):
             logger.debug("check_price_alerts: dedup hit for %s/%s", tenant_id, ticker)
             continue
 
-        # Set dedup flag BEFORE sending to avoid duplicate sends on retry
+        # Set dedup flag BEFORE sending — prevents duplicate sends on task retry
         r.set(dedup_key, "1", ex=_DEDUP_TTL_SECONDS)
+
+        # Persist triggered_at to DB (non-fatal if it fails)
+        _update_alert_triggered_at(tenant_id, ticker, now)
 
         email = _get_user_email(tenant_id)
         if email:

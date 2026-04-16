@@ -14,6 +14,7 @@ class WatchlistItemResponse(WatchlistItemCreate):
     model_config = ConfigDict(from_attributes=True)
     id: str
     tenant_id: str
+    alert_triggered_at: datetime | None = None
     created_at: datetime | None = None
 
 

@@ -163,6 +163,76 @@ class MarketDataService:
             )
         return FundamentalsCache.model_validate_json(raw)
 
+    async def get_quotes_batch(self, tickers: list[str]) -> dict[str, QuoteCache]:
+        """Batch-read B3 quotes from Redis using a single MGET round-trip.
+
+        Returns a dict {ticker: QuoteCache}. Tickers with cache miss get
+        QuoteCache(data_stale=True). O(1) Redis round-trips regardless of N.
+        """
+        if not tickers:
+            return {}
+        upper = [t.upper() for t in tickers]
+        keys = [f"market:quote:{t}" for t in upper]
+        raw_values = await self.redis.mget(keys)
+
+        result: dict[str, QuoteCache] = {}
+        for ticker, raw in zip(upper, raw_values):
+            if raw is None:
+                result[ticker] = QuoteCache(
+                    symbol=ticker,
+                    price=Decimal("0"),
+                    change=Decimal("0"),
+                    change_pct=Decimal("0"),
+                    fetched_at=_EPOCH_MIN,
+                    data_stale=True,
+                )
+            else:
+                try:
+                    result[ticker] = QuoteCache.model_validate_json(raw)
+                except Exception:
+                    try:
+                        payload = json.loads(raw)
+                        result[ticker] = QuoteCache(
+                            symbol=ticker,
+                            price=Decimal(str(payload.get("price", payload.get("regularMarketPrice", 0)))),
+                            change=Decimal(str(payload.get("change", payload.get("regularMarketChange", 0)))),
+                            change_pct=Decimal(str(payload.get("change_pct", payload.get("regularMarketChangePercent", 0)))),
+                            fetched_at=_EPOCH_MIN,
+                            data_stale=bool(payload.get("data_stale", False)),
+                        )
+                    except Exception:
+                        result[ticker] = QuoteCache(
+                            symbol=ticker,
+                            price=Decimal("0"),
+                            change=Decimal("0"),
+                            change_pct=Decimal("0"),
+                            fetched_at=_EPOCH_MIN,
+                            data_stale=True,
+                        )
+        return result
+
+    async def get_fundamentals_batch(self, tickers: list[str]) -> dict[str, FundamentalsCache]:
+        """Batch-read fundamentals from Redis using a single MGET round-trip.
+
+        Returns a dict {ticker: FundamentalsCache}. O(1) Redis round-trips.
+        """
+        if not tickers:
+            return {}
+        upper = [t.upper() for t in tickers]
+        keys = [f"market:fundamentals:{t}" for t in upper]
+        raw_values = await self.redis.mget(keys)
+
+        result: dict[str, FundamentalsCache] = {}
+        for ticker, raw in zip(upper, raw_values):
+            if raw is None:
+                result[ticker] = FundamentalsCache(ticker=ticker, fetched_at=_EPOCH_MIN, data_stale=True)
+            else:
+                try:
+                    result[ticker] = FundamentalsCache.model_validate_json(raw)
+                except Exception:
+                    result[ticker] = FundamentalsCache(ticker=ticker, fetched_at=_EPOCH_MIN, data_stale=True)
+        return result
+
     async def get_historical(self, ticker: str) -> HistoricalCache:
         """Read historical OHLCV data from Redis cache.
 

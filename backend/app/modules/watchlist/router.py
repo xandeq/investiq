@@ -128,26 +128,34 @@ async def get_watchlist_quotes(
 
     from app.modules.market_data.service import MarketDataService
     mds = MarketDataService(redis)
+
+    # Batch-fetch all quotes + fundamentals (one pipeline per data type)
+    tickers = [item.ticker for item in items]
+    quote_results = await mds.get_quotes_batch(tickers)
+    fundamentals_results = await mds.get_fundamentals_batch(tickers)
+
     quotes = []
     for item in items:
+        quote = quote_results.get(item.ticker)
+        fundamentals = fundamentals_results.get(item.ticker)
         try:
-            quote = await mds.get_quote(item.ticker)
-            fundamentals = await mds.get_fundamentals(item.ticker)
             quotes.append({
                 "ticker": item.ticker,
                 "notes": item.notes,
                 "price_alert_target": str(item.price_alert_target) if item.price_alert_target else None,
-                "price": str(quote.price) if quote.price else None,
-                "data_stale": quote.data_stale,
-                "pl": str(fundamentals.pl) if not fundamentals.data_stale and fundamentals.pl else None,
-                "dy": str(fundamentals.dy) if not fundamentals.data_stale and fundamentals.dy else None,
-                "pvp": str(fundamentals.pvp) if not fundamentals.data_stale and fundamentals.pvp else None,
+                "alert_triggered_at": item.alert_triggered_at.isoformat() if item.alert_triggered_at else None,
+                "price": str(quote.price) if quote and not quote.data_stale else None,
+                "data_stale": quote.data_stale if quote else True,
+                "pl": str(fundamentals.pl) if fundamentals and not fundamentals.data_stale and fundamentals.pl else None,
+                "dy": str(fundamentals.dy) if fundamentals and not fundamentals.data_stale and fundamentals.dy else None,
+                "pvp": str(fundamentals.pvp) if fundamentals and not fundamentals.data_stale and fundamentals.pvp else None,
             })
         except Exception:
             quotes.append({
                 "ticker": item.ticker,
                 "notes": item.notes,
                 "price_alert_target": str(item.price_alert_target) if item.price_alert_target else None,
+                "alert_triggered_at": item.alert_triggered_at.isoformat() if item.alert_triggered_at else None,
                 "price": None,
                 "data_stale": True,
             })

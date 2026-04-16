@@ -99,18 +99,51 @@ function AlertInline({ ticker, current }: { ticker: string; current: string | nu
   );
 }
 
+function AlertBadge({ item }: { item: WatchlistQuote }) {
+  if (!item.price_alert_target) return null;
+
+  // Alert recently fired (within last 25h — covers the 23h dedup window + buffer)
+  if (item.alert_triggered_at) {
+    const firedAt = new Date(item.alert_triggered_at);
+    const hoursAgo = (Date.now() - firedAt.getTime()) / 3_600_000;
+    if (hoursAgo < 25) {
+      return (
+        <span className="text-xs bg-emerald-100 text-emerald-700 font-semibold px-1.5 py-0.5 rounded-md whitespace-nowrap">
+          Disparado {firedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+        </span>
+      );
+    }
+  }
+
+  // Alert is active (live price within ±2% of target)
+  if (item.price) {
+    const diff = Math.abs(Number(item.price) - Number(item.price_alert_target)) / Number(item.price_alert_target);
+    if (diff <= 0.02) {
+      return (
+        <span className="text-xs bg-amber-100 text-amber-700 font-bold px-1.5 py-0.5 rounded-md animate-pulse">
+          Alerta ativo!
+        </span>
+      );
+    }
+  }
+
+  // Alert configured but not yet triggered
+  return (
+    <span className="text-xs bg-blue-50 text-blue-500 px-1.5 py-0.5 rounded-md">
+      Monitorando
+    </span>
+  );
+}
+
 function WatchlistRow({ item }: { item: WatchlistQuote }) {
   const removeMut = useRemoveFromWatchlist();
-  const alertActive = item.price_alert_target && item.price && Number(item.price) >= Number(item.price_alert_target);
 
   return (
     <tr className="hover:bg-gray-50/50 transition-colors">
       <td className="px-4 py-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="font-mono font-semibold">{item.ticker}</span>
-          {alertActive && (
-            <span className="text-xs bg-amber-100 text-amber-700 font-bold px-1.5 py-0.5 rounded-md">Alerta!</span>
-          )}
+          {item.price_alert_target && <AlertBadge item={item} />}
         </div>
         {item.notes && <p className="text-xs text-muted-foreground mt-0.5">{item.notes}</p>}
       </td>

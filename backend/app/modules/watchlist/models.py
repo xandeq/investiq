@@ -24,6 +24,7 @@ class WatchlistItem(Base):
     ticker: Mapped[str] = mapped_column(String(20), nullable=False)
     notes: Mapped[str | None] = mapped_column(String(300), nullable=True)
     price_alert_target: Mapped[Decimal | None] = mapped_column(Numeric(18, 2), nullable=True)
+    alert_triggered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow, server_default=func.now()
     )

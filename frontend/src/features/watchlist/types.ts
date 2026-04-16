@@ -11,6 +11,7 @@ export interface WatchlistQuote {
   ticker: string;
   notes: string | null;
   price_alert_target: string | null;
+  alert_triggered_at: string | null;
   price: string | null;
   data_stale: boolean;
   pl: string | null;
