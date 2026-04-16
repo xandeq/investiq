@@ -266,6 +266,35 @@ def payment_failed_email(user_email: str) -> tuple[str, str]:
     return subject, _build_email(header_title=subject, body_html=body)
 
 
+def verification_email(user_email: str, verify_url: str) -> tuple[str, str]:
+    """Returns (subject, html_content) for email address verification on registration."""
+    subject = "Verifique seu email — InvestIQ"
+
+    body = f"""
+      <h1 style="margin:0 0 8px;font-family:{_FONT};font-size:24px;
+                 font-weight:700;color:{_DARK};">
+        Bem-vindo ao InvestIQ!
+      </h1>
+      <p style="margin:16px 0 0;font-family:{_FONT};font-size:15px;
+                color:{_BODY_TEXT};line-height:1.6;">
+        Você criou sua conta com sucesso. Clique no botão abaixo para verificar seu
+        endereço de email e ativar o acesso ao InvestIQ.
+      </p>
+      <p style="margin:12px 0 0;font-family:{_FONT};font-size:14px;color:{_GRAY_TEXT};">
+        Você tem <strong>14 dias de trial Premium</strong> gratuito a partir de hoje.
+      </p>
+
+      {_cta_button("Verificar meu email", verify_url)}
+
+      <p style="margin:24px 0 0;font-family:{_FONT};font-size:13px;color:{_GRAY_TEXT};line-height:1.5;">
+        Se você não criou uma conta no InvestIQ, ignore este email.<br>
+        Este link expira em <strong>24 horas</strong>.
+      </p>
+    """
+
+    return subject, _build_email(header_title=subject, body_html=body)
+
+
 def trial_expiring_soon_email(
     user_email: str, days_remaining: int, trial_ends_at: datetime | None
 ) -> tuple[str, str]:

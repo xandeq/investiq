@@ -149,14 +149,20 @@ class AuthService:
 
         # Send verification email — failure must not block registration
         verify_url = f"{settings.APP_URL}/verify-email?token={token}"
-        html = (
-            f"<p>Bem-vindo ao InvestIQ!</p>"
-            f"<p><a href='{verify_url}'>Clique aqui para verificar seu email</a></p>"
-            f"<p>Este link expira em 24 horas.</p>"
-        )
+        try:
+            from app.modules.billing.email_templates import verification_email
+            _subject, html = verification_email(email, verify_url)
+        except Exception:
+            # Fallback to plain HTML if template fails to import
+            _subject = "Verifique seu email — InvestIQ"
+            html = (
+                f"<p>Bem-vindo ao InvestIQ!</p>"
+                f"<p><a href='{verify_url}'>Clique aqui para verificar seu email</a></p>"
+                f"<p>Este link expira em 24 horas.</p>"
+            )
         email_sent = True
         try:
-            await self.email_sender(email, "Verifique seu email — InvestIQ", html)
+            await self.email_sender(email, _subject, html)
         except Exception as exc:
             import logging
             logging.getLogger(__name__).error(
