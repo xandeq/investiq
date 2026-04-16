@@ -61,12 +61,13 @@ def _parse_change_pct(raw: str | None) -> float | None:
 
 
 def _get_verified_users_with_portfolio(session) -> list[dict]:
-    """Return verified users that have at least one open position."""
+    """Return verified users that have at least one open position AND have not opted out."""
     rows = session.execute(text("""
         SELECT DISTINCT u.id, u.email, u.tenant_id
         FROM users u
         INNER JOIN transactions t ON t.tenant_id = u.tenant_id
         WHERE u.is_verified = TRUE
+          AND u.email_digest_enabled = TRUE
           AND t.transaction_type IN ('buy', 'sell')
           AND t.deleted_at IS NULL
         ORDER BY u.email

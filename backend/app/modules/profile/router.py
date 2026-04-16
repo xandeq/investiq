@@ -1,16 +1,21 @@
 """Investor Profile router.
 
 Endpoints:
-  GET  /profile  — return current investor profile (404 if not configured yet)
-  POST /profile  — create or update investor profile (upsert)
+  GET  /profile                  — return current investor profile (404 if not configured yet)
+  POST /profile                  — create or update investor profile (upsert)
+  GET  /profile/email-prefs      — get email notification preferences
+  PATCH /profile/email-prefs     — update email notification preferences
 """
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from pydantic import BaseModel
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.middleware import get_authed_db, get_current_tenant_id
+from app.core.security import get_current_user
+from app.modules.auth.models import User
 from app.modules.profile.models import InvestorProfile
 from app.modules.profile.schemas import InvestorProfileResponse, InvestorProfileUpsert
 
@@ -77,3 +82,47 @@ async def upsert_profile(
 
     await db.flush()
     return _to_response(profile)
+
+
+# ── Email preferences ──────────────────────────────────────────────────────────
+
+class EmailPrefsResponse(BaseModel):
+    email_digest_enabled: bool
+
+
+class EmailPrefsUpdate(BaseModel):
+    email_digest_enabled: bool
+
+
+@router.get("/email-prefs", response_model=EmailPrefsResponse)
+async def get_email_prefs(
+    db: AsyncSession = Depends(get_authed_db),
+    current_user: dict = Depends(get_current_user),
+) -> EmailPrefsResponse:
+    """Return the current email notification preferences for the authenticated user."""
+    result = await db.execute(
+        select(User).where(User.id == current_user["sub"])
+    )
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+    return EmailPrefsResponse(email_digest_enabled=user.email_digest_enabled)
+
+
+@router.patch("/email-prefs", response_model=EmailPrefsResponse)
+async def update_email_prefs(
+    data: EmailPrefsUpdate,
+    db: AsyncSession = Depends(get_authed_db),
+    current_user: dict = Depends(get_current_user),
+) -> EmailPrefsResponse:
+    """Update email notification preferences.
+
+    - email_digest_enabled: opt in/out of the weekly portfolio digest email
+    """
+    await db.execute(
+        update(User)
+        .where(User.id == current_user["sub"])
+        .values(email_digest_enabled=data.email_digest_enabled)
+    )
+    await db.flush()
+    return EmailPrefsResponse(email_digest_enabled=data.email_digest_enabled)

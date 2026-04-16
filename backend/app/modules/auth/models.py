@@ -59,6 +59,9 @@ class User(Base):
     trial_used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")
     trial_warning_sent: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")
 
+    # Email notification preferences — LGPD opt-out
+    email_digest_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, server_default="true")
+
     # Stripe billing columns — set by webhooks, never from checkout redirect
     stripe_customer_id: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
     stripe_subscription_id: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)

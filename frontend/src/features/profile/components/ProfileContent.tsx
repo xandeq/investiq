@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useProfile, useUpsertProfile } from "@/features/profile/hooks/useProfile";
 import type { InvestorProfileUpsert } from "@/features/profile/types";
+import { EmailPrefsCard } from "./EmailPrefsCard";
 
 const OBJETIVO_LABELS: Record<string, string> = {
   aposentadoria: "Aposentadoria",
@@ -198,12 +199,13 @@ export function ProfileContent() {
 
   if (!showForm) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-6 max-w-xl">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Meu Perfil de Investidor</h2>
           <p className="text-sm text-muted-foreground mt-1">Contexto usado pela IA para personalizar análises</p>
         </div>
         <ProfileSummary profile={profile} onEdit={handleStartEdit} />
+        <EmailPrefsCard />
       </div>
     );
   }
