@@ -90,6 +90,11 @@ def _send_via_brevo(api_key: str, to: str, subject: str, html: str) -> None:
 def send_email(to: str, subject: str, html: str) -> None:
     """Send transactional email. Provider selected from environment.
 
+    Selection order:
+      1. RESEND_API_KEY set → try Resend; if fails (e.g. domain not verified) → fallback Brevo
+      2. BREVO_API_KEY set  → Brevo
+      3. Neither            → log warning, no-op
+
     Non-fatal: logs errors instead of raising, so a broken email provider
     never crashes a Celery task that has other side-effects (DB writes, etc.).
     """
@@ -98,22 +103,31 @@ def send_email(to: str, subject: str, html: str) -> None:
     try:
         from app.core.config import settings
         brevo_key = settings.BREVO_API_KEY or ""
+        if not resend_key:
+            resend_key = getattr(settings, "RESEND_API_KEY", "") or ""
     except Exception:
         brevo_key = os.environ.get("BREVO_API_KEY", "")
 
-    try:
-        if resend_key:
+    if not resend_key and not brevo_key:
+        logger.warning(
+            "No email provider configured (set RESEND_API_KEY or BREVO_API_KEY). "
+            "Email to %s suppressed: %s", to, subject,
+        )
+        return
+
+    # Try Resend first; fall back to Brevo on any error (domain not verified, quota, etc.)
+    if resend_key:
+        try:
             _send_via_resend(resend_key, to, subject, html)
-        elif brevo_key:
+            return
+        except Exception as exc:
+            logger.warning("Resend failed (%s), falling back to Brevo: %s", exc, subject)
+
+    if brevo_key:
+        try:
             _send_via_brevo(brevo_key, to, subject, html)
-        else:
-            logger.warning(
-                "No email provider configured (set RESEND_API_KEY or BREVO_API_KEY). "
-                "Email to %s suppressed: %s",
-                to, subject,
-            )
-    except Exception as exc:
-        logger.error("Failed to send email to %s (%s): %s", to, subject, exc)
+        except Exception as exc:
+            logger.error("Brevo also failed for email to %s (%s): %s", to, subject, exc)
 
 
 # ── Pre-built templates ────────────────────────────────────────────────────────
