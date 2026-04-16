@@ -1,12 +1,13 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { login } from "@/features/auth/api";
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -19,7 +20,10 @@ export function LoginForm() {
     setIsLoading(true);
     try {
       await login(email, password);
-      router.push("/dashboard");
+      // Respect ?redirect= param set by middleware when protecting routes
+      const redirect = searchParams.get("redirect");
+      const destination = redirect && redirect.startsWith("/") ? redirect : "/dashboard";
+      router.push(destination);
     } catch (err) {
       const message = err instanceof Error ? err.message : "";
       if (message.toLowerCase().includes("not verified") || message.includes("is_verified")) {
