@@ -7,6 +7,7 @@ import { MacroIndicators } from "./MacroIndicators";
 import { RecentTransactions } from "./RecentTransactions";
 import { OpportunityAlerts } from "./OpportunityAlerts";
 import { Skeleton } from "@/components/ui/skeleton";
+import Link from "next/link";
 import { OnboardingBanner } from "@/features/onboarding/OnboardingBanner";
 
 export function DashboardContent() {
@@ -39,6 +40,13 @@ export function DashboardContent() {
   // Plan B result: data returned but data_stale=true — show banner warning
   const showStaleBanner = data?.data_stale && !isLoading;
 
+  // Empty portfolio: data loaded, net_worth = 0, no recent transactions
+  const isEmpty =
+    !isLoading &&
+    data &&
+    parseFloat(data.net_worth) === 0 &&
+    data.recent_transactions.length === 0;
+
   return (
     <div className="space-y-6">
       <OnboardingBanner />
@@ -49,6 +57,31 @@ export function DashboardContent() {
           <button onClick={() => refetch()} className="ml-auto underline hover:no-underline font-medium">Atualizar</button>
         </div>
       )}
+      {/* Empty portfolio — show 3-step CTA instead of zero cards */}
+      {isEmpty && (
+        <div className="rounded-xl border border-dashed border-gray-200 bg-white p-10 text-center">
+          <p className="text-4xl mb-3">🚀</p>
+          <h2 className="text-lg font-bold text-gray-900">Sua carteira está vazia</h2>
+          <p className="text-sm text-muted-foreground mt-1 mb-6 max-w-sm mx-auto">
+            Comece registrando suas posições para ver P&L, alocação e análise de desempenho.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link
+              href="/imports"
+              className="px-5 py-2.5 text-sm font-semibold bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              Importar extrato da B3
+            </Link>
+            <Link
+              href="/portfolio/transactions"
+              className="px-5 py-2.5 text-sm font-semibold border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Adicionar manualmente
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Row 1: Net Worth */}
       {isLoading ? (
         <Skeleton className="h-32 w-full rounded-xl" />
