@@ -42,6 +42,7 @@ def create_celery_app() -> Celery:
             "app.modules.analysis.tasks",
             "app.modules.opportunity_detector.scanner",
             "app.modules.dashboard.tasks",
+            "app.modules.dashboard.digest_tasks",
         ],
     )
 
@@ -137,6 +138,12 @@ def create_celery_app() -> Celery:
                 "task": "opportunity_detector.scan_fixed_income",
                 # Every 6h -- aligned with tesouro rate refresh
                 "schedule": crontab(minute=30, hour="*/6"),
+                "args": [],
+            },
+            # Weekly portfolio digest — every Monday 08:00 BRT
+            "send-weekly-portfolio-digest": {
+                "task": "app.modules.dashboard.digest_tasks.send_weekly_digest",
+                "schedule": crontab(minute=0, hour=8, day_of_week="1"),
                 "args": [],
             },
             # Portfolio EOD snapshot — runs at 18h30 BRT after B3 closes at 17h30
