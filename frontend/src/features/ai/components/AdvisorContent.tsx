@@ -5,7 +5,9 @@ import { requestPortfolioAnalysis } from "../api";
 import { useAnalysisJob } from "../hooks/useAnalysisJob";
 import { useJobList } from "../hooks/useJobList";
 import { PremiumGate } from "./PremiumGate";
+import { usePortfolioHealth } from "@/features/advisor/hooks/usePortfolioHealth";
 import type { AnalysisJob } from "../types";
+import type { PortfolioHealth } from "@/features/advisor/types";
 
 interface AdvisorResult {
   diagnostico: string;
@@ -90,11 +92,118 @@ function AdvisorHistory({ jobs, onSelect }: { jobs: AnalysisJob[]; onSelect: (jo
   );
 }
 
+// ── Health Score badge color ─────────────────────────────────────────────────
+function scoreColor(score: number): string {
+  if (score >= 80) return "text-emerald-600";
+  if (score >= 60) return "text-amber-500";
+  return "text-red-500";
+}
+
+function scoreLabel(score: number): string {
+  if (score >= 80) return "Equilibrado";
+  if (score >= 60) return "Atenção";
+  return "Revisar";
+}
+
+function fmtBRL(value: string): string {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+    parseFloat(value)
+  );
+}
+
+// ── Portfolio Health Section ──────────────────────────────────────────────────
+function HealthSection({ health, isLoading }: { health: PortfolioHealth | undefined; isLoading: boolean }) {
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 animate-pulse">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="rounded-lg bg-gray-100 h-20" />
+        ))}
+      </div>
+    );
+  }
+
+  if (!health) return null;
+
+  if (!health.has_portfolio) {
+    return (
+      <div className="rounded-lg bg-gray-50 border border-gray-200 p-5 text-center">
+        <p className="text-sm text-muted-foreground">
+          Nenhuma transação encontrada. Importe sua carteira para ver o diagnóstico de saúde.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Saúde da Carteira</h2>
+        {health.data_as_of && (
+          <span className="text-[11px] text-muted-foreground">
+            Dados de {new Date(health.data_as_of).toLocaleDateString("pt-BR")}
+          </span>
+        )}
+      </div>
+
+      {/* 4 metric cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {/* Score */}
+        <div className="rounded-lg border border-gray-200 bg-white p-4 text-center">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Score</p>
+          <p className={`text-3xl font-bold ${scoreColor(health.health_score)}`}>{health.health_score}</p>
+          <p className={`text-[11px] font-medium mt-1 ${scoreColor(health.health_score)}`}>
+            {scoreLabel(health.health_score)}
+          </p>
+        </div>
+
+        {/* Risk */}
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Principal Risco</p>
+          <p className="text-sm font-medium text-foreground leading-snug">
+            {health.biggest_risk ?? "Nenhum identificado"}
+          </p>
+        </div>
+
+        {/* Passive income */}
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Renda Mensal</p>
+          <p className="text-xl font-bold text-emerald-600">{fmtBRL(health.passive_income_monthly_brl)}</p>
+          <p className="text-[11px] text-muted-foreground mt-1">últ. 12 meses ÷ 12</p>
+        </div>
+
+        {/* Underperformers */}
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Queda &gt; 10% no ano</p>
+          {health.underperformers.length === 0 ? (
+            <p className="text-sm text-emerald-600 font-medium">Nenhum</p>
+          ) : (
+            <ul className="space-y-0.5">
+              {health.underperformers.map((u) => (
+                <li key={u} className="text-xs text-red-500 font-mono">{u}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      {/* Risk alert */}
+      {health.biggest_risk && (
+        <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+          <span className="font-semibold">Alerta: </span>{health.biggest_risk}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AdvisorMain() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
+
+  const { data: health, isLoading: healthLoading } = usePortfolioHealth();
 
   const { data: jobs } = useJobList();
   const { data: job } = useAnalysisJob(jobId);
@@ -134,6 +243,9 @@ function AdvisorMain() {
 
   return (
     <div className="space-y-8">
+      {/* Health check — deterministic, loads immediately */}
+      <HealthSection health={health} isLoading={healthLoading} />
+
       {/* Action button */}
       <div className="rounded-lg bg-[#111827] text-white p-8 text-center space-y-4">
         <div>
