@@ -1,14 +1,14 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.6
-milestone_name: Comparador RF vs RV
-status: roadmap_complete
-last_updated: "2026-04-18T00:00:00.000Z"
+milestone: v1.3
+milestone_name: - Client-side filtering with useMemo
+status: unknown
+last_updated: "2026-04-18T23:14:55.514Z"
 progress:
-  total_phases: 1
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_phases: 2
+  completed_phases: 2
+  total_plans: 5
+  completed_plans: 5
 ---
 
 # Project State
@@ -19,14 +19,12 @@ See: .planning/PROJECT.md
 
 **Core value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada — sem precisar de planilha, sem abrir mil plataformas.
 
-**Current focus:** v1.6 — Comparador RF vs RV (roadmap complete, ready for planning)
+**Current focus:** Phase 27 — Comparador RF vs RV
 
 ## Current Position
 
-Phase: Phase 27 — Comparador RF vs RV (not started)
-Plan: —
-Status: Roadmap complete — ready for `/gsd:plan-phase 27`
-Last activity: 2026-04-18 — v1.6 roadmap created (1 phase, 2 requirements mapped)
+Phase: 27 (Comparador RF vs RV) — EXECUTING
+Plan: 2 of 3
 
 ## Progress Bar
 
@@ -134,6 +132,7 @@ Phase 27: Comparador RF vs RV     [ NOT STARTED ]
 ### Why 1 Phase
 
 With TaxEngine, macro rates, and catalog fully built, the only work is:
+
 1. Thin backend endpoint (projection loop + TaxEngine calls)
 2. Frontend page (form + table + chart)
 
@@ -161,6 +160,8 @@ Table and chart are one unified tool — shipping them in separate phases would 
 - [Phase 26]: Used compute_signals() from swing_trade (not non-existent calculate_rsi_ma) — correctly reuses existing market-data-cached signal pipeline
 - [Phase 26]: Universe Celery batch reads ScreenerSnapshot (NO LLM) — deterministic, cost-free nightly refresh filtering variacao_12m < -10% OR dy > 6%
 - [Phase 26]: suggested_amount_brl hardcoded R$1000 default — no position-size context without cost-basis calculation; rsi=None since compute_signals uses 30d-high discount not RSI
+- [Phase 27]: Redis key market:macro:selic already populated by refresh_macro Celery beat — only API layer needed updating to expose SELIC in macro-rates response
+- [Phase 27]: No router changes required — FastAPI picks up new Pydantic field automatically; TypeScript structural typing allows additive selic field without breaking existing RendaFixaContent consumer
 
 ## Open Questions (resolve in Phase 27)
 
@@ -194,3 +195,4 @@ Table and chart are one unified tool — shipping them in separate phases would 
 | Phase 22 P02 | 4m | 2 tasks | 4 files |
 | Phase 25 P01 | 408 | 3 tasks | 7 files |
 | Phase 26 P01 | 639 | 3 tasks | 8 files |
+| Phase 27 P01 | 141 | 2 tasks | 4 files |

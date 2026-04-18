@@ -22,8 +22,8 @@
 
 ### Comparador RF vs RV
 
-- [ ] **COMP-01**: Usuário informa valor, prazo e produto RF (CDB/LCI/LCA/Tesouro Direto) e vê tabela comparativa de retorno líquido nominal do produto vs benchmarks CDI, SELIC e IPCA+ no prazo selecionado — IR regressivo calculado via TaxEngine, dados macro do Redis
-- [ ] **COMP-02**: Tabela comparativa inclui coluna de rentabilidade real (retorno nominal descontado IPCA) para cada alternativa, e gráfico de evolução do patrimônio acumulado ao longo do prazo
+- [x] **COMP-01**: Usuário informa valor, prazo e produto RF (CDB/LCI/LCA/Tesouro Direto) e vê tabela comparativa de retorno líquido nominal do produto vs benchmarks CDI, SELIC e IPCA+ no prazo selecionado — IR regressivo calculado via TaxEngine, dados macro do Redis
+- [x] **COMP-02**: Tabela comparativa inclui coluna de rentabilidade real (retorno nominal descontado IPCA) para cada alternativa, e gráfico de evolução do patrimônio acumulado ao longo do prazo
 
 ## Future Requirements (Deferred)
 
@@ -58,8 +58,8 @@
 | RF-01 | Phase 22 | Complete |
 | RF-02 | Phase 22 | Complete |
 | RF-03 | Phase 22 | Complete |
-| COMP-01 | Phase 27 | Pending |
-| COMP-02 | Phase 27 | Pending |
+| COMP-01 | Phase 27 | Complete |
+| COMP-02 | Phase 27 | Complete |
 
 **Coverage:**
 - v1.4 requirements: 7 total — all complete ✓
