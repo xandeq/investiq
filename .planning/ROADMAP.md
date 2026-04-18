@@ -161,7 +161,7 @@ v1.3 phases (17–20) completed 2026-04-11. Archive: `.planning/milestones/v1.3-
 - [x] **Phase 23: Portfolio Health Check** — Diagnostic (ADVI-01) (completed 2026-04-18)
 - [ ] **Phase 24: AI Advisor Recommendations** — Narrative + suggestions (ADVI-02)
 - [x] **Phase 25: Smart Screener** — Complementary assets filtered (ADVI-03) (completed 2026-04-18)
-- [ ] **Phase 26: Entry Signals** — Buy suggestions with fundamentals context (ADVI-04)
+- [x] **Phase 26: Entry Signals** — Buy suggestions with fundamentals context (ADVI-04) (completed 2026-04-18)
 
 ---
 
@@ -244,7 +244,7 @@ Plans:
   3. Each signal shows: suggested_amount_brl, target_upside_pct, timeframe_days, stop_loss_pct
   4. Signals include RSI + MA + fundamentals context (reuse from swing_trade/opportunity_detector modules)
 
-**Plans:** 1/1 plan created
+**Plans:** 1/1 plans complete
 
 Plans:
 - [x] 26-01-PLAN.md — Backend: GET /advisor/signals/portfolio (on-demand), GET /advisor/signals/universe (daily batch) + service functions + Celery beat task + Tests; Frontend: Entry Signals section with portfolio + universe tables + useEntrySignals hooks
@@ -258,7 +258,7 @@ Plans:
 | 23. Portfolio Health Check | 1/1 | Complete | 2026-04-18 |
 | 24. AI Advisor Recommendations | 1/1 | Planned | — |
 | 25. Smart Screener | 1/1 | Complete   | 2026-04-18 |
-| 26. Entry Signals | 1/1 | Planned | — |
+| 26. Entry Signals | 1/1 | Complete   | 2026-04-18 |
 
 ---
 

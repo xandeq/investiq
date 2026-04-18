@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: - Client-side filtering with useMemo
 status: unknown
-last_updated: "2026-04-18T18:00:57.556Z"
+last_updated: "2026-04-18T18:23:37.201Z"
 progress:
   total_phases: 2
   completed_phases: 2
@@ -19,11 +19,11 @@ See: .planning/PROJECT.md
 
 **Core value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada — v1.4 adiciona screener de ações filtrável e catálogo de renda fixa com retorno líquido real.
 
-**Current focus:** Phase 25 — smart-screener
+**Current focus:** Phase 26 — entry-signals
 
 ## Current Position
 
-Phase: 25 (smart-screener) — EXECUTING
+Phase: 26 (entry-signals) — EXECUTING
 Plan: 1 of 1
 
 ## Progress Bar
@@ -132,6 +132,9 @@ Phase 22: Catálogo Renda Fixa   [ NOT STARTED ]
 - [Phase 22]: Beat indicator gated on macroRates load state -- no-flash guard prevents showing wrong colors during data fetch
 - [Phase 25]: ComplementaryAssetRow.preco_atual maps to ScreenerSnapshot.regular_market_price; dy_12m_pct maps to ScreenerSnapshot.dy (field name correction from plan)
 - [Phase 25]: useSmartScreener enabled only when health.has_portfolio=true — avoids API call for empty portfolios
+- [Phase 26]: Used compute_signals() from swing_trade (not non-existent calculate_rsi_ma) — correctly reuses existing market-data-cached signal pipeline
+- [Phase 26]: Universe Celery batch reads ScreenerSnapshot (NO LLM) — deterministic, cost-free nightly refresh filtering variacao_12m < -10% OR dy > 6%
+- [Phase 26]: suggested_amount_brl hardcoded R000 default — no position-size context without cost-basis calculation; rsi=None since compute_signals uses 30d-high discount not RSI
 
 ## Open Questions (resolve in Phase 21)
 
@@ -165,3 +168,4 @@ Phase 22: Catálogo Renda Fixa   [ NOT STARTED ]
 | Phase 22 P01 | 4m | 2 tasks | 4 files |
 | Phase 22 P02 | 4m | 2 tasks | 4 files |
 | Phase 25 P01 | 408 | 3 tasks | 7 files |
+| Phase 26 P01 | 639 | 3 tasks | 8 files |
