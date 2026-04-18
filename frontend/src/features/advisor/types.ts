@@ -7,3 +7,48 @@ export interface PortfolioHealth {
   total_assets: number;
   has_portfolio: boolean;
 }
+
+export interface AdvisorAnalysisResult {
+  diagnostico: string;
+  pontos_positivos: string[];
+  pontos_de_atencao: string[];
+  sugestoes: string[];
+  proximos_passos: string[];
+  disclaimer: string;
+  // Health snapshot included in AI result
+  health_score: number | null;
+  biggest_risk: string | null;
+  passive_income_monthly_brl: string | null;
+  underperformers: string[];
+  completed_at: string | null;
+}
+
+export type AdvisorJobStatus = "pending" | "running" | "completed" | "failed";
+
+export interface AdvisorJobResponse {
+  job_id: string;
+  status: AdvisorJobStatus;
+  disclaimer: string;
+  result: AdvisorAnalysisResult | null;
+  error_message: string | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
+export interface AdvisorStartResponse {
+  job_id: string;
+  status: string;
+  disclaimer: string;
+}
+
+// ── Smart Screener (Phase 25 — ADVI-03) ─────────────────────────────────────
+
+export interface ComplementaryAsset {
+  ticker: string;
+  sector: string | null;
+  preco_atual: number | null;        // regular_market_price from ScreenerSnapshot
+  dy_12m_pct: number | null;         // dy from ScreenerSnapshot (fractional, e.g. 0.12 = 12%)
+  variacao_12m_pct: number | null;   // variacao_12m_pct from ScreenerSnapshot (fractional)
+  market_cap: number | null;
+  relevance_score: number;           // 0-100, higher = more complementary
+}
