@@ -1,17 +1,22 @@
 """FastAPI router for /advisor endpoints (Phase 23 — ADVI-01, ADVI-02).
 
-GET  /advisor/health          — synchronous portfolio health (4 metrics, no AI)
+GET  /advisor/health          — synchronous portfolio health (4 metrics, no AI, cached 3600s)
+POST /advisor/health/refresh  — bypass cache, compute fresh
 POST /advisor/analyze         — start async AI narrative job
 GET  /advisor/{job_id}        — poll job status + result
 
 Job persistence: reuses WizardJob table with perfil="advisor" as discriminator.
 CVM compliance: disclaimer mandatory in all responses that involve AI output.
+Caching: Redis with TTL=3600 per tenant_id.
 """
 from __future__ import annotations
 
 import json
 import logging
+import os
+from typing import Annotated
 
+import redis as redis_lib
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,6 +39,14 @@ from app.modules.wizard.models import WizardJob
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+
+# ── Redis dependency ──────────────────────────────────────────────────────
+
+def _get_redis():
+    """Get Redis client for caching. Can be overridden in tests."""
+    redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+    return redis_lib.Redis.from_url(redis_url, decode_responses=True)
+
 # WizardJob discriminator for advisor jobs
 _ADVISOR_PERFIL = "advisor"
 
@@ -44,7 +57,7 @@ _ADVISOR_PERFIL = "advisor"
 @router.get(
     "/health",
     response_model=PortfolioHealth,
-    summary="Saúde da carteira — 4 métricas determinísticas, sem IA",
+    summary="Saúde da carteira — 4 métricas determinísticas, sem IA (cached 3600s)",
     tags=["advisor"],
 )
 async def get_portfolio_health(
@@ -54,19 +67,93 @@ async def get_portfolio_health(
     global_db: AsyncSession = Depends(get_global_db),
     tenant_id: str = Depends(get_current_tenant_id),
 ) -> PortfolioHealth:
-    """Compute portfolio health synchronously.
+    """Compute portfolio health synchronously with Redis caching.
 
     Returns health_score (0-100), biggest_risk (one sentence or null),
     passive_income_monthly_brl (TTM ÷ 12), underperformers (max 3 tickers),
     and data_as_of (screener snapshot date — staleness signal).
 
-    No AI involved. Target latency: <300ms.
+    Cache TTL: 3600 seconds (1 hour) per tenant.
+    No AI involved. Target latency: <300ms from cache.
     """
-    return await compute_portfolio_health(
+    tenant_id_str = tenant_id
+    cache_key = f"portfolio_health:{tenant_id_str}"
+
+    # Try to get from cache
+    try:
+        r = _get_redis()
+        cached = r.get(cache_key)
+        if cached:
+            data = json.loads(cached)
+            return PortfolioHealth(**data)
+    except Exception as exc:
+        logger.warning("get_portfolio_health: Redis error (will compute fresh): %s", exc)
+
+    # Compute fresh
+    health = await compute_portfolio_health(
         tenant_db=tenant_db,
         global_db=global_db,
-        tenant_id=tenant_id,
+        tenant_id=tenant_id_str,
     )
+
+    # Cache result
+    try:
+        r = _get_redis()
+        data_dict = health.model_dump(mode="json")
+        r.setex(cache_key, 3600, json.dumps(data_dict))
+    except Exception as exc:
+        logger.error("get_portfolio_health: Failed to cache: %s", exc)
+
+    return health
+
+
+# ── POST /advisor/health/refresh ──────────────────────────────────────────────
+
+@limiter.limit("10/minute")
+@router.post(
+    "/health/refresh",
+    response_model=PortfolioHealth,
+    summary="Atualizar saúde da carteira (bypass cache)",
+    tags=["advisor"],
+)
+async def refresh_portfolio_health(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    tenant_db: AsyncSession = Depends(get_authed_db),
+    global_db: AsyncSession = Depends(get_global_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+) -> PortfolioHealth:
+    """Compute fresh portfolio health, bypass cache.
+
+    Clears the cached entry and returns newly computed result.
+    Rate limit: 10/minute — refresh is less common than reads.
+    """
+    tenant_id_str = tenant_id
+    cache_key = f"portfolio_health:{tenant_id_str}"
+
+    # Clear cache
+    try:
+        r = _get_redis()
+        r.delete(cache_key)
+    except Exception as exc:
+        logger.warning("refresh_portfolio_health: Failed to clear cache: %s", exc)
+
+    # Compute fresh
+    health = await compute_portfolio_health(
+        tenant_db=tenant_db,
+        global_db=global_db,
+        tenant_id=tenant_id_str,
+    )
+
+    # Re-cache
+    try:
+        r = _get_redis()
+        data_dict = health.model_dump(mode="json")
+        r.setex(cache_key, 3600, json.dumps(data_dict))
+    except Exception as exc:
+        logger.error("refresh_portfolio_health: Failed to cache: %s", exc)
+
+    return health
 
 
 # ── POST /advisor/analyze ──────────────────────────────────────────────────────
