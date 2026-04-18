@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: - Client-side filtering with useMemo
 status: unknown
-last_updated: "2026-04-18T23:14:55.514Z"
+last_updated: "2026-04-18T23:21:21.981Z"
 progress:
   total_phases: 2
   completed_phases: 2
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md
 ## Current Position
 
 Phase: 27 (Comparador RF vs RV) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 
 ## Progress Bar
 
@@ -162,6 +162,8 @@ Table and chart are one unified tool — shipping them in separate phases would 
 - [Phase 26]: suggested_amount_brl hardcoded R$1000 default — no position-size context without cost-basis calculation; rsi=None since compute_signals uses 30d-high discount not RSI
 - [Phase 27]: Redis key market:macro:selic already populated by refresh_macro Celery beat — only API layer needed updating to expose SELIC in macro-rates response
 - [Phase 27]: No router changes required — FastAPI picks up new Pydantic field automatically; TypeScript structural typing allows additive selic field without breaking existing RendaFixaContent consumer
+- [Phase 27]: IR applied to gross annual rate (approximation) — standard for market-facing comparison tools
+- [Phase 27]: ipcaNominalForReal = annualizeRate(ipca, days) — compound IPCA over holding period for real return denominator
 
 ## Open Questions (resolve in Phase 27)
 
@@ -196,3 +198,4 @@ Table and chart are one unified tool — shipping them in separate phases would 
 | Phase 25 P01 | 408 | 3 tasks | 7 files |
 | Phase 26 P01 | 639 | 3 tasks | 8 files |
 | Phase 27 P01 | 141 | 2 tasks | 4 files |
+| Phase 27 P02 | 254 | 4 tasks | 5 files |
