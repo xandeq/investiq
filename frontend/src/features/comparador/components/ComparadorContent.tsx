@@ -2,6 +2,7 @@
 import { useState, useMemo } from "react";
 import { useMacroRates, useFixedIncomeCatalog } from "@/features/screener_v2/hooks/useRendaFixa";
 import { useComparadorCalc, getDefaultRateForTipo } from "../hooks/useComparadorCalc";
+import { ComparadorChart } from "./ComparadorChart";
 import type { TipoRF, ComparadorInputs } from "../types";
 
 function fmt(n: number, decimals = 2): string {
@@ -212,7 +213,10 @@ export function ComparadorContent() {
         </div>
       )}
 
-      {/* Plan 03 will render the chart here using result.projection */}
+      <ComparadorChart
+        data={result.projection}
+        produtoRfLabel={result.rows[0].label}
+      />
 
       {/* Footer */}
       <p className="text-center text-xs text-gray-400">
