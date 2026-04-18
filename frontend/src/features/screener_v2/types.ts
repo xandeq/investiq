@@ -108,6 +108,7 @@ export interface TesouroRatesResponse {
 }
 
 export interface MacroRatesResponse {
-  cdi: string | null;   // Annual CDI rate as percentage string, e.g. "10.65"
-  ipca: string | null;  // Annual IPCA rate as percentage string, e.g. "5.06"
+  cdi: string | null;    // Annual CDI rate as percentage string, e.g. "10.65"
+  ipca: string | null;   // Annual IPCA rate as percentage string, e.g. "5.06"
+  selic: string | null;  // Annual SELIC rate as percentage string, e.g. "14.75"
 }
