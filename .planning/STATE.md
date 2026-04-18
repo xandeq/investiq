@@ -1,14 +1,14 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.3
-milestone_name: - Client-side filtering with useMemo
-status: unknown
-last_updated: "2026-04-18T18:23:37.201Z"
+milestone: v1.6
+milestone_name: Comparador RF vs RV
+status: defining_requirements
+last_updated: "2026-04-18T00:00:00.000Z"
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -17,14 +17,16 @@ progress:
 
 See: .planning/PROJECT.md
 
-**Core value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada — v1.4 adiciona screener de ações filtrável e catálogo de renda fixa com retorno líquido real.
+**Core value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada — sem precisar de planilha, sem abrir mil plataformas.
 
-**Current focus:** Phase 26 — entry-signals
+**Current focus:** v1.6 — Comparador RF vs RV (defining requirements)
 
 ## Current Position
 
-Phase: 26 (entry-signals) — EXECUTING
-Plan: 1 of 1
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-18 — Milestone v1.6 started
 
 ## Progress Bar
 

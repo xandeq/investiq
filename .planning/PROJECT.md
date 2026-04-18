@@ -96,26 +96,38 @@ Fases 17–20 completas e deployadas. FII Screener com score composto, página d
 
 ---
 
-## Current Milestone: v1.4 Ferramentas de Análise
+## ✅ v1.4 Ferramentas de Análise — SHIPPED 2026-04-12
 
-**Goal:** Entregar ao usuário as ferramentas de análise que faltam: screener de ações com filtros avançados e catálogo de renda fixa com retorno líquido IR por prazo.
+Fases 21–22 completas. Screener de ações (~900 tickers, filtros DY/P/L/Setor/MarketCap) + Catálogo RF (Tesouro/CDB/LCI/LCA com retorno líquido IR, indicador CDI/IPCA) em produção.
+
+---
+
+## ✅ v1.5 AI Portfolio Advisor — SHIPPED 2026-04-18
+
+Fases 23–26 completas e deployadas. Portfolio Health Check (score + bigger risk + renda passiva), AI Advisor via Celery job, Smart Screener personalizado (complementary assets), Entry Signals (portfolio on-demand + universe diário às 02h BRT).
+
+---
+
+## Current Milestone: v1.6 Comparador RF vs RV
+
+**Goal:** Ferramenta standalone que permite ao usuário comparar o retorno líquido de um produto de renda fixa (CDB/LCI/LCA/Tesouro) versus benchmarks de mercado (CDI, SELIC, IPCA+) em um prazo definido, com IR regressivo e rentabilidade real.
 
 **Target features:**
-- Screener de ações: tabela filtrável por DY, P/L, Setor, Market Cap — ordenável, paginado, link para /stock/[ticker]
-- Catálogo RF: Tesouro Direto + CDB + LCI/LCA com retorno líquido (TaxEngine), destaque isenção LCI/LCA, indicador bate CDI/IPCA
+- Inputs: valor, prazo, tipo RF (CDB/LCI/LCA/Tesouro Direto)
+- Tabela comparativa de retorno líquido (RF produto vs CDI vs SELIC vs IPCA+) com IR via TaxEngine
+- Gráfico de evolução do patrimônio ao longo do prazo
+- Coluna rentabilidade real (nominal descontado IPCA) para cada alternativa
 
-**Requirements:** SCRA-01–04, RF-01–03
-**Phase count:** TBD (roadmapper will define)
-**Starts at:** Phase 21
-
----
-
-## Future Milestone Items (Post-v1.4)
-
-1. v1.5 — AI Portfolio Advisor (Health Check da carteira + recomendações IA personalizadas com contexto da carteira real + Smart Screener personalizado + Entry Signals com contexto fundamentalista)
-2. v1.6 — Comparador RF vs RV + Simulador de Alocação (COMP-01–02, SIM-01–03)
-3. Admin dashboard — MON-04
-4. PostgreSQL RLS enforcement — AUTH-05
+**Requirements:** COMP-01, COMP-02
+**Starts at:** Phase 27
 
 ---
-*Last updated: 2026-04-12 after v1.4 milestone start*
+
+## Future Milestone Items (Post-v1.6)
+
+1. v1.7 — Simulador de Alocação (SIM-01–03)
+2. Admin dashboard — MON-04
+3. PostgreSQL RLS enforcement — AUTH-05
+
+---
+*Last updated: 2026-04-18 after v1.6 milestone start*
