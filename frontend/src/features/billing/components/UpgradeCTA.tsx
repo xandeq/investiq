@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { apiClient } from "@/lib/api-client";
 import { createCheckoutSession } from "../api";
 
 interface Props {
@@ -14,8 +15,15 @@ export function UpgradeCTA({
   const [loading, setLoading] = useState(false);
 
   const handleUpgrade = async () => {
+    if (loading) return;
     setLoading(true);
     try {
+      // Fetches fresh plan from server before checkout to guard against stale JWT/cache
+      const me = await apiClient<{ plan: string }>("/me");
+      if (me.plan === "pro") {
+        window.location.href = "/planos";
+        return;
+      }
       const { checkout_url } = await createCheckoutSession();
       window.location.href = checkout_url;
     } catch {

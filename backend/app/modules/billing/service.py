@@ -189,6 +189,23 @@ class BillingService:
         )
         await db.flush()
 
+        # Observability: alert if duplicate active subscriptions remain in DB
+        # This should never fire after the cancellation above, but acts as a canary
+        from app.modules.billing.models import Subscription
+        from sqlalchemy import func
+        active_count = await db.scalar(
+            select(func.count()).select_from(Subscription).where(
+                Subscription.user_id == user.id,
+                Subscription.status.in_(["active", "trialing"]),
+            )
+        ) or 0
+        if active_count > 1:
+            logger.warning(
+                "billing.duplicate_sub_detected user_id=%s active_count=%d"
+                " — investigate immediately",
+                user.id, active_count,
+            )
+
         # Send welcome-to-premium email (non-blocking)
         try:
             from app.modules.auth.service import brevo_email_sender

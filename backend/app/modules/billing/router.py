@@ -14,8 +14,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
+from app.core.limiter import limiter
 from app.core.middleware import get_authed_db
-from app.core.security import get_current_user
+from app.core.security import decode_token, get_current_user
 from app.modules.auth.models import User
 from app.modules.billing.schemas import CheckoutResponse, MetricsResponse, PortalResponse, SubscriberInfo, UsageResponse
 from app.modules.billing.service import billing_service
@@ -24,8 +25,21 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
+def _checkout_rate_key(request: Request) -> str:
+    """Rate-limit key: user_id extracted from JWT cookie. Falls back to IP."""
+    token = request.cookies.get("access_token")
+    if token:
+        try:
+            return f"checkout:{decode_token(token)['sub']}"
+        except Exception:
+            pass
+    return request.client.host if request.client else "unknown"
+
+
 @router.post("/checkout", response_model=CheckoutResponse)
+@limiter.limit("3/minute", key_func=_checkout_rate_key)
 async def create_checkout_session(
+    request: Request,
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_authed_db),
 ) -> CheckoutResponse:
