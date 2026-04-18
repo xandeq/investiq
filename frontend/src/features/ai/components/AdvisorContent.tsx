@@ -5,8 +5,9 @@ import { startAdvisorAnalysis } from "@/features/advisor/api";
 import { usePortfolioHealth } from "@/features/advisor/hooks/usePortfolioHealth";
 import { useAdvisorJob } from "@/features/advisor/hooks/useAdvisorJob";
 import { useSmartScreener } from "@/features/advisor/hooks/useSmartScreener";
+import { usePortfolioEntrySignals, useUniverseEntrySignals } from "@/features/advisor/hooks/useEntrySignals";
 import { PremiumGate } from "./PremiumGate";
-import type { PortfolioHealth, AdvisorAnalysisResult, ComplementaryAsset } from "@/features/advisor/types";
+import type { PortfolioHealth, AdvisorAnalysisResult, ComplementaryAsset, EntrySignal } from "@/features/advisor/types";
 
 // ── Health Score helpers ────────────────────────────────────────────────────
 
@@ -364,6 +365,159 @@ function SmartScreenerSection({
   );
 }
 
+// ── Entry Signals Section (Phase 26 — ADVI-04) ──────────────────────────────
+
+interface EntrySignalsSectionProps {
+  portfolioSignals: EntrySignal[];
+  portfolioLoading: boolean;
+  universeSignals: EntrySignal[];
+  universeLoading: boolean;
+}
+
+function SignalTable({ signals }: { signals: EntrySignal[] }) {
+  return (
+    <div className="rounded-lg border border-gray-200 overflow-hidden">
+      <table className="w-full text-sm">
+        <thead className="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Ticker
+            </th>
+            <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Valor Sugerido
+            </th>
+            <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Alvo
+            </th>
+            <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground hidden md:table-cell">
+              Stop
+            </th>
+            <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Sinal
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {signals.map((signal) => (
+            <tr key={signal.ticker} className="hover:bg-gray-50 transition-colors">
+              <td className="px-4 py-2.5">
+                <a
+                  href={`/stock/${signal.ticker}`}
+                  className="font-mono text-blue-600 hover:text-blue-500 hover:underline font-semibold"
+                >
+                  {signal.ticker}
+                </a>
+              </td>
+              <td className="text-right px-4 py-2.5 text-xs">
+                R$ {parseFloat(signal.suggested_amount_brl).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </td>
+              <td className={`text-right px-4 py-2.5 text-xs font-medium ${signal.target_upside_pct > 0 ? "text-emerald-600" : "text-red-500"}`}>
+                {signal.target_upside_pct > 0 ? "+" : ""}{signal.target_upside_pct.toFixed(1)}%
+              </td>
+              <td className="text-right px-4 py-2.5 text-xs text-red-500 hidden md:table-cell">
+                -{signal.stop_loss_pct.toFixed(1)}%
+              </td>
+              <td className="text-right px-4 py-2.5">
+                <span
+                  className={`inline-block text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${
+                    signal.ma_signal === "buy"
+                      ? "bg-emerald-100 text-emerald-700"
+                      : signal.ma_signal === "sell"
+                      ? "bg-red-100 text-red-700"
+                      : "bg-gray-100 text-gray-600"
+                  }`}
+                >
+                  {signal.ma_signal ?? "—"}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function EntrySignalsSection({
+  portfolioSignals,
+  portfolioLoading,
+  universeSignals,
+  universeLoading,
+}: EntrySignalsSectionProps) {
+  return (
+    <div className="space-y-6">
+      <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+        Entry Signals
+      </h2>
+
+      {/* Portfolio signals — on-demand */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold">Seus Ativos</h3>
+          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+            Atualizado agora
+          </span>
+        </div>
+
+        {portfolioLoading && (
+          <div className="rounded-lg border border-gray-200 p-6 animate-pulse">
+            <div className="h-4 bg-gray-100 rounded w-48 mb-2" />
+            <div className="h-4 bg-gray-100 rounded w-32" />
+          </div>
+        )}
+
+        {!portfolioLoading && portfolioSignals.length === 0 && (
+          <div className="rounded-lg border border-gray-200 p-5 text-center">
+            <p className="text-sm text-muted-foreground">
+              Nenhum sinal disponível — sem dados de mercado para seus ativos no momento.
+            </p>
+          </div>
+        )}
+
+        {!portfolioLoading && portfolioSignals.length > 0 && (
+          <SignalTable signals={portfolioSignals} />
+        )}
+      </div>
+
+      {/* Universe signals — daily batch */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold">Oportunidades (Universo)</h3>
+          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+            Diário
+          </span>
+        </div>
+
+        {universeLoading && (
+          <div className="rounded-lg border border-gray-200 p-6 animate-pulse">
+            <div className="h-4 bg-gray-100 rounded w-48 mb-2" />
+            <div className="h-4 bg-gray-100 rounded w-32" />
+          </div>
+        )}
+
+        {!universeLoading && universeSignals.length === 0 && (
+          <div className="rounded-lg border border-gray-200 p-5 text-center">
+            <p className="text-sm text-muted-foreground">
+              Nenhum sinal disponível — batch noturno ainda não executado.
+            </p>
+          </div>
+        )}
+
+        {!universeLoading && universeSignals.length > 0 && (
+          <>
+            <SignalTable signals={universeSignals.slice(0, 20)} />
+            {universeSignals.length > 20 && (
+              <p className="text-[11px] text-muted-foreground text-center">
+                Mostrando 20 de {universeSignals.length} sinais
+              </p>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── In-Progress Indicator ─────────────────────────────────────────────────
 
 function AnalysisInProgress() {
@@ -403,6 +557,10 @@ function AdvisorMain() {
   const { data: screenerAssets, isLoading: screenerLoading } = useSmartScreener(
     health?.has_portfolio === true
   );
+  const { data: portfolioSignals, isLoading: portfolioSignalsLoading } = usePortfolioEntrySignals(
+    health?.has_portfolio === true
+  );
+  const { data: universeSignals, isLoading: universeSignalsLoading } = useUniverseEntrySignals();
 
   const isRunning =
     isSubmitting || (!!jobId && (job?.status === "pending" || job?.status === "running"));
@@ -449,6 +607,14 @@ function AdvisorMain() {
           isLoading={screenerLoading}
         />
       )}
+
+      {/* 4. Entry Signals — on-demand portfolio + daily universe batch (Phase 26) */}
+      <EntrySignalsSection
+        portfolioSignals={portfolioSignals ?? []}
+        portfolioLoading={portfolioSignalsLoading}
+        universeSignals={universeSignals ?? []}
+        universeLoading={universeSignalsLoading}
+      />
 
       {/* In-progress state */}
       {isRunning && !advisorResult && <AnalysisInProgress />}

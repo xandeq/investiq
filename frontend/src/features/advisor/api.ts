@@ -25,3 +25,13 @@ export async function getAdvisorJob(jobId: string): Promise<AdvisorJobResponse> 
 export async function getSmartScreener(limit = 100): Promise<ComplementaryAsset[]> {
   return apiClient<ComplementaryAsset[]>(`/advisor/screener?limit=${limit}`);
 }
+
+// ── Entry Signals (Phase 26 — ADVI-04) ──────────────────────────────────────
+
+export async function getPortfolioEntrySignals(): Promise<import("./types").EntrySignal[]> {
+  return apiClient<import("./types").EntrySignal[]>("/advisor/signals/portfolio");
+}
+
+export async function getUniverseEntrySignals(): Promise<import("./types").EntrySignal[]> {
+  return apiClient<import("./types").EntrySignal[]>("/advisor/signals/universe");
+}

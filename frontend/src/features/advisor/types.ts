@@ -52,3 +52,16 @@ export interface ComplementaryAsset {
   market_cap: number | null;
   relevance_score: number;           // 0-100, higher = more complementary
 }
+
+// ── Entry Signals (Phase 26 — ADVI-04) ──────────────────────────────────────
+
+export interface EntrySignal {
+  ticker: string;
+  suggested_amount_brl: string;     // Decimal as string ("1000.00")
+  target_upside_pct: number;        // positive = expected recovery %, e.g. 15.0 = 15%
+  timeframe_days: number;           // swing-trade horizon (fixed 90)
+  stop_loss_pct: number;            // stop-loss % (fixed 8.0)
+  rsi: number | null;               // RSI value (null if unavailable)
+  ma_signal: string | null;         // "buy" | "sell" | "neutral"
+  generated_at: string;             // ISO datetime UTC
+}
