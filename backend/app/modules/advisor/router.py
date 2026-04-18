@@ -33,7 +33,7 @@ from app.modules.advisor.schemas import (
     CVM_DISCLAIMER,
     PortfolioHealth,
 )
-from app.modules.advisor.service import compute_portfolio_health
+from app.modules.advisor.service import compute_portfolio_health, get_complementary_assets, ComplementaryAssetRow
 from app.modules.wizard.models import WizardJob
 
 logger = logging.getLogger(__name__)
@@ -205,6 +205,39 @@ async def start_advisor(
     return AdvisorStartResponse(job_id=job_id, status="pending")
 
 
+# ── GET /advisor/screener ──────────────────────────────────────────────────────
+
+@limiter.limit("30/minute")
+@router.get(
+    "/screener",
+    response_model=list[ComplementaryAssetRow],
+    summary="Smart Screener — ativos complementares à carteira (setores ausentes)",
+    tags=["advisor"],
+)
+async def smart_screener(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    tenant_db: AsyncSession = Depends(get_authed_db),
+    global_db: AsyncSession = Depends(get_global_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+    limit: int = 100,
+) -> list[ComplementaryAssetRow]:
+    """Return screener universe filtered to complementary assets.
+
+    Complementary = sectors NOT already held in the user's portfolio.
+    Results are ranked by relevance to identified health gaps (DY + entry price).
+
+    Empty portfolio: returns full screener universe (all sectors are complementary).
+    Rate limit: 30/minute — data is pre-calculated, no heavy computation.
+    """
+    return await get_complementary_assets(
+        tenant_db=tenant_db,
+        global_db=global_db,
+        tenant_id=tenant_id,
+        limit=limit,
+    )
+
+
 # ── GET /advisor/{job_id} ──────────────────────────────────────────────────────
 
 @limiter.limit("60/minute")
@@ -241,7 +274,9 @@ async def get_advisor_job(
     if job.status == "completed" and job.result_json:
         try:
             data = json.loads(job.result_json)
-            result = AdvisorResult(**data)
+            # Filter to only known fields (ignore extra keys from old format)
+            known = AdvisorResult.model_fields.keys()
+            result = AdvisorResult(**{k: v for k, v in data.items() if k in known})
         except Exception as exc:
             logger.warning("Failed to parse advisor result for job %s: %s", job.id, exc)
 

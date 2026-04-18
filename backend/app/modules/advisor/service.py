@@ -13,13 +13,21 @@ Score formula (starts at 100, deductions additive):
   underperformer cost > 30%   → -20
   passive_income_ttm  == 0    → -10
   (floor: 10)
+
+get_complementary_assets() (Phase 25 — ADVI-03):
+  - Identifies portfolio sectors by joining transactions with screener_snapshots
+  - Queries screener universe for tickers NOT in portfolio sectors
+  - Scores by relevance (DY-weighted, inverse variacao_12m)
+  - Returns ranked list capped at `limit`
 """
 from __future__ import annotations
 
 import logging
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
+from typing import Optional
 
+from pydantic import BaseModel
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -198,3 +206,130 @@ async def compute_portfolio_health(
         total_assets=len(active),
         has_portfolio=True,
     )
+
+
+# ── Smart Screener (Phase 25 — ADVI-03) ──────────────────────────────────────
+
+class ComplementaryAssetRow(BaseModel):
+    """One row returned by GET /advisor/screener.
+
+    Represents a B3 asset whose sector is NOT currently held by the user,
+    ranked by relevance to portfolio health gaps.
+
+    Field names map to ScreenerSnapshot columns:
+      preco_atual     → ScreenerSnapshot.regular_market_price
+      dy_12m_pct      → ScreenerSnapshot.dy
+    """
+    ticker: str
+    sector: Optional[str]
+    preco_atual: Optional[Decimal]       # ScreenerSnapshot.regular_market_price
+    dy_12m_pct: Optional[Decimal]        # ScreenerSnapshot.dy
+    variacao_12m_pct: Optional[Decimal]  # ScreenerSnapshot.variacao_12m_pct
+    market_cap: Optional[int]            # ScreenerSnapshot.market_cap (BigInteger)
+    relevance_score: float               # 0–100, higher = more relevant to portfolio gaps
+
+
+async def get_complementary_assets(
+    tenant_db: AsyncSession,
+    global_db: AsyncSession,
+    tenant_id: str,
+    limit: int = 100,
+) -> list[ComplementaryAssetRow]:
+    """Return screener universe filtered to assets NOT in user's portfolio sectors.
+
+    Algorithm:
+    1. Load all buy/sell transactions to find portfolio tickers.
+    2. Join portfolio tickers with screener_snapshots to identify held sectors.
+    3. Query latest screener snapshot for tickers whose sector is NOT held.
+    4. Score each result by relevance (DY × 2 + inverse variacao) and sort.
+
+    When the portfolio is empty, returns the full screener universe (all sectors
+    are "complementary" to an empty portfolio) with a neutral relevance_score=50.
+    """
+    # ── 1. Identify portfolio tickers ─────────────────────────────────────────
+    tx_result = await tenant_db.execute(
+        select(Transaction.ticker).where(
+            Transaction.tenant_id == tenant_id,
+            Transaction.transaction_type.in_(["buy", "sell"]),
+            Transaction.deleted_at.is_(None),
+        )
+    )
+    portfolio_tickers: set[str] = {row[0] for row in tx_result.all()}
+
+    # ── 2. Latest snapshot date ───────────────────────────────────────────────
+    date_result = await global_db.execute(
+        select(func.max(ScreenerSnapshot.snapshot_date))
+    )
+    latest_date = date_result.scalar()
+
+    if latest_date is None:
+        # No screener data at all — return empty list
+        return []
+
+    # ── 3. Empty portfolio → return full universe ─────────────────────────────
+    if not portfolio_tickers:
+        snap_result = await global_db.execute(
+            select(ScreenerSnapshot).where(
+                ScreenerSnapshot.snapshot_date == latest_date,
+            ).limit(limit)
+        )
+        snaps = snap_result.scalars().all()
+        return [
+            ComplementaryAssetRow(
+                ticker=s.ticker,
+                sector=s.sector,
+                preco_atual=s.regular_market_price,
+                dy_12m_pct=s.dy,
+                variacao_12m_pct=s.variacao_12m_pct,
+                market_cap=s.market_cap,
+                relevance_score=50.0,  # Neutral — no gaps to optimise for
+            )
+            for s in snaps
+        ]
+
+    # ── 4. Identify sectors already held ──────────────────────────────────────
+    sector_result = await global_db.execute(
+        select(ScreenerSnapshot.sector).where(
+            ScreenerSnapshot.ticker.in_(list(portfolio_tickers)),
+            ScreenerSnapshot.snapshot_date == latest_date,
+        )
+    )
+    portfolio_sectors: set[str] = {row[0] for row in sector_result.all() if row[0]}
+
+    # ── 5. Query complementary assets (sector NOT in portfolio_sectors) ────────
+    if portfolio_sectors:
+        query = select(ScreenerSnapshot).where(
+            ScreenerSnapshot.snapshot_date == latest_date,
+            ScreenerSnapshot.sector.notin_(portfolio_sectors),
+        )
+    else:
+        # Portfolio exists but no sector info available → return full universe
+        query = select(ScreenerSnapshot).where(
+            ScreenerSnapshot.snapshot_date == latest_date,
+        )
+
+    snap_result = await global_db.execute(query)
+    snaps = snap_result.scalars().all()
+
+    # ── 6. Score by relevance and rank ────────────────────────────────────────
+    rows: list[ComplementaryAssetRow] = []
+    for s in snaps:
+        # Higher DY → more relevant (income gap)
+        # Lower variacao_12m → might be attractively priced (inverse score)
+        dy_score = float(s.dy or 0) * 200        # dy is fractional (e.g. 0.12 = 12%)
+        var_score = 50.0 - float(s.variacao_12m_pct or 0) * 100  # invert: lower = better entry
+        score = min(100.0, max(0.0, dy_score + var_score))
+        rows.append(
+            ComplementaryAssetRow(
+                ticker=s.ticker,
+                sector=s.sector,
+                preco_atual=s.regular_market_price,
+                dy_12m_pct=s.dy,
+                variacao_12m_pct=s.variacao_12m_pct,
+                market_cap=s.market_cap,
+                relevance_score=score,
+            )
+        )
+
+    rows.sort(key=lambda x: x.relevance_score, reverse=True)
+    return rows[:limit]
