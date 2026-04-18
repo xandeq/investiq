@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: - Client-side filtering with useMemo
 status: unknown
-last_updated: "2026-04-12T19:35:20.494Z"
+last_updated: "2026-04-18T18:00:57.556Z"
 progress:
   total_phases: 2
   completed_phases: 2
@@ -19,12 +19,12 @@ See: .planning/PROJECT.md
 
 **Core value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada — v1.4 adiciona screener de ações filtrável e catálogo de renda fixa com retorno líquido real.
 
-**Current focus:** Phase 22 — catalogo-renda-fixa
+**Current focus:** Phase 25 — smart-screener
 
 ## Current Position
 
-Phase: 22 (catalogo-renda-fixa) — EXECUTING
-Plan: 2 of 2
+Phase: 25 (smart-screener) — EXECUTING
+Plan: 1 of 1
 
 ## Progress Bar
 
@@ -130,6 +130,8 @@ Phase 22: Catálogo Renda Fixa   [ NOT STARTED ]
 - [Phase 22]: No main.py changes needed -- /renda-fixa prefix already registered on screener_v2 router
 - [Phase 22]: annualizeRate uses compound math matching Python _compound_return() formula exactly
 - [Phase 22]: Beat indicator gated on macroRates load state -- no-flash guard prevents showing wrong colors during data fetch
+- [Phase 25]: ComplementaryAssetRow.preco_atual maps to ScreenerSnapshot.regular_market_price; dy_12m_pct maps to ScreenerSnapshot.dy (field name correction from plan)
+- [Phase 25]: useSmartScreener enabled only when health.has_portfolio=true — avoids API call for empty portfolios
 
 ## Open Questions (resolve in Phase 21)
 
@@ -162,3 +164,4 @@ Phase 22: Catálogo Renda Fixa   [ NOT STARTED ]
 | Phase 21 P03 | 197s | 2 tasks | 5 files |
 | Phase 22 P01 | 4m | 2 tasks | 4 files |
 | Phase 22 P02 | 4m | 2 tasks | 4 files |
+| Phase 25 P01 | 408 | 3 tasks | 7 files |

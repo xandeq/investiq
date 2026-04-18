@@ -160,7 +160,7 @@ v1.3 phases (17–20) completed 2026-04-11. Archive: `.planning/milestones/v1.3-
 
 - [x] **Phase 23: Portfolio Health Check** — Diagnostic (ADVI-01) (completed 2026-04-18)
 - [ ] **Phase 24: AI Advisor Recommendations** — Narrative + suggestions (ADVI-02)
-- [ ] **Phase 25: Smart Screener** — Complementary assets filtered (ADVI-03)
+- [x] **Phase 25: Smart Screener** — Complementary assets filtered (ADVI-03) (completed 2026-04-18)
 - [ ] **Phase 26: Entry Signals** — Buy suggestions with fundamentals context (ADVI-04)
 
 ---
@@ -223,7 +223,7 @@ Plans:
   3. Each result links to `/stock/[ticker]` for full analysis
   4. Smart Screener data loads in <500ms (pre-calculated from screener_snapshots)
 
-**Plans:** 1/1 plan created
+**Plans:** 1/1 plans complete
 
 Plans:
 - [x] 25-01-PLAN.md — Backend: GET /advisor/screener endpoint + get_complementary_assets service + Tests; Frontend: Smart Screener section with table, filtering, sort + useSmartScreener hook
@@ -257,7 +257,7 @@ Plans:
 |-------|-------|--------|-----------|
 | 23. Portfolio Health Check | 1/1 | Complete | 2026-04-18 |
 | 24. AI Advisor Recommendations | 1/1 | Planned | — |
-| 25. Smart Screener | 1/1 | Planned | — |
+| 25. Smart Screener | 1/1 | Complete   | 2026-04-18 |
 | 26. Entry Signals | 1/1 | Planned | — |
 
 ---
