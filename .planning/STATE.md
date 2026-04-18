@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: - Client-side filtering with useMemo
 status: unknown
-last_updated: "2026-04-18T23:21:21.981Z"
+last_updated: "2026-04-18T23:41:31.446Z"
 progress:
   total_phases: 2
   completed_phases: 2
@@ -164,6 +164,8 @@ Table and chart are one unified tool — shipping them in separate phases would 
 - [Phase 27]: No router changes required — FastAPI picks up new Pydantic field automatically; TypeScript structural typing allows additive selic field without breaking existing RendaFixaContent consumer
 - [Phase 27]: IR applied to gross annual rate (approximation) — standard for market-facing comparison tools
 - [Phase 27]: ipcaNominalForReal = annualizeRate(ipca, days) — compound IPCA over holding period for real return denominator
+- [Phase 27]: Chart color palette: produto_rf blue, CDI slate, SELIC emerald, IPCA+ amber — matches table highlight colors
+- [Phase 27]: deploy-then-e2e pattern: run deploy-frontend.sh before playwright suite since tests run against production
 
 ## Open Questions (resolve in Phase 27)
 
@@ -199,3 +201,4 @@ Table and chart are one unified tool — shipping them in separate phases would 
 | Phase 26 P01 | 639 | 3 tasks | 8 files |
 | Phase 27 P01 | 141 | 2 tasks | 4 files |
 | Phase 27 P02 | 254 | 4 tasks | 5 files |
+| Phase 27 P03 | 35 | 3 tasks | 3 files |

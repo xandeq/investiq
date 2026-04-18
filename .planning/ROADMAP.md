@@ -380,7 +380,7 @@ Por isso, 1 fase única: tabela e gráfico só são úteis juntos, e dividir bac
 
 ## Phases
 
-- [ ] **Phase 27: Comparador RF vs RV** — Endpoint `/comparador` + página `/comparador` com tabela de retorno líquido vs benchmarks, coluna rentabilidade real e gráfico de evolução do patrimônio
+- [x] **Phase 27: Comparador RF vs RV** — Endpoint `/comparador` + página `/comparador` com tabela de retorno líquido vs benchmarks, coluna rentabilidade real e gráfico de evolução do patrimônio (completed 2026-04-18)
 
 ---
 
@@ -419,12 +419,12 @@ Por isso, 1 fase única: tabela e gráfico só são úteis juntos, e dividir bac
 - Tipo RF input maps to a product from `fixed_income_catalog` (best available rate for that type) or user-supplied custom rate — simplest approach: use catalog median rate for selected type
 - No auth required: tool is standalone, no tenant context needed — use `get_global_db` not `get_db`
 
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 27-01-PLAN.md — Backend: extend MacroRatesResponse with selic field (+ service reads market:macro:selic + tests + frontend type mirror)
 - [x] 27-02-PLAN.md — Frontend: new comparador types + useComparadorCalc useMemo hook + ComparadorContent.tsx rewrite with form + 4-row table (LCI/LCA isento, Tesouro IPCA+ spread input) + cleanup stale v1.0 api.ts/useComparador.ts
-- [ ] 27-03-PLAN.md — Frontend: ComparadorChart.tsx (Recharts LineChart, 4 series) wired into ComparadorContent + Playwright e2e spec v1.6-comparador.spec.ts
+- [x] 27-03-PLAN.md — Frontend: ComparadorChart.tsx (Recharts LineChart, 4 series) wired into ComparadorContent + Playwright e2e spec v1.6-comparador.spec.ts
 
 ---
 
@@ -432,7 +432,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 27. Comparador RF vs RV | 2/3 | In Progress|  |
+| 27. Comparador RF vs RV | 3/3 | Complete   | 2026-04-18 |
 
 ---
 
