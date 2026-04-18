@@ -10,10 +10,10 @@
 
 ## Phases
 
-- [ ] **Phase 23: Portfolio Health Check** — Diagnostic (ADVI-01)
-- [ ] **Phase 24: AI Advisor Recommendations** — Narrative + suggestions (ADVI-02)
+- [x] **Phase 23: Portfolio Health Check** — Diagnostic (ADVI-01) — 2026-04-18
+- [x] **Phase 24: AI Advisor Recommendations** — Narrative + suggestions (ADVI-02) — 2026-04-18
 - [x] **Phase 25: Smart Screener** — Complementary assets filtered (ADVI-03) — 2026-04-18
-- [ ] **Phase 26: Entry Signals** — Buy suggestions with fundamentals context (ADVI-04)
+- [x] **Phase 26: Entry Signals** — Buy suggestions with fundamentals context (ADVI-04) — 2026-04-18
 
 ---
 
@@ -98,7 +98,7 @@
 | 23. Portfolio Health Check | 1/1 | Complete | 2026-04-18 |
 | 24. AI Advisor Recommendations | 1/1 | Complete | 2026-04-18 |
 | 25. Smart Screener | 1/1 | Complete | 2026-04-18 |
-| 26. Entry Signals | 0/? | Planned | — |
+| 26. Entry Signals | 1/1 | Complete | 2026-04-18 |
 
 ---
 
@@ -109,7 +109,7 @@
 | ADVI-01 | Phase 23 | Portfolio health score, biggest risk, passive income, underperformers | ✓ Complete |
 | ADVI-02 | Phase 24 | AI diagnosis + recommendations referencing user's portfolio | ✓ Complete |
 | ADVI-03 | Phase 25 | Smart screener filtered to complementary assets | ✓ Complete |
-| ADVI-04 | Phase 26 | Entry signals (hybrid: owned=on-demand, universe=daily) | Pending |
+| ADVI-04 | Phase 26 | Entry signals (hybrid: owned=on-demand, universe=daily) | ✓ Complete |
 
 **Coverage:** 4/4 ✓
 
