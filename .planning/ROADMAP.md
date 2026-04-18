@@ -432,7 +432,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 27. Comparador RF vs RV | 3/3 | Complete   | 2026-04-18 |
+| 27. Comparador RF vs RV | 3/3 | Complete    | 2026-04-18 |
 
 ---
 
