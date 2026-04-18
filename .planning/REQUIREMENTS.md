@@ -58,13 +58,13 @@
 | RF-01 | Phase 22 | Complete |
 | RF-02 | Phase 22 | Complete |
 | RF-03 | Phase 22 | Complete |
-| COMP-01 | Phase TBD | Pending |
-| COMP-02 | Phase TBD | Pending |
+| COMP-01 | Phase 27 | Pending |
+| COMP-02 | Phase 27 | Pending |
 
 **Coverage:**
 - v1.4 requirements: 7 total — all complete ✓
-- v1.6 requirements: 2 total — phases TBD (roadmapper will assign)
+- v1.6 requirements: 2 total — both mapped to Phase 27 ✓
 
 ---
 *Requirements defined: 2026-04-12*
-*Last updated: 2026-04-18 — v1.6 COMP-01/02 promoted from deferred; SIM moved to v1.7*
+*Last updated: 2026-04-18 — COMP-01/02 assigned to Phase 27 (v1.6 roadmap complete)*

@@ -357,3 +357,107 @@ Each phase delivers one coherent capability; together they create the `/advisor`
 *Roadmap planning completed: 2026-04-18*
 *Milestone: InvestIQ v1.5 — AI Portfolio Advisor*
 *Status: Ready for execution*
+
+---
+
+# InvestIQ v1.6 — Comparador RF vs RV — Roadmap
+
+**Milestone:** v1.6 Comparador RF vs RV
+**Phases:** 27 (continues from v1.5 Phase 26)
+**Granularity:** Coarse (1 phase — TaxEngine + macro rates already built; tool only useful when table + chart ship together)
+**Status:** Active
+**Created:** 2026-04-18
+
+---
+
+## Overview
+
+Ferramenta standalone para o usuário comparar o retorno líquido de um produto de renda fixa (CDB/LCI/LCA/Tesouro Direto) contra benchmarks de mercado (CDI, SELIC, IPCA+) em qualquer prazo. O backend é thin — TaxEngine, tabela `fixed_income_catalog` e taxas macro no Redis já existem. O trabalho real é a UI: formulário de entrada, tabela comparativa com rentabilidade real e gráfico de evolução do patrimônio.
+
+Por isso, 1 fase única: tabela e gráfico só são úteis juntos, e dividir backend/frontend em fases separadas criaria overhead sem valor.
+
+---
+
+## Phases
+
+- [ ] **Phase 27: Comparador RF vs RV** — Endpoint `/comparador` + página `/comparador` com tabela de retorno líquido vs benchmarks, coluna rentabilidade real e gráfico de evolução do patrimônio
+
+---
+
+## Phase Details
+
+### Phase 27: Comparador RF vs RV
+
+**Goal:** Usuário informa valor, prazo e tipo de produto RF e vê tabela comparativa de retorno líquido nominal e real versus CDI, SELIC e IPCA+, com gráfico de evolução do patrimônio ao longo do prazo
+
+**Depends on:**
+- `TaxEngine` at `backend/app/modules/market_universe/tax_engine.py` (IR regressivo 22.5%→15%, LCI/LCA isenção) — no changes needed
+- Macro rates (CDI/SELIC/IPCA) in Redis, served by existing `GET /screener/macro-rates` endpoint — no changes needed
+- `fixed_income_catalog` table: Tesouro/CDB/LCI/LCA taxa + vencimento — populated nightly by Celery beat — no changes needed
+- `GET /renda-fixa` endpoint (Phase 22) — read before implementing to confirm available fields
+
+**Requirements:** COMP-01, COMP-02
+
+**Success criteria:**
+1. Usuário acessa `/comparador`, preenche valor (R$), prazo (meses) e seleciona tipo de produto RF (CDB/LCI/LCA/Tesouro Direto) e vê tabela comparativa com retorno líquido nominal para o produto RF selecionado, CDI, SELIC e IPCA+, com IR regressivo aplicado corretamente via TaxEngine
+2. Tabela exibe coluna de rentabilidade real (retorno nominal descontado IPCA projetado) para cada alternativa — LCI/LCA mostram destaque visual de isenção IR
+3. Gráfico de linha mostra a evolução do patrimônio acumulado mês a mês para cada alternativa ao longo do prazo informado
+4. Formulário atualiza tabela e gráfico instantaneamente ao alterar qualquer campo (valor, prazo, tipo RF) sem reload de página
+
+**Canonical refs:**
+- `backend/app/modules/market_universe/tax_engine.py` — TaxEngine core (read before implementing backend)
+- `backend/app/modules/market_universe/router.py` — existing `/renda-fixa` and `/screener/macro-rates` endpoints (confirm structure)
+- `frontend/src/features/billing/components/UpgradeCTA.tsx` — Tailwind card pattern to reuse
+- Phase 22 plans (`22-01-PLAN.md`, `22-02-PLAN.md`) — established TaxEngine integration pattern for frontend
+
+**Notes:**
+- Backend: new `GET /comparador` endpoint takes query params `valor`, `prazo_meses`, `tipo_rf` — calls TaxEngine for each benchmark row and returns projection array (one entry per month) + summary table row per alternative
+- Frontend: standalone page at `frontend/app/comparador/page.tsx` — no portfolio context required, accessible to all users (free tier)
+- Chart: use Recharts (already in codebase from other pages) — LineChart with one series per alternative
+- Projection math: compound monthly growth — `P * (1 + r_monthly)^t` for each month — client-side or backend-side both viable; prefer backend to keep math in one place (TaxEngine)
+- Rentabilidade real: `(1 + retorno_nominal) / (1 + ipca_acumulado) - 1` — IPCA from Redis macro rates
+- Tipo RF input maps to a product from `fixed_income_catalog` (best available rate for that type) or user-supplied custom rate — simplest approach: use catalog median rate for selected type
+- No auth required: tool is standalone, no tenant context needed — use `get_global_db` not `get_db`
+
+---
+
+## Progress Table
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 27. Comparador RF vs RV | 0/TBD | Not started | — |
+
+---
+
+## Requirements Coverage
+
+| Requirement | Phase | Description |
+|-------------|-------|-------------|
+| COMP-01 | Phase 27 | Valor + prazo + tipo RF → tabela retorno líquido nominal vs CDI/SELIC/IPCA+ com IR via TaxEngine |
+| COMP-02 | Phase 27 | Coluna rentabilidade real (nominal descontado IPCA) + gráfico evolução patrimônio acumulado |
+
+**Coverage:** 2/2 ✓
+
+---
+
+## Execution Notes
+
+### Patterns to reuse
+
+- **TaxEngine call pattern** (Phase 22): `tax_engine.calculate_net_return(principal, annual_rate, days, product_type)` — returns net amount after IR bracket
+- **Macro rates fetch** (Phase 22 `22-01-PLAN.md`): `GET /screener/macro-rates` → `{ cdi_rate, selic_rate, ipca_rate }` already cached in Redis
+- **`get_global_db`**: use for `/comparador` endpoint — no tenant isolation needed (public catalog data)
+- **Recharts LineChart**: already used in swing_trade or portfolio pages — find existing usage and copy import pattern
+- **Client-side state with no useMemo** (small dataset): comparador computes N rows (4 alternatives) × M months (≤120) — trivial, no caching needed
+
+### Key implementation sequence
+
+1. Backend: `GET /comparador` endpoint — validate params, fetch macro rates from Redis, fetch catalog rate for `tipo_rf`, run TaxEngine + projection loop, return `{ summary: [...], projection: [...] }`
+2. Backend tests: parametric test covering CDB (IR applies), LCI (isenção), Tesouro IPCA+ (mixed), 12-month and 60-month prazos
+3. Frontend: `/comparador` page — form (valor, prazo slider, tipo_rf select), call API on change, render table + Recharts chart
+4. Nav: add "Comparador" link to sidebar/nav alongside /renda-fixa
+
+---
+
+*Milestone: InvestIQ v1.6 — Comparador RF vs RV*
+*Roadmap created: 2026-04-18*
