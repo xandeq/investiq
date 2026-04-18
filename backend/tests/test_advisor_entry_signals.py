@@ -66,10 +66,11 @@ async def test_portfolio_signals_with_positions(client: AsyncClient, db_session,
         client, email_stub, email="signals_with_positions@example.com"
     )
 
-    # Create 2 buy transactions
+    # Create 2 buy transactions (portfolio_id required — use user_id as portfolio ID)
     tx1 = Transaction(
         id=str(uuid.uuid4()),
         tenant_id=user_id,
+        portfolio_id=user_id,
         ticker="MGLU3",
         transaction_type="buy",
         transaction_date=date(2026, 1, 10),
@@ -81,6 +82,7 @@ async def test_portfolio_signals_with_positions(client: AsyncClient, db_session,
     tx2 = Transaction(
         id=str(uuid.uuid4()),
         tenant_id=user_id,
+        portfolio_id=user_id,
         ticker="VALE3",
         transaction_type="buy",
         transaction_date=date(2026, 1, 15),

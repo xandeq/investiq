@@ -19,10 +19,23 @@ get_complementary_assets() (Phase 25 — ADVI-03):
   - Queries screener universe for tickers NOT in portfolio sectors
   - Scores by relevance (DY-weighted, inverse variacao_12m)
   - Returns ranked list capped at `limit`
+
+get_portfolio_entry_signals() (Phase 26 — ADVI-04):
+  - Fetches user's portfolio tickers from tenant DB
+  - Calls compute_signals() from swing_trade to get technical signals
+  - Maps SwingSignalItem → EntrySignal
+  - Caches result for 5 minutes
+
+get_universe_entry_signals() (Phase 26 — ADVI-04):
+  - Reads nightly-refreshed batch from Redis key "entry_signals:universe"
+  - No DB query — pure cache read
+  - Returns [] if batch hasn't run yet
 """
 from __future__ import annotations
 
+import json
 import logging
+import os
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Optional
@@ -31,9 +44,10 @@ from pydantic import BaseModel
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.advisor.schemas import PortfolioHealth
+from app.modules.advisor.schemas import EntrySignal, PortfolioHealth
 from app.modules.market_universe.models import ScreenerSnapshot
 from app.modules.portfolio.models import Transaction
+from app.modules.swing_trade.service import compute_signals
 
 logger = logging.getLogger(__name__)
 
@@ -333,3 +347,134 @@ async def get_complementary_assets(
 
     rows.sort(key=lambda x: x.relevance_score, reverse=True)
     return rows[:limit]
+
+
+# ── Entry Signals (Phase 26 — ADVI-04) ───────────────────────────────────────
+
+_ENTRY_SIGNAL_CACHE_TTL = 300        # 5 minutes for portfolio signals
+_ENTRY_UNIVERSE_CACHE_TTL = 86400    # 24 hours for universe batch
+_ENTRY_SIGNALS_DEFAULT_AMOUNT_BRL = "1000.00"  # default suggested amount when no position size info
+_ENTRY_SIGNALS_TIMEFRAME_DAYS = 90   # standard swing-trade horizon
+_ENTRY_SIGNALS_STOP_LOSS_PCT = 8.0   # standard stop-loss %
+
+
+def _get_sync_redis_for_signals():
+    """Sync Redis client for caching entry signals."""
+    import redis as sync_redis
+    return sync_redis.from_url(
+        os.environ.get("REDIS_URL", "redis://redis:6379/0"), decode_responses=True
+    )
+
+
+async def get_portfolio_entry_signals(
+    tenant_db: AsyncSession,
+    global_db: AsyncSession,
+    tenant_id: str,
+) -> list[EntrySignal]:
+    """On-demand entry signals for user's owned assets.
+
+    Algorithm:
+    1. Check Redis cache (5-min TTL).
+    2. Load portfolio tickers from tenant DB (buy transactions, distinct).
+    3. If no tickers → return [].
+    4. Call compute_signals() from swing_trade with async Redis client.
+    5. Map portfolio_signals (SwingSignalItem) → EntrySignal.
+    6. Cache result and return.
+
+    Mapping:
+      ticker           → ticker
+      discount_pct     → target_upside_pct (negated: discount is negative, upside is positive)
+      signal           → ma_signal
+      signal_strength  → proxy for RSI magnitude (rsi=None — RSI not available without full TA)
+      suggested_amount → hardcoded R$1,000 default (no position-size context in test env)
+      timeframe_days   → 90 (fixed swing-trade horizon)
+      stop_loss_pct    → 8.0 (fixed standard stop)
+    """
+    cache_key = f"entry_signals:portfolio:{tenant_id}"
+
+    # ── 1. Try cache ──────────────────────────────────────────────────────
+    try:
+        r = _get_sync_redis_for_signals()
+        cached = r.get(cache_key)
+        if cached:
+            return [EntrySignal(**item) for item in json.loads(cached)]
+    except Exception as exc:
+        logger.warning("get_portfolio_entry_signals: cache read failed: %s", exc)
+
+    # ── 2. Load portfolio tickers ─────────────────────────────────────────
+    tx_result = await tenant_db.execute(
+        select(Transaction.ticker).where(
+            Transaction.tenant_id == tenant_id,
+            Transaction.transaction_type == "buy",
+            Transaction.deleted_at.is_(None),
+        ).distinct()
+    )
+    tickers = [row[0] for row in tx_result.all()]
+
+    if not tickers:
+        return []
+
+    # ── 3. Compute swing signals via Redis-cached market data ─────────────
+    signals: list[EntrySignal] = []
+    try:
+        import redis.asyncio as aioredis
+        redis_client = aioredis.from_url(
+            os.environ.get("REDIS_URL", "redis://redis:6379/0"),
+            decode_responses=True,
+        )
+        try:
+            sw_response = await compute_signals(redis_client, tickers)
+        finally:
+            await redis_client.aclose()
+
+        # ── 4. Map SwingSignalItem → EntrySignal ──────────────────────────
+        now = datetime.now(timezone.utc)
+        for item in sw_response.portfolio_signals:
+            # target_upside_pct: discount_pct is negative (below 30d high).
+            # Negate so upside = expected recovery if price returns to 30d high.
+            target_upside = -item.discount_pct if item.discount_pct < 0 else 0.0
+            signals.append(EntrySignal(
+                ticker=item.ticker,
+                suggested_amount_brl=_ENTRY_SIGNALS_DEFAULT_AMOUNT_BRL,
+                target_upside_pct=round(target_upside, 2),
+                timeframe_days=_ENTRY_SIGNALS_TIMEFRAME_DAYS,
+                stop_loss_pct=_ENTRY_SIGNALS_STOP_LOSS_PCT,
+                rsi=None,  # RSI not computed by compute_signals — would need separate TA call
+                ma_signal=item.signal,
+                generated_at=now,
+            ))
+
+    except Exception as exc:
+        logger.warning("get_portfolio_entry_signals: compute_signals failed: %s", exc)
+        # Return empty list on Redis/market-data failure — graceful degradation
+
+    # ── 5. Cache result ───────────────────────────────────────────────────
+    if signals:
+        try:
+            r = _get_sync_redis_for_signals()
+            data = [s.model_dump(mode="json") for s in signals]
+            r.setex(cache_key, _ENTRY_SIGNAL_CACHE_TTL, json.dumps(data, default=str))
+        except Exception as exc:
+            logger.error("get_portfolio_entry_signals: cache write failed: %s", exc)
+
+    return signals
+
+
+async def get_universe_entry_signals() -> list[EntrySignal]:
+    """Batch entry signals for universe (from nightly Celery job).
+
+    Reads from Redis cache key "entry_signals:universe".
+    Returns [] if the Celery batch task hasn't run yet.
+    No DB query — pure cache read for maximum performance.
+    """
+    cache_key = "entry_signals:universe"
+
+    try:
+        r = _get_sync_redis_for_signals()
+        cached = r.get(cache_key)
+        if cached:
+            return [EntrySignal(**item) for item in json.loads(cached)]
+    except Exception as exc:
+        logger.warning("get_universe_entry_signals: cache read failed: %s", exc)
+
+    return []

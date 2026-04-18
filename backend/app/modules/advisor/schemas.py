@@ -44,13 +44,19 @@ class AdvisorStartResponse(BaseModel):
 
 
 class AdvisorResult(BaseModel):
-    narrative: str                       # AI-generated educational text (PT-BR)
-    health_score: int
-    biggest_risk: str | None
-    passive_income_monthly_brl: str      # Decimal serialized as string
-    underperformers: list[str]
-    provider_used: str | None
-    completed_at: str | None
+    """Structured AI analysis result from run_portfolio_advisor() skill."""
+    diagnostico: str                     # narrative paragraph (PT-BR)
+    pontos_positivos: list[str]          # up to 3 positive aspects
+    pontos_de_atencao: list[str]         # up to 3 attention points
+    sugestoes: list[str]                 # up to 3 actionable suggestions
+    proximos_passos: list[str]           # up to 3 next steps
+    disclaimer: str = CVM_DISCLAIMER
+    # Health snapshot (context for UI — mirrors PortfolioHealth fields)
+    health_score: int | None = None
+    biggest_risk: str | None = None
+    passive_income_monthly_brl: str | None = None
+    underperformers: list[str] = []
+    completed_at: str | None = None
 
 
 class AdvisorJobResponse(BaseModel):
@@ -61,3 +67,31 @@ class AdvisorJobResponse(BaseModel):
     error_message: str | None = None
     created_at: datetime
     completed_at: datetime | None = None
+
+
+# ── Entry Signals (Phase 26 — ADVI-04) ────────────────────────────────────────
+
+class EntrySignal(BaseModel):
+    """A single actionable entry signal combining technical + fundamental data.
+
+    Generated from swing_trade compute_signals() output (portfolio) or
+    ScreenerSnapshot data (universe batch via Celery).
+
+    Fields:
+      ticker             — B3 ticker code (e.g. "VALE3")
+      suggested_amount_brl — recommended position size as BRL string
+      target_upside_pct  — expected recovery % (positive = upside potential)
+      timeframe_days     — standard swing-trade horizon (fixed 90 days)
+      stop_loss_pct      — standard stop-loss % (fixed 8.0%)
+      rsi                — RSI value (None if unavailable)
+      ma_signal          — "buy" | "sell" | "neutral" from swing-trade signal
+      generated_at       — UTC datetime when signal was computed
+    """
+    ticker: str
+    suggested_amount_brl: str           # Decimal serialised as string
+    target_upside_pct: float
+    timeframe_days: int
+    stop_loss_pct: float
+    rsi: float | None = None
+    ma_signal: str | None = None        # "buy" | "sell" | "neutral"
+    generated_at: datetime

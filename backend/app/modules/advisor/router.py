@@ -31,9 +31,16 @@ from app.modules.advisor.schemas import (
     AdvisorResult,
     AdvisorStartResponse,
     CVM_DISCLAIMER,
+    EntrySignal,
     PortfolioHealth,
 )
-from app.modules.advisor.service import compute_portfolio_health, get_complementary_assets, ComplementaryAssetRow
+from app.modules.advisor.service import (
+    compute_portfolio_health,
+    get_complementary_assets,
+    get_portfolio_entry_signals,
+    get_universe_entry_signals,
+    ComplementaryAssetRow,
+)
 from app.modules.wizard.models import WizardJob
 
 logger = logging.getLogger(__name__)
@@ -236,6 +243,57 @@ async def smart_screener(
         tenant_id=tenant_id,
         limit=limit,
     )
+
+
+# ── GET /advisor/signals/portfolio ────────────────────────────────────────────
+
+@limiter.limit("10/minute")
+@router.get(
+    "/signals/portfolio",
+    response_model=list[EntrySignal],
+    summary="On-demand entry signals for owned assets (cached <5min)",
+    tags=["advisor"],
+)
+async def portfolio_entry_signals(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    tenant_db: AsyncSession = Depends(get_authed_db),
+    global_db: AsyncSession = Depends(get_global_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+) -> list[EntrySignal]:
+    """Return on-demand entry signals for user's owned assets.
+
+    Signals are computed from swing_trade compute_signals() which reads
+    Redis-cached market data (30d high, DY, price). Results cached 5 minutes.
+    Returns [] when portfolio is empty or market data is unavailable.
+    """
+    return await get_portfolio_entry_signals(
+        tenant_db=tenant_db,
+        global_db=global_db,
+        tenant_id=tenant_id,
+    )
+
+
+# ── GET /advisor/signals/universe ─────────────────────────────────────────────
+
+@limiter.limit("30/minute")
+@router.get(
+    "/signals/universe",
+    response_model=list[EntrySignal],
+    summary="Daily batch entry signals for screener universe",
+    tags=["advisor"],
+)
+async def universe_entry_signals(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+) -> list[EntrySignal]:
+    """Return daily batch signals for the screener universe.
+
+    Signals are pre-computed nightly by the advisor.refresh_universe_entry_signals
+    Celery beat task and stored in Redis. Returns [] if the batch hasn't run yet.
+    Rate limit: 30/minute — pure cache read, no heavy computation.
+    """
+    return await get_universe_entry_signals()
 
 
 # ── GET /advisor/{job_id} ──────────────────────────────────────────────────────
