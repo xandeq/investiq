@@ -214,3 +214,4 @@ class MacroRatesResponse(BaseModel):
 
     cdi: Decimal | None = Field(None, description="CDI annual rate as percentage, e.g. 10.65")
     ipca: Decimal | None = Field(None, description="IPCA annual rate as percentage, e.g. 5.06")
+    selic: Decimal | None = Field(None, description="SELIC annual rate as percentage, e.g. 14.75")
