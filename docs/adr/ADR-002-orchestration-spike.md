@@ -1,6 +1,6 @@
 # ADR-002 — Orquestração de Agentes: LangGraph Python vs Pydantic AI
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-04-19
 - **Decision deadline:** antes do início da Fase 2 do `INVESTIQ_UPGRADE_PLAN_V2.md`
 - **Decision authors:** Alexandre Queiroz (final call), Claude Code (spike runner)
@@ -121,3 +121,102 @@ A decisão é congelada (esta ADR vira `Accepted`) **somente se**:
 2. Executar Fase 1 do V2 (Decision Engine + schema canônico) — **não depende desta ADR**.
 3. Antes do início da Fase 2: agendar 2 dias para spike conforme plano acima.
 4. Atualizar esta ADR para `Accepted` com seção "Spike Results" e decisão final.
+
+---
+
+## Decision
+
+**Accepted — 2026-04-19**
+
+LangGraph Python selecionado como orquestrador do Agent Mesh do
+InvestIQ V2.
+
+## Evidence
+
+Spike executado em branch `spike/adr-002` (commit
+`b4b095e5b270eae6d139bd3c392d8aad121ebb87`).
+
+Resultado quantitativo da avaliação ponderada em 11 critérios:
+
+| Biblioteca | Score ponderado |
+|---|---|
+| LangGraph | 7.69 |
+| Pydantic AI | 6.67 |
+
+Relatório completo em
+[`spike/adr-002:spike/SPIKE_RESULTS.md`](../../../../tree/spike/adr-002/spike/SPIKE_RESULTS.md).
+
+### Critérios decisivos
+
+**C1 — State persistence (peso 15%)**
+- LangGraph: `MemorySaver` → `AsyncPostgresSaver` requer ~5 linhas
+  de config e zero mudanças na camada de aplicação.
+- Pydantic AI: serialização/deserialização manual do state a cada
+  checkpoint, ~15+ linhas intrusivas em todos os steps resumíveis.
+
+**C5 — SSE streaming (peso 10%)**
+- LangGraph: `astream_events(version="v2")` emite eventos conforme
+  nós paralelos individuais completam.
+- Pydantic AI: `asyncio.gather()` bloqueia até todos os branches
+  paralelos terminarem antes de emitir qualquer evento. Usuário
+  não vê nada durante a fase de research.
+
+### Onde Pydantic AI venceu
+
+- Dependency footprint menor: 4.5 MB vs 9 MB
+- Type safety mais forte: `Agent[Deps, Output]` vs
+  `TypedDict` + `dict[str, Any]`
+- Curva de aprendizado mais rasa
+
+Trade-offs aceitos ao escolher LangGraph (ver abaixo).
+
+## Trade-offs accepted
+
+1. **Dependency footprint 2× maior.** Aceitável no VPS Hetzner
+   atual. Revisar se footprint virar restrição real.
+
+2. **Type safety mais fraca que Pydantic AI.**
+   Mitigação: inputs e outputs de cada nó são Pydantic models do
+   domínio. State interno como TypedDict é aceitável — fica
+   confinado a `backend/app/orchestration/`.
+
+3. **Curva de aprendizado mais íngreme.**
+   Custo pago uma vez. Primeiro fluxo real (`decision_copilot_flow`
+   na Fase 1) documenta padrões pros próximos.
+
+## Architectural guardrails
+
+Para manter custo de reversão baixo caso LangGraph introduza
+breaking change major ou apareça alternativa superior:
+
+1. **Agentes são funções async Python puras**, não classes que
+   herdam de LangGraph.
+2. **State dos fluxos é TypedDict local** ao módulo do fluxo, não
+   exportado pra camada de negócio.
+3. **Inputs/outputs de cada nó são Pydantic models do domínio**
+   (não tipos LangGraph).
+4. **Imports de `langgraph` confinados a
+   `backend/app/orchestration/`.** Código de negócio em
+   `backend/app/modules/` não importa LangGraph direto.
+
+Custo estimado de migrar fora de LangGraph em 12 meses se
+API mudar radicalmente, respeitando os guardrails acima:
+**~1-2 semanas.**
+
+## Review triggers
+
+Reabrir esta decisão se:
+
+- LangGraph introduzir breaking change major que quebre
+  `AsyncPostgresSaver` ou `astream_events`.
+- Aparecer biblioteca com state persistence + streaming
+  equivalentes e tipagem mais forte (ex: Pydantic AI evoluir
+  C1 e C5 nos próximos 12 meses).
+- Footprint de 9 MB virar restrição real de deploy.
+
+## Status history
+
+| Data | Status | Commit |
+|---|---|---|
+| 2026-04-19 | Proposed | `b00e432` |
+| 2026-04-19 | Accepted | (commit desta edição) |
