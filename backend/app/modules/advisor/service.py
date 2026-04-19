@@ -336,7 +336,7 @@ def _health_to_cards(health: PortfolioHealth) -> list[InboxCard]:
             body="Considere FIIs ou ações pagadoras de dividendos para gerar fluxo de caixa mensal.",
             severity="info",
             created_at=now,
-            cta=InboxCardCTA(label="Ver FIIs ranqueados", href="/fii"),
+            cta=InboxCardCTA(label="Ver FIIs ranqueados", href="/fii/screener"),
             id_parts=("health", "no_income"),
         ))
     return cards
