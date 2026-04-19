@@ -170,3 +170,49 @@ def refresh_macro(self) -> None:
     except Exception as exc:
         logger.error("refresh_macro failed: %s", exc)
         raise self.retry(exc=exc)
+
+
+# Maximum acceptable age for macro data before the watchdog fires.
+_MACRO_STALE_THRESHOLD_SECONDS = 2 * 3600  # 2 hours
+
+
+@celery_app.task
+def check_macro_freshness() -> dict:
+    """Watchdog: alert if market:macro:fetched_at is absent or older than 2h.
+
+    Runs every 30min (beat schedule). Logs ERROR so it surfaces in any
+    log aggregator / alerting pipeline watching for ERROR lines.
+
+    Returns a dict so Celery result backend captures the outcome for inspection.
+    """
+    r = _get_redis()
+    raw = r.get("market:macro:fetched_at")
+
+    if raw is None:
+        logger.error(
+            "MACRO_STALE: market:macro:fetched_at key is missing — "
+            "refresh_macro has not run or its Redis keys have expired. "
+            "Run docs/runbook/celery_flush.md to recover."
+        )
+        return {"status": "missing", "age_seconds": None}
+
+    try:
+        fetched_at = datetime.fromisoformat(raw.decode())
+    except (ValueError, AttributeError):
+        logger.error("MACRO_STALE: market:macro:fetched_at is unparseable: %r", raw)
+        return {"status": "unparseable", "age_seconds": None}
+
+    age = (datetime.now(timezone.utc).replace(tzinfo=None) - fetched_at).total_seconds()
+
+    if age > _MACRO_STALE_THRESHOLD_SECONDS:
+        logger.error(
+            "MACRO_STALE: macro data is %.1fh old (threshold %.1fh). "
+            "refresh_macro is likely stuck in queue starvation. "
+            "Check: docker exec financas-redis-1 redis-cli LLEN celery",
+            age / 3600,
+            _MACRO_STALE_THRESHOLD_SECONDS / 3600,
+        )
+        return {"status": "stale", "age_seconds": int(age)}
+
+    logger.debug("check_macro_freshness: OK — macro data is %.1fmin old", age / 60)
+    return {"status": "ok", "age_seconds": int(age)}

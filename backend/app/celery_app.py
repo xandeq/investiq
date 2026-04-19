@@ -180,6 +180,13 @@ def create_celery_app() -> Celery:
                 "args": [],
                 "options": {"expires": 23 * 3600},
             },
+            # Observability: alert if macro data is stale > 2h
+            "check-macro-freshness": {
+                "task": "app.modules.market_data.tasks.check_macro_freshness",
+                "schedule": crontab(minute="*/30"),
+                "args": [],
+                "options": {"expires": 28 * 60},
+            },
         },
     )
 

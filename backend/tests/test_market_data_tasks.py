@@ -74,6 +74,59 @@ def test_beat_schedule_expires_configured():
         "to prevent 24/7 queue flood (see P0_INVESTIGATION.md)"
     )
 
+    # check-macro-freshness watchdog must be present in beat schedule
+    assert "check-macro-freshness" in schedule, (
+        "Macro freshness watchdog is missing from beat_schedule — add it"
+    )
+
+
+# ---------------------------------------------------------------------------
+# check_macro_freshness watchdog tests
+# ---------------------------------------------------------------------------
+
+def test_macro_watchdog_missing_key(fake_redis_sync):
+    """Returns status=missing when market:macro:fetched_at key is absent."""
+    from unittest.mock import patch
+    from app.modules.market_data.tasks import check_macro_freshness
+
+    with patch("app.modules.market_data.tasks._get_redis", return_value=fake_redis_sync):
+        result = check_macro_freshness()
+
+    assert result["status"] == "missing"
+    assert result["age_seconds"] is None
+
+
+def test_macro_watchdog_stale(fake_redis_sync):
+    """Returns status=stale when fetched_at is older than 2h."""
+    from datetime import timedelta
+    from unittest.mock import patch
+    from app.modules.market_data.tasks import check_macro_freshness
+
+    stale_ts = (datetime.utcnow() - timedelta(hours=3)).isoformat()
+    fake_redis_sync.set("market:macro:fetched_at", stale_ts)
+
+    with patch("app.modules.market_data.tasks._get_redis", return_value=fake_redis_sync):
+        result = check_macro_freshness()
+
+    assert result["status"] == "stale"
+    assert result["age_seconds"] > 2 * 3600
+
+
+def test_macro_watchdog_ok(fake_redis_sync):
+    """Returns status=ok when fetched_at is recent."""
+    from datetime import timedelta
+    from unittest.mock import patch
+    from app.modules.market_data.tasks import check_macro_freshness
+
+    fresh_ts = (datetime.utcnow() - timedelta(minutes=30)).isoformat()
+    fake_redis_sync.set("market:macro:fetched_at", fresh_ts)
+
+    with patch("app.modules.market_data.tasks._get_redis", return_value=fake_redis_sync):
+        result = check_macro_freshness()
+
+    assert result["status"] == "ok"
+    assert result["age_seconds"] < 2 * 3600
+
 
 def test_refresh_quotes_writes_redis(fake_redis_sync, mock_brapi_client):
     """Task writes market:quote:PETR4 key to Redis with TTL=1200.
