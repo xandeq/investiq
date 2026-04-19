@@ -7,10 +7,18 @@
 set -euo pipefail
 
 PLINK="/c/Program Files/PuTTY/plink"
-VPS_HOST="185.173.110.180"
-VPS_USER="root"
-VPS_PASSWORD="E)0a?FdCBjwJk@ARRqRE"
+# Load only VPS secrets from ~/.claude/.secrets.env (safe parsing)
+if [[ -f "$HOME/.claude/.secrets.env" ]]; then
+  VPS_HOST=$(grep "^VPS_HOST=" "$HOME/.claude/.secrets.env" | cut -d'=' -f2)
+  VPS_USER=$(grep "^VPS_USER=" "$HOME/.claude/.secrets.env" | cut -d'=' -f2)
+  VPS_PASSWORD=$(grep "^VPS_PASSWORD=" "$HOME/.claude/.secrets.env" | cut -d'=' -f2)
+else
+  echo "ERROR: ~/.claude/.secrets.env not found" >&2
+  exit 1
+fi
 CONTAINER="financas-backend-1"
+WORKER_CONTAINER="financas-celery-worker-1"
+BEAT_CONTAINER="financas-celery-beat-1"
 PROJECT_DIR="/d/claude-code/investiq"
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; NC='\033[0m'
@@ -44,17 +52,28 @@ cd "$PROJECT_DIR/backend"
 
 success "Upload complete."
 
-# ── Copy into container ────────────────────────────────
-info "Step 2/3: Applying to container..."
+# ── Copy into containers (backend + worker + beat share the same app/) ────
+info "Step 2/3: Applying to containers (backend, worker, beat)..."
 vps "
 set -e
-# Create tar of app dir and docker cp it
 cd /tmp/be-deploy && tar czf /tmp/backend-app.tar.gz app/
+
+# FastAPI backend
 docker cp /tmp/backend-app.tar.gz ${CONTAINER}:/tmp/
 docker exec ${CONTAINER} sh -c 'cd /app && tar -xzf /tmp/backend-app.tar.gz'
-echo 'Backend files copied.'
+echo 'backend-1: updated'
+
+# Celery worker — same app/ tree, must be kept in sync
+docker cp /tmp/backend-app.tar.gz ${WORKER_CONTAINER}:/tmp/
+docker exec ${WORKER_CONTAINER} sh -c 'cd /app && tar -xzf /tmp/backend-app.tar.gz'
+echo 'celery-worker-1: updated'
+
+# Celery beat — reads celery_app.py for the schedule
+docker cp /tmp/backend-app.tar.gz ${BEAT_CONTAINER}:/tmp/
+docker exec ${BEAT_CONTAINER} sh -c 'cd /app && tar -xzf /tmp/backend-app.tar.gz'
+echo 'celery-beat-1: updated'
 "
-success "Container updated."
+success "All containers updated."
 
 # ── Migrate ────────────────────────────────────────────
 if [[ "$RUN_MIGRATE" == "true" ]]; then
@@ -66,9 +85,9 @@ else
 fi
 
 # ── Restart ────────────────────────────────────────────
-info "Restarting backend container..."
-vps "docker restart ${CONTAINER}"
-sleep 4
+info "Restarting backend, worker and beat containers..."
+vps "docker restart ${CONTAINER} ${WORKER_CONTAINER} ${BEAT_CONTAINER}"
+sleep 5
 
 HTTP_STATUS=$(vps "curl -s -o /dev/null -w '%{http_code}' http://localhost:8100/health 2>/dev/null || echo 000")
 if [[ "$HTTP_STATUS" == "200" ]]; then
