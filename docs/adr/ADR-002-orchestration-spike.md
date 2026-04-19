@@ -219,4 +219,4 @@ Reabrir esta decisão se:
 | Data | Status | Commit |
 |---|---|---|
 | 2026-04-19 | Proposed | `b00e432` |
-| 2026-04-19 | Accepted | (commit desta edição) |
+| 2026-04-19 | Accepted | `4d84992` |
