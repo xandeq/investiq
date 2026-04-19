@@ -84,6 +84,8 @@ Limites do Free após trial: máx 50 transações na carteira, máx 3 importaç�
 
 **Onde acessa?** `/dashboard` — seletor de período no gráfico.
 
+**Limitação**: dependente do Celery Beat — se a fila ficar congestionada (como ocorreu em 2026-04), o snapshot diário pode atrasar. Sem watchdog dedicado ainda (candidato a próximo fix P1 de observabilidade).
+
 ---
 
 ## 3. Monitoramento automático (funciona sem você pedir)
