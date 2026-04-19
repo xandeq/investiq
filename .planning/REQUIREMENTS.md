@@ -29,9 +29,9 @@
 
 ### Simulador de Alocação
 
-- [ ] **SIM-01**: Usuário informa valor a investir e prazo e recebe 3 cenários de alocação (conservador / moderado / arrojado) com percentuais por classe de ativo (RF, ações, FIIs)
-- [ ] **SIM-02**: Cada cenário exibe retorno esperado por classe de ativo e total projetado para o prazo, calculado via useComparadorCalc / TaxEngine + macro rates do Redis
-- [ ] **SIM-03**: Simulador exibe delta entre o cenário selecionado e a carteira atual do usuário (o que comprar/reduzir por classe para chegar no cenário) — disponível para usuários com portfólio cadastrado
+- [x] **SIM-01**: Usuário informa valor a investir e prazo e recebe 3 cenários de alocação (conservador / moderado / arrojado) com percentuais por classe de ativo (RF, ações, FIIs)
+- [x] **SIM-02**: Cada cenário exibe retorno esperado por classe de ativo e total projetado para o prazo, calculado via useComparadorCalc / TaxEngine + macro rates do Redis
+- [x] **SIM-03**: Simulador exibe delta entre o cenário selecionado e a carteira atual do usuário (o que comprar/reduzir por classe para chegar no cenário) — disponível para usuários com portfólio cadastrado
 
 ## Future Requirements (Deferred)
 
@@ -62,9 +62,9 @@
 | RF-03 | Phase 22 | Complete |
 | COMP-01 | Phase 27 | Complete |
 | COMP-02 | Phase 27 | Complete |
-| SIM-01 | Phase 28 | Pending |
-| SIM-02 | Phase 28 | Pending |
-| SIM-03 | Phase 28 | Pending |
+| SIM-01 | Phase 28 | Complete |
+| SIM-02 | Phase 28 | Complete |
+| SIM-03 | Phase 28 | Complete |
 
 **Coverage:**
 - v1.4 requirements: 7 total — all complete ✓

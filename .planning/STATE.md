@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: - Client-side filtering with useMemo
 status: unknown
-last_updated: "2026-04-19T03:00:05.946Z"
+last_updated: "2026-04-19T03:05:40.637Z"
 progress:
   total_phases: 2
   completed_phases: 2
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md
 ## Current Position
 
 Phase: 28 (Simulador de Alocação) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 
 ## Progress Bar
 
@@ -184,6 +184,8 @@ SIM-01 (form → scenarios), SIM-02 (projected returns), SIM-03 (delta) are tigh
 - [Phase 28]: Re-declared IR helpers in useSimuladorCalc rather than importing from useComparadorCalc — feature isolation per D-12 precedent
 - [Phase 28]: Ações: 12% a.a. hardcoded (IBOV proxy), FIIs: 8% a.a. hardcoded (DY proxy) — no IR for PF in Phase 28 scope
 - [Phase 28]: macro?.cdi is the only macro field in useMemo deps — IPCA/SELIC deliberately unused for v1.7 simulador
+- [Phase 28]: Used getPnl().allocation[] as allocation source (not advisor/health.allocation_by_class — field does not exist in shipped PortfolioHealth schema)
+- [Phase 28]: data-testid=scenario-{key} on card buttons for Plan 03 Playwright selectors
 
 ## Open Questions (resolve in Phase 28)
 
@@ -222,3 +224,4 @@ SIM-01 (form → scenarios), SIM-02 (projected returns), SIM-03 (delta) are tigh
 | Phase 27 P02 | 254 | 4 tasks | 5 files |
 | Phase 27 P03 | 35 | 3 tasks | 3 files |
 | Phase 28 P01 | 240 | 2 tasks | 5 files |
+| Phase 28 P02 | 15 | 2 tasks | 2 files |

@@ -520,11 +520,11 @@ Por isso, 1 fase: cenários sem retorno projetado (SIM-02) são inúteis; delta 
 3. Usuário com portfólio cadastrado vê seção Delta mostrando quanto comprar (+) ou reduzir (-) por classe de ativo para alinhar com o cenário selecionado — calculado a partir da alocação atual em `GET /advisor/health`
 4. Usuário sem portfólio vê mensagem contextual (não erro) convidando a cadastrar transações para habilitar a seção de delta — SIM-01 e SIM-02 funcionam normalmente sem portfólio
 
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 
 Plans:
 - [x] 28-01-PLAN.md — Frontend types + useSimuladorCalc hook (SIM-01 + SIM-02 client-side scenario math)
-- [ ] 28-02-PLAN.md — useSimuladorPortfolio bridge + SimuladorContent.tsx (form + 3 scenario cards + delta section, SIM-03 auth gate)
+- [x] 28-02-PLAN.md — useSimuladorPortfolio bridge + SimuladorContent.tsx (form + 3 scenario cards + delta section, SIM-03 auth gate)
 - [ ] 28-03-PLAN.md — Playwright v1.7-simulador.spec.ts + deploy + human-verify checkpoint
 
 ---
@@ -533,7 +533,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 28. Simulador de Alocação | 1/3 | In Progress|  |
+| 28. Simulador de Alocação | 2/3 | In Progress|  |
 
 ---
 
