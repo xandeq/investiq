@@ -300,6 +300,16 @@ Impacto: 1 = cosmético, 5 = bloqueia visão V2.
 16. `datetime.utcnow()` deprecado em 2 arquivos.
 17. `allow_methods` inclui `PUT` não usado.
 
+### Red flags de data quality descobertos pelo Inbox v1 (deploy 19/04/2026)
+
+- **P0 (herdado):** Macro rates zerados em produção (CDI/IPCA/SELIC = 0.00 no banner do dashboard). Celery beat `refresh_macro` não roda ou Redis vazio. Impacto: banner dashboard, qualquer cálculo que dependa de taxas de referência. Evidência: validação prod 19/04/2026. **Resolução:** Fase 2 (ingestion consolidation).
+
+- **P0 (herdado):** `data_stale=true` persistente em `GET /dashboard/summary`. Cotações desatualizadas. Mesma raiz do item anterior — scheduler Celery. **Resolução:** Fase 2.
+
+- **P2 (descoberto via Inbox):** Enrichment de `screener_snapshots.sector` incompleto. Tickers sem mapeamento caem em fallback `"Outros"`. Impacto: análise de concentração sectorial do Portfolio Health Check gera cards com semântica degradada (`"88% em Outros"` em vez de `"88% em Financeiro"`). Arquivo: [`advisor/service.py:142`](../../backend/app/modules/advisor/service.py). **Resolução:** Fase 3 (data quality pass no Asset Research Agent).
+
+- **P3 (herdado):** Orphan `frontend/src/features/advisor/hooks/useAdvisorJob.ts` resolvido na Tarefa 2 deste ciclo (arquivo deletado, era untracked desde sempre).
+
 ---
 
 ## §21.9 — Quick Wins (≤5 itens, 1–3 dias cada)
