@@ -16,9 +16,9 @@
 
 ```yaml
 # Pricing
-PREMIUM_PRICE_BRL: 49.90        # Stripe price_id atual (placeholder — confirmar com conta Stripe ativa)
+PREMIUM_PRICE_BRL: 29.90        # Landing page (frontend/app/page.tsx) exibe R$29,90/mês. TIER_MATRIX tinha 49.90 como placeholder — corrigido 2026-04-19. Confirmar contra Stripe Dashboard antes de Fase 5.
 USD_BRL: 5.00                   # FX médio 2026-Q2 (atualizar mensalmente)
-PREMIUM_PRICE_USD: 9.98         # = PREMIUM_PRICE_BRL / USD_BRL
+PREMIUM_PRICE_USD: 5.98         # = PREMIUM_PRICE_BRL / USD_BRL (29.90 / 5.00)
 ENTERPRISE_PRICE_BRL: 199.00    # placeholder — não definido em Stripe ainda
 ENTERPRISE_PRICE_USD: 39.80
 

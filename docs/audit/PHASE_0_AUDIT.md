@@ -12,7 +12,7 @@
 
 ## Sumário Executivo (≤15 linhas)
 
-- **Stack real ≠ stack documentada no V2.** Backend é FastAPI puro (não FastAPI+Django). 28 tabelas, 29 migrations, ~5.4k linhas de modules Python. ([requirements.txt:1-29](../../backend/requirements.txt), [migrations](../../backend/alembic/versions))
+- **Stack real ≠ stack documentada no V2.** Backend é FastAPI puro (não FastAPI+Django). 27 tabelas ORM-mapeadas + 1 sem ORM (`portfolio_daily_value`), 27 migrations, ~5.4k linhas de modules Python. ([requirements.txt:1-29](../../backend/requirements.txt), [migrations](../../backend/alembic/versions))
 - **v1.5 (Phases 23–26) e v1.7 (Phase 28) já em produção.** Portfolio Health, AI Advisor, Smart Screener, Entry Signals, Comparador RF×RV e Simulador Alocação são *Existente*, não *em planejamento* como o V2 §5 assume.
 - **Fundação para a visão V2 está ausente:** sem `events`/`prices`/`features`/`signals`/`outcomes` canônicos, sem `pgvector`, sem `TimescaleDB`, sem ingestion de news, sem Decision Engine determinístico isolável.
 - **Padrão 4-agent já existe:** `opportunity_detector` (cause→fundamentals→risk→recommendation) é template natural do Agent Mesh — Fase 3 do V2 reduz de 3-4 sem para ~2 sem.
@@ -28,19 +28,19 @@
 Fonte primária: [`backend/app/celery_app.py:65-167`](../../backend/app/celery_app.py).
 Workers usam `psycopg2` (sync); FastAPI usa `asyncpg`. Schema dual documentado em `celery_app.py:13-16`.
 
-### Beat schedule (15 tasks registradas)
+### Beat schedule (17 tasks registradas)
 
 | # | Fonte | Task Celery | Frequência | Status | Tabela / Cache destino | Volume/dia |
 |---|---|---|---|---|---|---|
 | 1 | brapi.dev | `app.modules.market_data.tasks.refresh_quotes` | a/15min, Mon–Fri 10–17 BRT | OK | Redis `market:quote:{TICKER}` + `market:fundamentals:{TICKER}` ([tasks.py:67-140](../../backend/app/modules/market_data/tasks.py)) | ~480 req/d (8 tickers fixos) |
-| 2 | BCB (`python-bcb`) | `app.modules.market_data.tasks.refresh_macro` | a/6h | **FALHA EM PROD** | Redis `market:macro:{cdi,ipca,selic,ptax_usd}` ([tasks.py:143-172](../../backend/app/modules/market_data/tasks.py)) | 4/d esperado, **0 observado** ([2026-04-AUDIT.md:200](../../.planning/audits/2026-04-AUDIT.md)) |
+| 2 | BCB (`python-bcb`) | `app.modules.market_data.tasks.refresh_macro` | a/6h | **OK** (resolvido 2026-04-19 — queue starvation fix + `expires` adicionado) | Redis `market:macro:{cdi,ipca,selic,ptax_usd}` ([tasks.py:143-172](../../backend/app/modules/market_data/tasks.py)) | 4/d |
 | 3 | brapi (universe) | `app.modules.market_universe.tasks.refresh_screener_universe` | diário 07h BRT Mon–Fri | OK | `screener_snapshots` (~2000 rows) | 1/d |
 | 4 | brapi (FII) | `app.modules.market_universe.tasks.refresh_fii_metadata` | semanal Mon 06h BRT | OK | `fii_metadata` | 1/sem |
-| 5 | tesourodireto.com.br (scraping HTML) | `app.modules.market_universe.tasks.refresh_tesouro_rates` | a/6h | OK | Redis `tesouro:rates:*` | 4/d |
+| 5 | ANBIMA API (OAuth2); fallback CKAN CSV (dados.gov.br) | `app.modules.market_universe.tasks.refresh_tesouro_rates` | a/6h | OK | Redis `tesouro:rates:*` | 4/d |
 | 6 | brapi (earnings) | `analysis.check_earnings_releases` | nightly 22h BRT Mon–Fri | OK | `analysis_jobs` (gatilho assíncrono) | varia |
 | 7 | computado | `app.modules.market_universe.tasks.calculate_fii_scores` | diário 08h | OK | `screener_snapshots` (colunas FII score) | 1/d |
 | 8 | brapi (top 30 IBOV) | `opportunity_detector.scan_acoes` | a/15min, Mon–Fri 10–17 BRT | OK | `detected_opportunities` + Redis dedup | ~30 scans×24/d |
-| 9 | Binance público | `opportunity_detector.scan_crypto` | a/15min 24/7 | OK | `detected_opportunities` + Redis | ~96/d |
+| 9 | Binance público | `opportunity_detector.scan_crypto` | a/30min 24/7 | OK | `detected_opportunities` + Redis | ~48/d |
 | 10 | Tesouro cache | `opportunity_detector.scan_fixed_income` | a/6h | OK | `detected_opportunities` | 4/d |
 | 11 | computado (LLM) | `app.modules.insights.tasks.generate_daily_insights` | diário 08h BRT | OK | `user_insights` | varia |
 | 12 | Redis quotes | `app.modules.watchlist.tasks.check_price_alerts` | a/15min Mon–Fri 10–17 BRT | OK | `watchlist_items.alert_triggered_at` + email | varia |
@@ -48,7 +48,7 @@ Workers usam `psycopg2` (sync); FastAPI usa `asyncpg`. Schema dual documentado e
 | 14 | (billing) | `app.modules.billing.tasks.check_expiring_trials` | diário 09h BRT | OK | email + `users.trial_warning_sent` | — |
 | 15 | computado | `app.modules.dashboard.digest_tasks.send_weekly_digest` | semanal Mon 08h BRT | OK | email | 1/sem |
 | 16 | computado | `app.modules.dashboard.tasks.snapshot_portfolio_daily_value` | diário Mon–Fri 18h30 BRT | OK | `portfolio_daily_value` | 1/d |
-| 17 | computado (Redis) | `advisor.refresh_universe_entry_signals` | diário 02h BRT | **STALE 19h** | Redis `entry_signals:universe` ([2026-04-AUDIT.md:204](../../.planning/audits/2026-04-AUDIT.md)) | 1/d |
+| 17 | interno (watchdog) | `app.modules.market_data.tasks.check_macro_freshness` | a/30min 24/7 | OK (adicionado 2026-04-19) | Loga ERROR se `market:macro:fetched_at` ausente ou > 2h ([tasks.py:180](../../backend/app/modules/market_data/tasks.py)) | — |
 
 ### Tasks não-beat (on-demand)
 
@@ -65,8 +65,8 @@ Workers usam `psycopg2` (sync); FastAPI usa `asyncpg`. Schema dual documentado e
 | brapi | ✅ existe | Manter |
 | yfinance | ⚠️ adapter existe ([market_data/adapters/yfinance_adapter.py](../../backend/app/modules/market_data/adapters/yfinance_adapter.py)) mas não está em beat | Reservar para US tickers (Fase 5+) |
 | BCB | ✅ existe | Manter |
-| **ANBIMA** | ❌ **NÃO EXISTE** — D2 confirma premissa errada do V2 | Remover do roadmap; ficar com Tesouro scraping (Fase 1) |
-| Tesouro (oficial) | ⚠️ Scraping HTML — funcional mas frágil | Migrar para fonte oficial quando latência importar (red flag P2) |
+| **ANBIMA** | ✅ **EXISTE** — API OAuth2 primária para Tesouro Direto; CKAN CSV é fallback público. Premissa D2 era errada; corrigida 2026-04-19 ([tasks.py:621](../../backend/app/modules/market_universe/tasks.py)) | Manter como fonte primária. Nenhuma ação necessária. |
+| Tesouro (oficial) | ✅ ANBIMA OAuth2 (fonte oficial) + CKAN CSV fallback — não é scraping HTML | — |
 | python-bcb | ✅ usado dentro do BCB adapter | Manter |
 | CVM RSS | ❌ NÃO EXISTE | Adicionar Fase 2 |
 | Valor Econômico | ❌ NÃO EXISTE | Adicionar Fase 2 (scraping + RSS) |
@@ -79,9 +79,9 @@ Workers usam `psycopg2` (sync); FastAPI usa `asyncpg`. Schema dual documentado e
 
 ## §21.2 — Inventário de Schema Atual
 
-29 migrations Alembic (`001` → `0029`), cadeia completa sem gaps ([2026-04-AUDIT.md:185](../../.planning/audits/2026-04-AUDIT.md)). Lista por `__tablename__` extraída de [`backend/app/modules/*/models.py`](../../backend/app/modules):
+27 migrations Alembic (`001` → `0027`), cadeia completa sem gaps. ⚠️ *Audit original citava 29 — 0028/0029 não existem no repo (validado 2026-04-19).* Lista por `__tablename__` extraída de [`backend/app/modules/*/models.py`](../../backend/app/modules):
 
-### Tabelas existentes (28 totais)
+### Tabelas existentes (27 ORM-mapeadas + 1 sem ORM)
 
 | # | Tabela | Módulo | Colunas-chave | Mapeamento V2 (§7) | Migration necessária |
 |---|---|---|---|---|---|
@@ -101,7 +101,7 @@ Workers usam `psycopg2` (sync); FastAPI usa `asyncpg`. Schema dual documentado e
 | 14 | `app_logs` | logs | level, title, traceback, request_path | **substitui Sentry parcialmente** | nenhuma (Fase 2 adicionar Sentry-as-mirror) |
 | 15 | `subscriptions` | billing | user_id, stripe_subscription_id (UNIQUE), plan, status, current_period_end | mantém | nenhuma |
 | 16 | `stripe_events` | billing | id (evt_), event_type, status (success/error) — idempotency log | mantém | nenhuma (P3: alerting) |
-| 17 | `idempotent_checkout_requests` | billing | idempotency_key (PK), user_id, checkout_url | mantém | P2: TTL via cleanup task |
+| 17 | `idempotent_checkout_requests` | billing | idempotency_key (PK), user_id, checkout_url | mantém | P2: TTL via cleanup task. ⚠️ Validação 2026-04-19: zero hits de ORM model ou raw SQL no código — verificar se tabela existe no DB antes de Fase 1. |
 | 18 | `investor_profiles` | profile | tenant_id, risk_tolerance, horizon | **base do `user_memories.preference` do V2** | nenhuma; Fase 4 adiciona `user_memories` ao redor |
 | 19 | `watchlist_items` | watchlist | tenant_id, ticker, price_alert_target, alert_triggered_at | mantém | Fase 4 estender para `signal_alert` (não só preço) |
 | 20 | `user_insights` | insights | tenant_id, type, payload, created_at | mantém | Fase 3: ligar a sinais do Decision Engine |
@@ -201,6 +201,12 @@ Checklist V2 §21.5:
 - [ ] **Auth audit trail?** — **NÃO.** [`auth/service.py`](../../backend/app/modules/auth/service.py) tem **0 logger calls** ([2026-04-AUDIT.md:303](../../.planning/audits/2026-04-AUDIT.md)). Login/registro/reset sem trilha.
 - [ ] **Erros engolidos?** — **SIM** (problema). [`main.py:107`](../../backend/app/main.py) `except Exception: pass`; [`core/email.py:41,49,108,154`](../../backend/app/core/email.py) idem.
 
+**Adicionado 2026-04-19 (validação pós-ciclo):**
+
+- [x] **Watchdog `check_macro_freshness` ADICIONADO e LIVE** — `celery_app.py:184–189`, a/30min 24/7, loga ERROR se macro > 2h stale. Gap anterior FECHADO.
+- [ ] **`/health/freshness` — tesouro não implementado.** `health/router.py` docstring descreve tesouro como terceiro domínio de freshness ("stale if > 12h"), mas `DataFreshnessResponse` e a implementação só cobrem `screener` e `macro`. Campo tesouro ausente da resposta. Gap de observabilidade cosmético — resposta de saúde incompleta.
+- [ ] **`snapshot_portfolio_daily_value` sem watchdog dedicado.** A única task watchdog existente é `check_macro_freshness`. Se o snapshot diário do patrimônio atrasar (como ocorreu com macro em 2026-04), não há alerta automático. Candidato a próximo fix P1 de observabilidade.
+
 **Decisão Fase 2:** Sentry SDK (FastAPI + Celery integrations) + OpenTelemetry + Grafana Cloud free tier. `trace_id` injetado no middleware + propagado para Celery tasks. Bash `app_logs` → Sentry mirror.
 
 ---
@@ -273,8 +279,8 @@ Impacto: 1 = cosmético, 5 = bloqueia visão V2.
 
 ### P0 — Bloqueia v1.8 / risco financeiro imediato
 
-1. **Macro rates null em produção (CDI/IPCA/SELIC).** [`refresh_macro` task nunca rodou com sucesso ou Redis foi limpo](../../.planning/audits/2026-04-AUDIT.md). Comparador RF×RV (v1.6) e Simulador (v1.7) servem benchmarks `null`. Usuário pode tomar decisão financeira com preview falsamente neutro. **Fix: D6 quick win #2**.
-2. **CORS bloqueia `Idempotency-Key`.** [`main.py:70`](../../backend/app/main.py) — hotfix billing duplicate-subscriptions (migration 0029) é **silenciosamente não-funcional** em prod. Risco real de cobrança duplicada Stripe. **Fix: D6 quick win #1**.
+1. ~~**Macro rates null em produção (CDI/IPCA/SELIC).**~~ **RESOLVIDO 2026-04-19** — queue starvation diagnosticada (390 tasks acumuladas, `refresh_macro` nunca chegava à frente). Fix: `expires` em todas as 17 tasks beat + `scan_crypto` reduzido para 30min + flush manual da fila + watchdog `check_macro_freshness` adicionado. Deploy validado em prod.
+2. **CORS bloqueia `Idempotency-Key`.** [`main.py:70`](../../backend/app/main.py) — hotfix billing duplicate-subscriptions (`hotfix/billing-duplicate-subscriptions`, sem migration dedicada) é **silenciosamente não-funcional** em prod. Risco real de cobrança duplicada Stripe. **Fix: D6 quick win #1**.
 
 ### P1 — Risco operacional / reputacional
 
@@ -287,7 +293,7 @@ Impacto: 1 = cosmético, 5 = bloqueia visão V2.
 
 ### P2 — Tech debt acumulando
 
-9. **ANBIMA citada no V2 não existe; Tesouro Direto via scraping HTML.** Frágil para escalar; quebra silenciosamente em mudança de layout.
+9. ~~**ANBIMA citada no V2 não existe; Tesouro Direto via scraping HTML.**~~ **CORRIGIDO 2026-04-19** — ANBIMA **existe** como API OAuth2 primária (`tasks.py:621`); CKAN CSV é fallback público. D2 era premissa errada no audit original. Integração oficial já em prod — nenhum débito técnico.
 10. **`portfolio_daily_value` sem ORM model.** Schema só em migration; quebra 2 testes do dashboard; SQLAlchemy não gerencia.
 11. **18 testes falhando** (620/645) — em sua maioria stale patches em `test_phase12_foundation.py`. Cobertura efetiva caindo silenciosamente.
 12. **Sync Redis em contexto async** (advisor service) — bloqueia event loop sob carga.
@@ -302,9 +308,9 @@ Impacto: 1 = cosmético, 5 = bloqueia visão V2.
 
 ### Red flags de data quality descobertos pelo Inbox v1 (deploy 19/04/2026)
 
-- **P0 (herdado):** Macro rates zerados em produção (CDI/IPCA/SELIC = 0.00 no banner do dashboard). Celery beat `refresh_macro` não roda ou Redis vazio. Impacto: banner dashboard, qualquer cálculo que dependa de taxas de referência. Evidência: validação prod 19/04/2026. **Resolução:** Fase 2 (ingestion consolidation).
+- ~~**P0 (herdado):** Macro rates zerados em produção (CDI/IPCA/SELIC = 0.00 no banner do dashboard).~~ **RESOLVIDO 2026-04-19** — Causa: queue starvation (390 tasks acumuladas). Fix: `expires` nas 17 tasks + flush + watchdog. Deploy e smoke test confirmados em prod.
 
-- **P0 (herdado):** `data_stale=true` persistente em `GET /dashboard/summary`. Cotações desatualizadas. Mesma raiz do item anterior — scheduler Celery. **Resolução:** Fase 2.
+- ~~**P0 (herdado):** `data_stale=true` persistente em `GET /dashboard/summary`.~~ **RESOLVIDO 2026-04-19** — Mesma raiz do item anterior. Cotações voltaram após flush + deploy com deploy script corrigido (worker + beat recebem código novo).
 
 - **P2 (descoberto via Inbox):** Enrichment de `screener_snapshots.sector` incompleto. Tickers sem mapeamento caem em fallback `"Outros"`. Impacto: análise de concentração sectorial do Portfolio Health Check gera cards com semântica degradada (`"88% em Outros"` em vez de `"88% em Financeiro"`). Arquivo: [`advisor/service.py:142`](../../backend/app/modules/advisor/service.py). **Resolução:** Fase 3 (data quality pass no Asset Research Agent).
 
@@ -322,7 +328,7 @@ Priorizados por *impacto destravado* ÷ *tempo*. Todos são **independentes** (n
 | 2 | **Force-run `refresh_macro` no VPS + verificar Celery beat ativo + redeploy backend** (precisa para o response incluir field `selic`). | 2–3h | P0-2 — destrava Comparador (v1.6) e Simulador (v1.7) em prod |
 | 3 | **Rodar Decision Engine sintético com dados históricos do `screener_snapshots`** — validar gates + Kelly bootstrap em ~3 dias sem ingestion nova (V2 §17 Fase 1 quick win literal). | 2–3 dias | Valida Fase 1 do V2 antes de migration nova; gera 20 casos de teste determinísticos |
 | 4 | **Headers de segurança em [`frontend/next.config.ts`](../../frontend/next.config.ts)** (CSP/HSTS/X-Frame/X-Content-Type) + desligar `typescript: ignoreBuildErrors`. | 1 dia | P1-2 + P1-3 do audit |
-| 5 | **Mover `refresh-universe-entry-signals-daily` de 02h BRT → 08h30 BRT** ([`celery_app.py:163-167`](../../backend/app/celery_app.py)) — sinais deixam de ser 19h stale. | 5min código + verificação prod | P2-3 do audit; melhora qualidade de signals do `/advisor/signals/universe` |
+| 5 | ~~Mover `refresh-universe-entry-signals-daily`~~ **CANCELADO** — task `advisor.refresh_universe_entry_signals` não existe no código nem no `beat_schedule`. Referência era fantasma. Nenhuma ação necessária. | — | — |
 
 **Não-quick-wins (≥1 semana — entram na Fase 1 formal):**
 - Decision Engine completo testado.
