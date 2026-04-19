@@ -116,13 +116,20 @@ Fase 27 completa e deployada. Comparador standalone em `/comparador`: formulári
 
 ## Current Milestone: v1.7 — Simulador de Alocação
 
-**Target:** SIM-01–03 (valor → 3 cenários conservador/moderado/arrojado → delta carteira)
+**Goal:** Usuário informa valor e prazo → vê 3 cenários de alocação (conservador/moderado/arrojado) com percentuais por classe de ativo e retorno esperado, e visualiza o delta entre o cenário escolhido e sua carteira atual.
+
+**Target features:**
+- Formulário com valor a investir e prazo — gera 3 cenários instântaneamente
+- Cada cenário: percentuais RF / ações / FIIs com retorno projetado via TaxEngine + macro rates
+- Delta vs carteira atual (comprar/reduzir por classe) — requer portfólio cadastrado
+
+**Requirements:** SIM-01, SIM-02, SIM-03
+**Starts at:** Phase 28
 
 ## Future Milestone Items (Post-v1.7)
 
-1. v1.7 — Simulador de Alocação (SIM-01–03)
-2. Admin dashboard — MON-04
-3. PostgreSQL RLS enforcement — AUTH-05
+1. Admin dashboard — MON-04
+2. PostgreSQL RLS enforcement — AUTH-05
 
 ---
-*Last updated: 2026-04-19 — v1.6 shipped, v1.7 Simulador de Alocação next*
+*Last updated: 2026-04-19 — v1.7 Simulador de Alocação iniciado*

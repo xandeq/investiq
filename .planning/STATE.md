@@ -1,14 +1,14 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.3
-milestone_name: - Client-side filtering with useMemo
-status: unknown
-last_updated: "2026-04-18T23:46:08.354Z"
+milestone: v1.7
+milestone_name: Simulador de Alocação
+status: roadmap_complete
+last_updated: "2026-04-19T00:00:00.000Z"
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  total_phases: 1
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -19,20 +19,22 @@ See: .planning/PROJECT.md
 
 **Core value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada — sem precisar de planilha, sem abrir mil plataformas.
 
-**Current focus:** Phase 27 — Comparador RF vs RV
+**Current focus:** v1.7 — Simulador de Alocação (roadmap complete, ready for planning)
 
 ## Current Position
 
-Phase: 27
-Plan: Not started
+Phase: Phase 28 — Simulador de Alocação (not started)
+Plan: —
+Status: Roadmap complete — ready for `/gsd:plan-phase 28`
+Last activity: 2026-04-19 — v1.7 roadmap created (1 phase, 3 requirements mapped)
 
 ## Progress Bar
 
 ```
-v1.6 Comparador RF vs RV
+v1.7 Simulador de Alocação
 [░░░░░░░░░░░░░░░░░░░░] 0% (0/1 phases)
 
-Phase 27: Comparador RF vs RV     [ NOT STARTED ]
+Phase 28: Simulador de Alocação     [ NOT STARTED ]
 ```
 
 ## v1.5 Status Reference

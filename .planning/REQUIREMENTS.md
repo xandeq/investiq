@@ -1,6 +1,6 @@
-# Requirements: InvestIQ v1.6 — Comparador RF vs RV
+# Requirements: InvestIQ v1.7 — Simulador de Alocação
 
-**Defined:** 2026-04-18
+**Defined:** 2026-04-19
 **Core Value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada — sem precisar de planilha, sem abrir mil plataformas.
 
 ## v1.4 Requirements (Complete)
@@ -18,34 +18,36 @@
 - [x] **RF-02**: Cada produto exibe retorno líquido IR por prazo (90d, 1a, 2a, 5a) calculado via TaxEngine — LCI/LCA têm destaque visual de isenção IR
 - [x] **RF-03**: Usuário pode filtrar catálogo por tipo e prazo mínimo, ordenar por retorno líquido, e ver indicador visual se produto bate CDI/IPCA no prazo
 
-## v1.6 Requirements
+## v1.6 Requirements (Complete)
 
 ### Comparador RF vs RV
 
 - [x] **COMP-01**: Usuário informa valor, prazo e produto RF (CDB/LCI/LCA/Tesouro Direto) e vê tabela comparativa de retorno líquido nominal do produto vs benchmarks CDI, SELIC e IPCA+ no prazo selecionado — IR regressivo calculado via TaxEngine, dados macro do Redis
 - [x] **COMP-02**: Tabela comparativa inclui coluna de rentabilidade real (retorno nominal descontado IPCA) para cada alternativa, e gráfico de evolução do patrimônio acumulado ao longo do prazo
 
+## v1.7 Requirements
+
+### Simulador de Alocação
+
+- [ ] **SIM-01**: Usuário informa valor a investir e prazo e recebe 3 cenários de alocação (conservador / moderado / arrojado) com percentuais por classe de ativo (RF, ações, FIIs)
+- [ ] **SIM-02**: Cada cenário exibe retorno esperado por classe de ativo e total projetado para o prazo, calculado via useComparadorCalc / TaxEngine + macro rates do Redis
+- [ ] **SIM-03**: Simulador exibe delta entre o cenário selecionado e a carteira atual do usuário (o que comprar/reduzir por classe para chegar no cenário) — disponível para usuários com portfólio cadastrado
+
 ## Future Requirements (Deferred)
-
-### Simulador de Alocação (v1.7)
-
-- **SIM-01**: Usuário informa valor a investir e recebe 3 cenários de alocação (conservador/moderado/arrojado)
-- **SIM-02**: Simulador mostra delta entre cenário sugerido e carteira atual
-- **SIM-03**: Usuário pode ajustar parâmetros do cenário (prazo, tolerância a risco)
 
 ### Outros
 
 - **MON-04**: Admin dashboard (assinantes, status Stripe, churn)
 - **AUTH-05**: PostgreSQL RLS enforcement no nível DB
 
-## Out of Scope (v1.6)
+## Out of Scope (v1.7)
 
 | Feature | Reason |
 |---------|--------|
-| Comparação com carteira real do usuário | Standalone tool — usuário define inputs sem precisar ter portfólio cadastrado |
-| Simulador de alocação | Milestone próprio — v1.7 |
-| Rating de risco do emissor CDB | Sem API pública confiável para ratings em tempo real |
-| Comparação com IBOVESPA histórico | Sem feed histórico de índice disponível — CDI/SELIC/IPCA são suficientes como benchmark |
+| Crypto no simulador | Sem feed de preço confiável para projeção — RF/ações/FIIs são suficientes |
+| Ajuste manual de parâmetros (tolerância a risco, perfil) | Complexidade extra sem validação — cenários pré-definidos são suficientes para v1.7 |
+| Salvar cenários / histórico de simulações | Enhancement futuro |
+| Comparação com IBOVESPA histórico | Sem feed histórico de índice disponível |
 
 ## Traceability
 
@@ -60,11 +62,15 @@
 | RF-03 | Phase 22 | Complete |
 | COMP-01 | Phase 27 | Complete |
 | COMP-02 | Phase 27 | Complete |
+| SIM-01 | Phase 28 | Pending |
+| SIM-02 | Phase 28 | Pending |
+| SIM-03 | Phase 28 | Pending |
 
 **Coverage:**
 - v1.4 requirements: 7 total — all complete ✓
-- v1.6 requirements: 2 total — both mapped to Phase 27 ✓
+- v1.6 requirements: 2 total — all complete ✓
+- v1.7 requirements: 3 total — all mapped to Phase 28 ✓
 
 ---
 *Requirements defined: 2026-04-12*
-*Last updated: 2026-04-18 — COMP-01/02 assigned to Phase 27 (v1.6 roadmap complete)*
+*Last updated: 2026-04-19 — SIM-01/02/03 promoted from deferred to v1.7 active*
