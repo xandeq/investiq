@@ -37,6 +37,14 @@ v1.7 Simulador de Alocação
 Phase 28: Simulador de Alocação     [ NOT STARTED ]
 ```
 
+## v1.6 Status Reference
+
+✅ SHIPPED 2026-04-19
+
+| Phase | Status | Completed |
+|-------|--------|-----------|
+| 27. Comparador RF vs RV | Complete | 2026-04-18 |
+
 ## v1.5 Status Reference
 
 ✅ SHIPPED 2026-04-18
@@ -100,50 +108,57 @@ Phase 28: Simulador de Alocação     [ NOT STARTED ]
 - **TaxEngine:** IR regressivo (22.5%→15%) + LCI/LCA isenção — fully operational (v1.1)
 - **Macro rates Redis cache:** CDI/SELIC/IPCA served by `GET /screener/macro-rates` — already built (Phase 22)
 
-### Existing Infrastructure Relevant to v1.6
+### Existing Infrastructure Relevant to v1.7
 
-- `TaxEngine` at `backend/app/modules/market_universe/tax_engine.py` — Phase 27 core engine (no changes needed)
-- `GET /screener/macro-rates` — CDI/SELIC/IPCA from Redis — Phase 27 data source (no changes needed)
-- `fixed_income_catalog` table — Tesouro/CDB/LCI/LCA rates — Phase 27 rate lookup (no changes needed)
-- `GET /renda-fixa` endpoint (Phase 22) — read structure before building /comparador
-- `get_global_db` — pattern for non-tenant endpoints — use for /comparador (no auth needed)
+- `GET /screener/macro-rates` — CDI/SELIC/IPCA from Redis — Phase 22/27, no changes needed
+- `useComparadorCalc` hook — client-side projection with IR regressivo — Phase 27, reuse directly
+- `GET /advisor/health` — returns portfolio allocation by asset class (RF/ações/FIIs) — Phase 23, no changes needed
+- `TaxEngine` at `backend/app/modules/market_universe/tax_engine.py` — Phase 22, no changes needed
+- Recharts LineChart — already in codebase from Phase 27
 
-### Patterns to Reuse in v1.6
+### Patterns to Reuse in v1.7
 
-- **TaxEngine call pattern** (Phase 22): established integration for net return calculation
-- **Recharts LineChart**: already in codebase — find existing usage for import pattern
-- **`get_global_db`**: global (non-tenant) table session — use for /comparador
-- **Nav link pattern**: add "Comparador" alongside /renda-fixa
+- **`useComparadorCalc`** (Phase 27): adapt for 3-class scenario projection instead of 4 benchmark rows
+- **`usePortfolioHealth`** hook (Phase 23): read `GET /advisor/health` for current allocation by class
+- **Macro rates fetch pattern** (Phase 27): inline or hook to `GET /screener/macro-rates`
+- **Recharts** (Phase 27): optional stacked bar chart per scenario
+- **Nav link pattern**: add "Simulador" alongside /comparador in sidebar
+
+### Scenario Allocation Percentages (hardcoded)
+
+| Perfil | RF | Ações | FIIs |
+|--------|----|-------|------|
+| Conservador | 80% | 10% | 10% |
+| Moderado | 50% | 35% | 15% |
+| Arrojado | 20% | 65% | 15% |
 
 ### Testing
 
-- **Test count:** 257+ passing (maintained through v1.5)
-- **Playwright E2E:** 72 tests passing — maintain when adding new pages
-- **DB Migrations:** 0029 (head at v1.6 start — billing idempotency migration)
+- **Test count:** 257+ passing (maintained through v1.6)
+- **Playwright E2E:** 72+ tests passing — maintain when adding new pages
+- **DB Migrations:** 0029 (head — no new migrations expected for v1.7; all client-side)
 
-## v1.6 Architecture Decisions
+## v1.7 Architecture Decisions
 
-### Phase 27 Approach
+### Phase 28 Approach
 
-- New `GET /comparador` endpoint: params `valor`, `prazo_meses`, `tipo_rf` → calls TaxEngine for each alternative (produto RF, CDI, SELIC, IPCA+) → returns `{ summary: [...], projection: [...] }`
-- Backend handles projection math (compound monthly): `P * (1 + r_monthly)^t` for each month — keeps TaxEngine as single source of truth
-- Rentabilidade real column: `(1 + retorno_nominal) / (1 + ipca_acumulado) - 1` — IPCA from macro rates
-- Frontend: `/comparador` page, no auth gate (standalone public tool), form updates table + chart on any input change
-- Chart: Recharts LineChart, one series per alternative, x-axis = months, y-axis = patrimônio acumulado R$
+- **No new backend endpoint.** All required data already served:
+  - Macro rates: `GET /screener/macro-rates` (Redis cache, operational)
+  - Portfolio allocation: `GET /advisor/health` → `allocation_by_class` field (Phase 23, operational)
+- **Client-side scenario math:** `useSimuladorCalc` hook takes `valor`, `prazo`, `macroRates` → returns 3 scenario objects with projected returns per class (same pattern as `useComparadorCalc`)
+- **Delta is arithmetic:** `target = scenario_pct * valor_total`, `current = health.allocation_by_class * portfolio_total`, `delta = target - current` — no SQL needed
+- **Auth gate for SIM-03:** `has_portfolio` from health response; if false, show CTA instead of delta section — SIM-01/SIM-02 remain fully functional without portfolio
+- **Page:** `frontend/app/simulador/page.tsx` — verify stub before creating
 
 ### Why 1 Phase
 
-With TaxEngine, macro rates, and catalog fully built, the only work is:
-
-1. Thin backend endpoint (projection loop + TaxEngine calls)
-2. Frontend page (form + table + chart)
-
-Table and chart are one unified tool — shipping them in separate phases would leave users with a half-finished comparador. 1 coherent phase is the cleanest boundary.
+SIM-01 (form → scenarios), SIM-02 (projected returns), SIM-03 (delta) are tightly coupled. Scenarios without returns are meaningless; delta without a selected scenario has no reference. The tool is only useful when all three ship together. No backend work justifies a separate phase.
 
 ## Decisions
 
-- **2026-04-12:** 2 phases for v1.4 (7 requirements) — SCRA-01–04 in Phase 21, RF-01–03 in Phase 22
+- **2026-04-19:** 1 phase for v1.7 (3 requirements) — SIM-01/02/03 in Phase 28 (client-side tool, all infra exists, requirements are tightly coupled)
 - **2026-04-18:** 1 phase for v1.6 (2 requirements) — both COMP-01 and COMP-02 in Phase 27 (tool is only useful when complete)
+- **2026-04-12:** 2 phases for v1.4 (7 requirements) — SCRA-01–04 in Phase 21, RF-01–03 in Phase 22
 - **Phase 17 established:** Page created at frontend/app/ (not frontend/src/app/) — appDir is frontend/app/
 - **Phase 17 established:** Client-side filtering with useMemo avoids API roundtrips — dataset fits in browser memory
 - **Phase 19:** Server-side filtering for opportunity detector (dataset unbounded) vs client-side for screeners (bounded ~400–900 items)
@@ -169,31 +184,32 @@ Table and chart are one unified tool — shipping them in separate phases would 
 - [Phase 27]: Chart color palette: produto_rf blue, CDI slate, SELIC emerald, IPCA+ amber — matches table highlight colors
 - [Phase 27]: deploy-then-e2e pattern: run deploy-frontend.sh before playwright suite since tests run against production
 
-## Open Questions (resolve in Phase 27)
+## Open Questions (resolve in Phase 28)
 
-1. Does `GET /renda-fixa` endpoint return `taxa` as annual decimal or percentage string? (determines TaxEngine call format for /comparador)
-2. What is the current DB migration head number? (0029 assumed from untracked migration file — confirm before any new migration)
-3. Does Recharts already exist in package.json or does it need to be added?
+1. Does `frontend/app/simulador/page.tsx` exist as a stub from a prior phase? (verify before creating)
+2. Does `GET /advisor/health` return `allocation_by_class` as a typed object `{ rf_pct, acoes_pct, fiis_pct }` or a flat record? (determines TypeScript delta calc shape)
+3. What proxy return rate to use for ações class (IBOV ~12% a.a. or CDI×1.3)? Pick one and hardcode; document the choice in plan.
+4. Does `useComparadorCalc` export cleanly or needs adaptation for multi-class (RF+ações+FIIs each needing separate TaxEngine call)?
 
 ## Performance Metrics
 
-**v1.5 baseline:**
+**v1.6 baseline:**
 
 - Test count: 257+ passing
-- Playwright E2E: 72 passing
+- Playwright E2E: 72+ passing
 - Lines of code: ~24K Python backend + ~12K TypeScript frontend
 - DB Migrations: 0029 (head)
 
-**v1.6 targets:**
+**v1.7 targets:**
 
-- Maintain 257+ unit tests passing
-- Maintain 72 Playwright tests passing (+ new /comparador E2E)
-- Comparador table compute: <200ms (backend projection loop, no external API calls — TaxEngine + Redis)
-- Chart render: <100ms (client-side Recharts with ≤120 data points per series)
+- Maintain 257+ unit tests passing (no new backend = no new unit tests strictly required; may add if hooks warrant)
+- Maintain 72+ Playwright tests passing (+ new /simulador E2E)
+- Scenario compute: <50ms (client-side arithmetic, no network call for scenario math)
+- Delta section render: <300ms (depends on GET /advisor/health response time, already cached in Redis)
 
 | Phase | Plan | Status | Duration | Notes |
 |-------|------|--------|----------|-------|
-| 27 | TBD | Not started | TBD | /comparador endpoint + frontend page with table + chart |
+| 28 | TBD | Not started | TBD | useSimuladorCalc hook + SimuladorContent + delta section + E2E |
 | Phase 21 P01 | 62s | 2 tasks | 4 files |
 | Phase 21 P02 | 8 | 2 tasks | 4 files |
 | Phase 21 P03 | 197s | 2 tasks | 5 files |

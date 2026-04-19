@@ -468,3 +468,156 @@ Plans:
 
 *Milestone: InvestIQ v1.6 — Comparador RF vs RV*
 *Roadmap created: 2026-04-18*
+
+
+---
+
+# InvestIQ v1.7 — Simulador de Alocação — Roadmap
+
+**Milestone:** v1.7 Simulador de Alocação
+**Phases:** 28 (continues from v1.6 Phase 27)
+**Granularity:** Coarse (1 phase — all infra exists; tool only useful when form + scenarios + delta ship together)
+**Status:** Active
+**Created:** 2026-04-19
+
+---
+
+## Overview
+
+Ferramenta de simulação onde o usuário informa valor a investir e prazo e recebe instantaneamente 3 cenários de alocação (conservador/moderado/arrojado) com retorno projetado por classe e — para usuários com portfólio cadastrado — o delta entre o cenário escolhido e a carteira atual.
+
+Todo o cálculo de retorno é client-side: a projeção por classe reutiliza `useComparadorCalc` (Phase 27) com taxas macro do Redis via `GET /screener/macro-rates` já disponível. O delta de portfólio lê diretamente de `GET /advisor/health` (Phase 23) que já retorna alocação por classe. Nenhum novo endpoint backend é necessário.
+
+Por isso, 1 fase: cenários sem retorno projetado (SIM-02) são inúteis; delta sem cenários (SIM-03) é sem sentido. Os três requisitos entregam uma ferramenta coerente.
+
+---
+
+## Phases
+
+- [ ] **Phase 28: Simulador de Alocação** — Página `/simulador` com formulário (valor + prazo), 3 cenários de alocação (RF/ações/FIIs) com retorno projetado via TaxEngine + macro rates, e delta vs carteira atual para usuários com portfólio cadastrado
+
+---
+
+## Phase Details
+
+### Phase 28: Simulador de Alocação
+
+**Goal:** Usuário informa valor e prazo e vê 3 cenários de alocação com retorno projetado por classe, podendo comparar o cenário escolhido com sua carteira atual para saber o que comprar ou reduzir
+
+**Depends on:**
+- `GET /screener/macro-rates` — CDI/SELIC/IPCA do Redis — Phase 22/27, sem mudanças
+- `useComparadorCalc` hook — projeção client-side com IR regressivo — Phase 27, reuso direto
+- `GET /advisor/health` — retorna alocação atual do portfólio por classe (RF, ações, FIIs) — Phase 23, sem mudanças
+- `compute_portfolio_health()` — já calcula alocação por classe — Phase 23, sem mudanças
+- `TaxEngine` — IR regressivo 22.5%→15%, LCI/LCA isenção — Phase 22, sem mudanças
+
+**Requirements:** SIM-01, SIM-02, SIM-03
+
+**Success Criteria** (what must be TRUE):
+1. Usuário acessa `/simulador`, informa valor (R$) e prazo (meses) e vê 3 cards de cenário (conservador/moderado/arrojado) com percentuais por classe (RF, ações, FIIs) — os cards aparecem instantaneamente sem chamada de API adicional
+2. Cada cenário exibe retorno esperado por classe de ativo e total projetado para o prazo informado, calculado client-side via macro rates do Redis com IR regressivo aplicado via TaxEngine (mesmo cálculo do /comparador)
+3. Usuário com portfólio cadastrado vê seção Delta mostrando quanto comprar (+) ou reduzir (-) por classe de ativo para alinhar com o cenário selecionado — calculado a partir da alocação atual em `GET /advisor/health`
+4. Usuário sem portfólio vê mensagem contextual (não erro) convidando a cadastrar transações para habilitar a seção de delta — SIM-01 e SIM-02 funcionam normalmente sem portfólio
+
+**Plans:** TBD
+
+---
+
+## Progress Table
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 28. Simulador de Alocação | 0/? | Not started | — |
+
+---
+
+## Requirements Coverage
+
+| Requirement | Phase | Description | Status |
+|-------------|-------|-------------|--------|
+| SIM-01 | Phase 28 | Formulário valor + prazo → 3 cenários com percentuais RF/ações/FIIs | Pending |
+| SIM-02 | Phase 28 | Retorno esperado por classe e total projetado via TaxEngine + macro rates | Pending |
+| SIM-03 | Phase 28 | Delta vs carteira atual (comprar/reduzir por classe) via GET /advisor/health | Pending |
+
+**Coverage:** 3/3 ✓
+
+---
+
+## Architecture Notes
+
+### Phase 28 — Simulador de Alocação
+
+**No new backend endpoint needed.** All data sources already exist:
+
+| Data | Source | Status |
+|------|--------|--------|
+| CDI/SELIC/IPCA macro rates | `GET /screener/macro-rates` → Redis | Operational |
+| Retorno líquido IR por classe | `useComparadorCalc` hook | Built Phase 27 |
+| Alocação atual do portfólio por classe | `GET /advisor/health` → `allocation_by_class` | Operational |
+| IR regressivo + LCI/LCA isenção | `TaxEngine` (client-side via hook) | Built Phase 22 |
+
+**Cenário allocation percentages** (pre-defined, hardcoded by risk profile):
+
+| Perfil | RF | Ações | FIIs |
+|--------|----|-------|------|
+| Conservador | 80% | 10% | 10% |
+| Moderado | 50% | 35% | 15% |
+| Arrojado | 20% | 65% | 15% |
+
+**Projeção de retorno por classe:**
+- RF: taxa CDB referência do catálogo (ou CDI como proxy) via TaxEngine IR regressivo
+- Ações: IBOV histórico anualizado como proxy de retorno esperado (hardcoded ~12% a.a. nominal) — ou CDI * 1.3 como alternativa conservadora
+- FIIs: DY médio dos FIIs no universo (proxy ~8% a.a. nominal) — ou valor fixo hardcoded
+
+**Delta calculation** (client-side):
+```
+target_valor_classe = cenario_pct_classe * valor_total
+current_valor_classe = health.allocation_by_class[classe] * portfolio_total
+delta_classe = target_valor_classe - current_valor_classe
+```
+
+**Auth gate for SIM-03:** Check `has_portfolio` from health response (already a field in PortfolioHealthResponse). If false, show empty-state call-to-action instead of delta section.
+
+**Page location:** `frontend/app/simulador/page.tsx` — verify if stub exists before creating.
+
+### Key Implementation Sequence
+
+1. Frontend: fetch macro rates (reuse existing `useMacroRates` or inline fetch) + fetch health (reuse `usePortfolioHealth` or inline, gated on auth)
+2. Frontend: `useSimuladorCalc` hook — takes `valor`, `prazo`, `macroRates` → returns 3 scenario objects with projected returns per class
+3. Frontend: `SimuladorContent.tsx` — form + 3 scenario cards (select one) + delta section (conditional on has_portfolio)
+4. Frontend: nav link "Simulador" alongside /comparador
+5. E2E: Playwright spec covering form input → scenario display → delta visibility (logged-in user with portfolio)
+
+### Patterns to Reuse
+
+- `useComparadorCalc` (Phase 27) — projection math with IR; adapt for 3 asset classes instead of 4 benchmark rows
+- `usePortfolioHealth` hook (Phase 23) — reads `GET /advisor/health`; reuse as-is for delta calculation
+- `useMacroRates` or inline fetch pattern (Phase 27) — CDI/SELIC/IPCA from macro-rates endpoint
+- Recharts (Phase 27) — optional bar chart per scenario (valor por classe stacked); not strictly required for v1.7
+
+---
+
+## Key Design Decisions
+
+### Why 1 Phase
+
+With TaxEngine, macro rates, `useComparadorCalc`, and `GET /advisor/health` all operational, the only new work is:
+
+1. `useSimuladorCalc` hook (adapts Phase 27 hook for 3-class scenario math)
+2. `SimuladorContent.tsx` with form + scenario cards + delta section
+3. Playwright E2E spec
+
+SIM-01, SIM-02, SIM-03 are tightly coupled: scenarios without projected returns (SIM-02) are useless; delta without a selected scenario (SIM-03) has no reference point. Shipping them separately would produce dead UI. 1 coherent phase is the right boundary.
+
+### SIM-03 Delta Without New Backend
+
+`GET /advisor/health` already returns `allocation_by_class` (RF/ações/FIIs percentages). The delta is arithmetic:
+- Target allocation = selected scenario percentages × valor_total
+- Current allocation = health.allocation_by_class × portfolio_market_value
+
+No new SQL, no new endpoint. Delta is a client-side subtraction.
+
+---
+
+*Milestone: InvestIQ v1.7 — Simulador de Alocação*
+*Roadmap created: 2026-04-19*
