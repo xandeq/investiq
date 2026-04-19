@@ -495,7 +495,7 @@ Por isso, 1 fase: cenários sem retorno projetado (SIM-02) são inúteis; delta 
 
 ## Phases
 
-- [ ] **Phase 28: Simulador de Alocação** — Página `/simulador` com formulário (valor + prazo), 3 cenários de alocação (RF/ações/FIIs) com retorno projetado via TaxEngine + macro rates, e delta vs carteira atual para usuários com portfólio cadastrado
+- [x] **Phase 28: Simulador de Alocação** — Página `/simulador` com formulário (valor + prazo), 3 cenários de alocação (RF/ações/FIIs) com retorno projetado via TaxEngine + macro rates, e delta vs carteira atual para usuários com portfólio cadastrado (completed 2026-04-19)
 
 ---
 
@@ -520,12 +520,12 @@ Por isso, 1 fase: cenários sem retorno projetado (SIM-02) são inúteis; delta 
 3. Usuário com portfólio cadastrado vê seção Delta mostrando quanto comprar (+) ou reduzir (-) por classe de ativo para alinhar com o cenário selecionado — calculado a partir da alocação atual em `GET /advisor/health`
 4. Usuário sem portfólio vê mensagem contextual (não erro) convidando a cadastrar transações para habilitar a seção de delta — SIM-01 e SIM-02 funcionam normalmente sem portfólio
 
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 28-01-PLAN.md — Frontend types + useSimuladorCalc hook (SIM-01 + SIM-02 client-side scenario math)
 - [x] 28-02-PLAN.md — useSimuladorPortfolio bridge + SimuladorContent.tsx (form + 3 scenario cards + delta section, SIM-03 auth gate)
-- [ ] 28-03-PLAN.md — Playwright v1.7-simulador.spec.ts + deploy + human-verify checkpoint
+- [x] 28-03-PLAN.md — Playwright v1.7-simulador.spec.ts + deploy + human-verify checkpoint
 
 ---
 
@@ -533,7 +533,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 28. Simulador de Alocação | 2/3 | In Progress|  |
+| 28. Simulador de Alocação | 3/3 | Complete | 2026-04-19 |
 
 ---
 
@@ -541,9 +541,9 @@ Plans:
 
 | Requirement | Phase | Description | Status |
 |-------------|-------|-------------|--------|
-| SIM-01 | Phase 28 | Formulário valor + prazo → 3 cenários com percentuais RF/ações/FIIs | Pending |
-| SIM-02 | Phase 28 | Retorno esperado por classe e total projetado via TaxEngine + macro rates | Pending |
-| SIM-03 | Phase 28 | Delta vs carteira atual (comprar/reduzir por classe) via GET /advisor/health | Pending |
+| SIM-01 | Phase 28 | Formulário valor + prazo → 3 cenários com percentuais RF/ações/FIIs | Complete |
+| SIM-02 | Phase 28 | Retorno esperado por classe e total projetado via TaxEngine + macro rates | Complete |
+| SIM-03 | Phase 28 | Delta vs carteira atual (comprar/reduzir por classe) via GET /portfolio/pnl | Complete |
 
 **Coverage:** 3/3 ✓
 

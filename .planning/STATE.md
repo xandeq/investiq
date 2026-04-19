@@ -19,21 +19,28 @@ See: .planning/PROJECT.md
 
 **Core value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada — sem precisar de planilha, sem abrir mil plataformas.
 
-**Current focus:** Phase 28 — Simulador de Alocação
+**Current focus:** v1.7 SHIPPED — next milestone TBD
 
 ## Current Position
 
-Phase: 28 (Simulador de Alocação) — EXECUTING
-Plan: 3 of 3
+Phase: 28 (Simulador de Alocação) — COMPLETE
 
 ## Progress Bar
 
 ```
 v1.7 Simulador de Alocação
-[░░░░░░░░░░░░░░░░░░░░] 0% (0/1 phases)
+[████████████████████] 100% (1/1 phases)
 
-Phase 28: Simulador de Alocação     [ NOT STARTED ]
+Phase 28: Simulador de Alocação     [ COMPLETE 2026-04-19 ]
 ```
+
+## v1.7 Status Reference
+
+✅ SHIPPED 2026-04-19
+
+| Phase | Status | Completed |
+|-------|--------|-----------|
+| 28. Simulador de Alocação | Complete | 2026-04-19 |
 
 ## v1.6 Status Reference
 

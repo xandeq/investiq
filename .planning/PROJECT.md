@@ -114,17 +114,19 @@ Fase 27 completa e deployada. Comparador standalone em `/comparador`: formulári
 
 ---
 
-## Current Milestone: v1.7 — Simulador de Alocação
+## ✅ v1.7 Simulador de Alocação — SHIPPED 2026-04-19
 
-**Goal:** Usuário informa valor e prazo → vê 3 cenários de alocação (conservador/moderado/arrojado) com percentuais por classe de ativo e retorno esperado, e visualiza o delta entre o cenário escolhido e sua carteira atual.
+Fase 28 completa e deployada. Página `/simulador` com formulário (valor + prazo), 3 cenários de alocação (Conservador/Moderado/Arrojado) com percentuais RF/Ações/FIIs e retorno projetado via IR regressivo + CDI, e seção Delta vs carteira atual (auth-gated via GET /portfolio/pnl). Playwright 6/6 passando. Human verify APPROVED.
 
-**Target features:**
-- Formulário com valor a investir e prazo — gera 3 cenários instântaneamente
-- Cada cenário: percentuais RF / ações / FIIs com retorno projetado via TaxEngine + macro rates
-- Delta vs carteira atual (comprar/reduzir por classe) — requer portfólio cadastrado
+---
 
-**Requirements:** SIM-01, SIM-02, SIM-03
-**Starts at:** Phase 28
+## Current Milestone: v1.8 — TBD
+
+**Next milestone not yet defined.** Run `/gsd:new-milestone` to plan the next cycle.
+
+**Backlog candidates:**
+- Admin dashboard (MON-04) — assinantes, status Stripe, churn
+- PostgreSQL RLS enforcement (AUTH-05) — DB-level tenant isolation
 
 ## Future Milestone Items (Post-v1.7)
 
