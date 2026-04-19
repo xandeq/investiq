@@ -264,6 +264,7 @@ Impacto: 1 = cosmético, 5 = bloqueia visão V2.
 | WhatsApp Scan Agent | ❌ inexistente | extract tickers + pump&dump detection | M | 2 | 5 (Enterprise) |
 | Backtester | ❌ inexistente | janelas históricas | L | 4 | 6 |
 | Kill switch global | ❌ inexistente | hard-coded loss limit diário | S | 5 | 6 |
+| **Cost strategy para LLM** | ~~❌ indefinida~~ **ADDRESSED 2026-04-19** — caps Free $0.15/Pro $1.79, cache Redis TTL 6h, kill switch 120% do cap, degradação por tier. Ver [`docs/adr/ADR-003-llm-cost-strategy.md`](../adr/ADR-003-llm-cost-strategy.md) | Implementar `backend/app/llm/` (Fase 1) | S | 5 | 1 |
 | Staging environment + CI | ❌ inexistente (D6) | GitHub Actions + ambiente staging isolado | M | 4 | 2 |
 | RLS revisão de tenant_id | ✅ existe ([`core/db.py:44`](../../backend/app/core/db.py)) — risco menor de SQL injection (S7 do audit) | bindparams parametrizado | S | 2 | 1 |
 | `stripe_events` alerting | ✅ tabela existe; **sem alerta** (S8) | dashboard + webhook on `status="error"` | S | 2 | 2 |

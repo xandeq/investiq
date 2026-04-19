@@ -35,7 +35,7 @@ BOOTSTRAP_LLM_BUDGET_USD: 50.00 # mid-point V2 §4 (40-60 Anthropic + 5-10 Voyag
 # Derivadas
 FREE_LLM_BUDGET_TOTAL_USD: 7.50         # = BOOTSTRAP × 0.15
 FREE_LLM_BUDGET_PER_USER_USD: 0.075     # = 7.50 / 100
-PRO_LLM_BUDGET_PER_USER_USD: 3.00       # = PREMIUM_PRICE_USD × 0.30 = 9.98 × 0.30
+PRO_LLM_BUDGET_PER_USER_USD: 1.79       # = PREMIUM_PRICE_USD × 0.30 = 5.98 × 0.30 (corrigido 2026-04-19; ver ADR-003)
 ENTERPRISE_LLM_BUDGET_PER_USER_USD: 12.00  # ENTERPRISE × 0.30
 ```
 
@@ -60,7 +60,7 @@ ENTERPRISE_LLM_BUDGET_PER_USER_USD: 12.00  # ENTERPRISE × 0.30
 
 ## Matriz Capabilities × Tiers
 
-| Capability | Free | Pro (R$ 49,90/mês) | Enterprise (R$ 199/mês) | Custo LLM por uso (estimado) |
+| Capability | Free | Pro (R$ 29,90/mês) | Enterprise (R$ 199/mês) | Custo LLM por uso (estimado) |
 |---|---|---|---|---|
 | **Decision Copilot** (chat conversacional) | 3 perguntas/dia • free pool only | ilimitado (rate limit técnico ≤30/min) • Haiku + Opus pontual | ilimitado • Opus default | $0.012/req (Haiku 4 agents) → $0.15/req (Opus tese) |
 | **Portfolio Health Check** (sync, sem AI) | ilimitado | ilimitado | ilimitado | $0 (pure SQL) |

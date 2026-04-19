@@ -127,5 +127,17 @@
 
 ---
 
+## D9 — Estratégia de custo LLM definida em ADR-003
+
+**Decisão:** Caps mensais por tier (Free $0.15, Premium $1.79), degradação de modelo por tier (free pool → Haiku → Opus), cache Redis por análise fundamentalista (TTL 6h, chave `llm_cache:{capability}:{ticker_or_hash}:{date_bucket}`), e kill switch a 120% do cap. Toda lógica de custo centralizada em `backend/app/llm/` — agentes recebem modelo como parâmetro e não instanciam diretamente.
+
+**Evidência:** [`docs/adr/ADR-003-llm-cost-strategy.md`](../adr/ADR-003-llm-cost-strategy.md) — derivado de TIER_MATRIX (D8) validando que sem cache o custo Pro estoura o teto $1.79 em ~1.5×. Soft cap $1.79 (log + alerta), hard cap $2.15 (HTTP 429 com `resets_at`).
+
+**Implicação:** Nenhum agente LLM pode ser adicionado à Fase 1 sem o módulo `backend/app/llm/` implementado. Este módulo é pré-requisito arquitetural da Fase 1 do V2.
+
+**Status:** ✅ Decisão deliberada pré-Fase 1 (2026-04-19)
+
+---
+
 *Criado em 2026-04-19. Última validação: 2026-04-19.*
 *Referenciado por: ADR-001 §Premissas, `.github/ISSUE_TEMPLATE/phase_ticket.md`, PHASE_0_AUDIT.md §Próximos passos.*
