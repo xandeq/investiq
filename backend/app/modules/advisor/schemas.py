@@ -1,16 +1,18 @@
-"""Schemas for /advisor endpoints (Phase 23 — ADVI-01 through ADVI-02).
+"""Schemas for /advisor endpoints (Phase 23 — ADVI-01 through ADVI-02 + Action Inbox v1).
 
 Endpoints:
   GET  /advisor/health          — synchronous portfolio health (4 metrics, no AI)
   POST /advisor/analyze         — start async AI narrative job (reuses WizardJob table)
   GET  /advisor/{job_id}        — poll job status + result
+  GET  /advisor/inbox           — ranked decision cards from 5 existing sources
 """
 from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 CVM_DISCLAIMER = (
     "Análise informativa — não constitui recomendação de investimento (CVM Res. 19/2021)"
@@ -61,3 +63,56 @@ class AdvisorJobResponse(BaseModel):
     error_message: str | None = None
     created_at: datetime
     completed_at: datetime | None = None
+
+
+# ── Action Inbox (Phase 1) ────────────────────────────────────────────────────
+
+InboxCardKind = Literal[
+    "concentration_risk",
+    "low_diversification",
+    "underperformer",
+    "no_passive_income",
+    "opportunity_detected",
+    "insight",
+    "watchlist_alert",
+    "swing_signal",
+]
+InboxSeverity = Literal["info", "warn", "alert"]
+
+
+class InboxCardCTA(BaseModel):
+    label: str
+    href: str
+
+
+class InboxCard(BaseModel):
+    """One ranked decision card. Aggregated by GET /advisor/inbox."""
+
+    id: str                              # stable; React key + dedup
+    kind: InboxCardKind
+    priority: float = Field(ge=0.0, le=1.0)
+    title: str                           # ≤ 80 chars (not enforced server-side)
+    body: str                            # ≤ 200 chars (not enforced server-side)
+    ticker: str | None = None
+    severity: InboxSeverity
+    cta: InboxCardCTA | None = None
+    created_at: datetime
+
+
+class InboxMeta(BaseModel):
+    """Source health for the inbox aggregation. Failed sources degrade gracefully."""
+
+    sources_ok: list[str]
+    sources_failed: list[str]
+
+
+class InboxResponse(BaseModel):
+    """GET /advisor/inbox — ranked cards capped at 10.
+
+    Aggregates 5 existing sources (no new tables, no new pipelines, no LLM):
+      health_check, opportunity_detector, insights, watchlist_alerts, swing_signals.
+    """
+
+    generated_at: datetime
+    cards: list[InboxCard]
+    meta: InboxMeta
