@@ -30,7 +30,7 @@ O usuário controla toda sua carteira em um lugar só, com análise financeira d
 - [ ] FII screener completo (P/VP, DY, segmento, vacância) com toggle "não tenho" — SCRF-01–04
 - [ ] Screener ações: filtros avançados (DY min, P/L max, setor, market cap) — SCRA-01–03
 - [ ] Catálogo Renda Fixa frontend (Tesouro, CDB, LCI/LCA) com retorno líquido por prazo — RF-01–03
-- [ ] Comparador RF vs RV (retorno líquido histórico por prazo) — COMP-01–02
+- ✓ Comparador RF vs RV (retorno líquido por prazo vs CDI/SELIC/IPCA+, IR regressivo, rentabilidade real, gráfico) — v1.6
 - [ ] Simulador de alocação (valor → 3 cenários → delta carteira atual) — SIM-01–03
 - [ ] Admin dashboard (assinantes, status pagamento, plano por usuário) — MON-04
 - [ ] PostgreSQL RLS enforcement no DB level (não só application level) — AUTH-05
@@ -108,26 +108,21 @@ Fases 23–26 completas e deployadas. Portfolio Health Check (score + bigger ris
 
 ---
 
-## Current Milestone: v1.6 Comparador RF vs RV
+## ✅ v1.6 Comparador RF vs RV — SHIPPED 2026-04-19
 
-**Goal:** Ferramenta standalone que permite ao usuário comparar o retorno líquido de um produto de renda fixa (CDB/LCI/LCA/Tesouro) versus benchmarks de mercado (CDI, SELIC, IPCA+) em um prazo definido, com IR regressivo e rentabilidade real.
-
-**Target features:**
-- Inputs: valor, prazo, tipo RF (CDB/LCI/LCA/Tesouro Direto)
-- Tabela comparativa de retorno líquido (RF produto vs CDI vs SELIC vs IPCA+) com IR via TaxEngine
-- Gráfico de evolução do patrimônio ao longo do prazo
-- Coluna rentabilidade real (nominal descontado IPCA) para cada alternativa
-
-**Requirements:** COMP-01, COMP-02
-**Starts at:** Phase 27
+Fase 27 completa e deployada. Comparador standalone em `/comparador`: formulário (valor, prazo, tipo RF, taxa editável, spread IPCA+), tabela 4 linhas vs CDI/SELIC/IPCA+ com IR regressivo, coluna rentabilidade real, LineChart Recharts 4 séries. Human verification 3/3 passada em produção.
 
 ---
 
-## Future Milestone Items (Post-v1.6)
+## Current Milestone: v1.7 — Simulador de Alocação
+
+**Target:** SIM-01–03 (valor → 3 cenários conservador/moderado/arrojado → delta carteira)
+
+## Future Milestone Items (Post-v1.7)
 
 1. v1.7 — Simulador de Alocação (SIM-01–03)
 2. Admin dashboard — MON-04
 3. PostgreSQL RLS enforcement — AUTH-05
 
 ---
-*Last updated: 2026-04-18 after v1.6 milestone start*
+*Last updated: 2026-04-19 — v1.6 shipped, v1.7 Simulador de Alocação next*

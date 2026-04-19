@@ -365,7 +365,7 @@ Each phase delivers one coherent capability; together they create the `/advisor`
 **Milestone:** v1.6 Comparador RF vs RV
 **Phases:** 27 (continues from v1.5 Phase 26)
 **Granularity:** Coarse (1 phase — TaxEngine + macro rates already built; tool only useful when table + chart ship together)
-**Status:** Active
+**Status:** Shipped 2026-04-19
 **Created:** 2026-04-18
 
 ---
