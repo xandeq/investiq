@@ -1,14 +1,14 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.7
-milestone_name: Simulador de Alocação
-status: roadmap_complete
-last_updated: "2026-04-19T00:00:00.000Z"
+milestone: v1.3
+milestone_name: - Client-side filtering with useMemo
+status: unknown
+last_updated: "2026-04-19T03:00:05.946Z"
 progress:
-  total_phases: 1
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_phases: 2
+  completed_phases: 2
+  total_plans: 5
+  completed_plans: 5
 ---
 
 # Project State
@@ -19,14 +19,12 @@ See: .planning/PROJECT.md
 
 **Core value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada — sem precisar de planilha, sem abrir mil plataformas.
 
-**Current focus:** v1.7 — Simulador de Alocação (roadmap complete, ready for planning)
+**Current focus:** Phase 28 — Simulador de Alocação
 
 ## Current Position
 
-Phase: Phase 28 — Simulador de Alocação (not started)
-Plan: —
-Status: Roadmap complete — ready for `/gsd:plan-phase 28`
-Last activity: 2026-04-19 — v1.7 roadmap created (1 phase, 3 requirements mapped)
+Phase: 28 (Simulador de Alocação) — EXECUTING
+Plan: 2 of 3
 
 ## Progress Bar
 
@@ -183,6 +181,9 @@ SIM-01 (form → scenarios), SIM-02 (projected returns), SIM-03 (delta) are tigh
 - [Phase 27]: ipcaNominalForReal = annualizeRate(ipca, days) — compound IPCA over holding period for real return denominator
 - [Phase 27]: Chart color palette: produto_rf blue, CDI slate, SELIC emerald, IPCA+ amber — matches table highlight colors
 - [Phase 27]: deploy-then-e2e pattern: run deploy-frontend.sh before playwright suite since tests run against production
+- [Phase 28]: Re-declared IR helpers in useSimuladorCalc rather than importing from useComparadorCalc — feature isolation per D-12 precedent
+- [Phase 28]: Ações: 12% a.a. hardcoded (IBOV proxy), FIIs: 8% a.a. hardcoded (DY proxy) — no IR for PF in Phase 28 scope
+- [Phase 28]: macro?.cdi is the only macro field in useMemo deps — IPCA/SELIC deliberately unused for v1.7 simulador
 
 ## Open Questions (resolve in Phase 28)
 
@@ -220,3 +221,4 @@ SIM-01 (form → scenarios), SIM-02 (projected returns), SIM-03 (delta) are tigh
 | Phase 27 P01 | 141 | 2 tasks | 4 files |
 | Phase 27 P02 | 254 | 4 tasks | 5 files |
 | Phase 27 P03 | 35 | 3 tasks | 3 files |
+| Phase 28 P01 | 240 | 2 tasks | 5 files |
