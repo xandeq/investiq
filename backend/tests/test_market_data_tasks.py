@@ -34,6 +34,47 @@ def test_celery_broker_alive():
     assert "refresh-macro-every-6h" in celery_app.conf.beat_schedule
 
 
+def test_beat_schedule_expires_configured():
+    """Every periodic task must carry an `expires` option to prevent queue starvation.
+
+    Root cause of P0 (Apr 2026): scan_crypto + cleanup_stale_runs accumulated 344 tasks
+    in the queue because workers were busy with screener tasks. The expires option
+    causes Celery to discard stale copies rather than letting the queue grow unbounded.
+    """
+    from app.celery_app import celery_app
+
+    schedule = celery_app.conf.beat_schedule
+
+    # Tasks with no natural expiry concern (rare non-repeating ops) may be exempt,
+    # but all high-frequency and scheduled tasks must have expires.
+    required = [
+        "refresh-quotes-market-hours",
+        "refresh-macro-every-6h",
+        "cleanup-stale-screener-runs",
+        "opportunity-detector-crypto",
+        "opportunity-detector-acoes",
+        "check-price-alerts",
+        "refresh-tesouro-rates-6h",
+    ]
+    for name in required:
+        entry = schedule[name]
+        expires = entry.get("options", {}).get("expires")
+        assert expires is not None and expires > 0, (
+            f"Beat entry '{name}' is missing options.expires — "
+            "add it to prevent queue starvation (see P0_INVESTIGATION.md)"
+        )
+
+    # scan_crypto must be <= 30min to keep 24/7 load manageable.
+    # crontab(minute="*/15") fires 96×/day; crontab(minute="*/30") fires 48×/day.
+    # Check _orig_minute does not contain "*/15" (or "*/10", "*/5", etc.)
+    crypto_schedule = schedule["opportunity-detector-crypto"]["schedule"]
+    orig_minute = str(crypto_schedule._orig_minute)
+    assert orig_minute not in {"*/15", "*/10", "*/5", "*/1"}, (
+        f"scan_crypto fires too often ({orig_minute}/min) — use */30 or slower "
+        "to prevent 24/7 queue flood (see P0_INVESTIGATION.md)"
+    )
+
+
 def test_refresh_quotes_writes_redis(fake_redis_sync, mock_brapi_client):
     """Task writes market:quote:PETR4 key to Redis with TTL=1200.
 
