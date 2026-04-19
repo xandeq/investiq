@@ -45,11 +45,31 @@ async def create_checkout_session(
 ) -> CheckoutResponse:
     """Create a Stripe Checkout session for the Premium subscription.
 
-    Returns the hosted Checkout URL. Frontend redirects window.location.href to it.
+    P1 idempotency: If the frontend sends Idempotency-Key header, we cache
+    the response. Duplicate requests with the same key return the cached URL
+    without creating a new Stripe session, preventing accidental double-clicks.
     """
     from app.core.config import settings
+    from app.modules.billing.models import IdempotentCheckoutRequest
 
     user_id = current_user["user_id"]
+    idempotency_key = request.headers.get("Idempotency-Key")
+
+    # Check cache: if we've seen this idempotency key before, return cached URL
+    if idempotency_key:
+        result = await db.execute(
+            select(IdempotentCheckoutRequest).where(
+                IdempotentCheckoutRequest.idempotency_key == idempotency_key
+            )
+        )
+        cached = result.scalar_one_or_none()
+        if cached:
+            logger.info(
+                "billing.checkout_cached user_id=%s idempotency_key=%s",
+                user_id, idempotency_key,
+            )
+            return CheckoutResponse(checkout_url=cached.checkout_url)
+
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one()
 
@@ -60,6 +80,18 @@ async def create_checkout_session(
         success_url=f"{settings.APP_URL}/planos/sucesso",
         cancel_url=f"{settings.APP_URL}/planos",
     )
+
+    # Cache the result if idempotency key was provided
+    if idempotency_key:
+        db.add(
+            IdempotentCheckoutRequest(
+                idempotency_key=idempotency_key,
+                user_id=user_id,
+                checkout_url=url,
+            )
+        )
+        await db.flush()
+
     logger.info("billing.checkout_started user_id=%s customer_id=%s", user_id, customer_id)
     return CheckoutResponse(checkout_url=url)
 

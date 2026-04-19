@@ -138,9 +138,14 @@ class BillingService:
         sub = await client.subscriptions.retrieve_async(subscription_id)
         period_end = datetime.fromtimestamp(sub.current_period_end, tz=timezone.utc)
 
-        # Look up user by stripe_customer_id to get user_id for subscription row
+        # Lock user row for the duration of this transaction.
+        # WITH FOR UPDATE serializes concurrent checkouts for the same user —
+        # prevents the race condition where two simultaneous webhooks both see
+        # no prior subscription and both create an active subscription.
         result = await db.execute(
-            select(User).where(User.stripe_customer_id == stripe_customer_id)
+            select(User)
+            .where(User.stripe_customer_id == stripe_customer_id)
+            .with_for_update()
         )
         user = result.scalar_one_or_none()
         if not user:
@@ -163,7 +168,18 @@ class BillingService:
                     "billing.prior_sub_cancel_failed user_id=%s prior_sub=%s...%s error=%s",
                     user.id, prior_sub_id[:8], prior_sub_id[-4:], exc,
                 )
-                # Continua mesmo assim — nova assinatura é criada, suporte trata o restante
+                # Fail fast — reject webhook, Stripe will retry. Prevents silent duplicate subscriptions
+                raise
+
+            # Immediately mark the prior subscription row as canceled in our DB.
+            # The Stripe webhook (customer.subscription.deleted) will arrive later to confirm,
+            # but acting now closes the window where two rows show status=active simultaneously.
+            from app.modules.billing.models import Subscription as SubModel
+            await db.execute(
+                update(SubModel)
+                .where(SubModel.stripe_subscription_id == prior_sub_id)
+                .values(status="canceled")
+            )
 
         # Upsert subscription record
         await _upsert_subscription(

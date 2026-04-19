@@ -24,7 +24,13 @@ export function UpgradeCTA({
         window.location.href = "/planos";
         return;
       }
-      const { checkout_url } = await createCheckoutSession();
+      // Generate idempotency key: prevents duplicate checkout if user double-clicks
+      // Format: {timestamp}_{randomNonce} ensures uniqueness per click
+      const timestamp = Date.now();
+      const nonce = Math.random().toString(36).substring(2, 10);
+      const idempotencyKey = `${timestamp}_${nonce}`;
+
+      const { checkout_url } = await createCheckoutSession(idempotencyKey);
       window.location.href = checkout_url;
     } catch {
       setLoading(false);

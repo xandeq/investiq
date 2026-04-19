@@ -16,8 +16,12 @@ export interface UsageResponse {
   plan: string;
 }
 
-export async function createCheckoutSession(): Promise<CheckoutResponse> {
-  return apiClient<CheckoutResponse>("/billing/checkout", { method: "POST" });
+export async function createCheckoutSession(idempotencyKey?: string): Promise<CheckoutResponse> {
+  const options: RequestInit = { method: "POST" };
+  if (idempotencyKey) {
+    options.headers = { "Idempotency-Key": idempotencyKey };
+  }
+  return apiClient<CheckoutResponse>("/billing/checkout", options);
 }
 
 export async function createPortalSession(): Promise<PortalResponse> {
