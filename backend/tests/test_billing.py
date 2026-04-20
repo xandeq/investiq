@@ -238,3 +238,160 @@ async def test_plan_gate_returns_structured_error(client: AsyncClient, db_sessio
     body = resp.json()
     assert body["detail"]["code"] == "LIMIT_IMPORT"
     assert "upgrade_url" in body["detail"]
+
+
+# ---------------------------------------------------------------------------
+# Upgrade flow: duplicate subscription prevention (hotfix)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_checkout_completed_cancels_prior_subscription(
+    client: AsyncClient, db_session, email_stub, mock_stripe_client
+):
+    """upgrade: prior subscription is canceled in Stripe before new one activates."""
+    from unittest.mock import AsyncMock
+    from sqlalchemy import select
+
+    user_id = await register_verify_and_login(client, email_stub, email="upgrade@test.com")
+    await db_session.execute(
+        update(User).where(User.id == user_id).values(
+            stripe_customer_id="cus_upgrade",
+            stripe_subscription_id="sub_prior_old",
+        )
+    )
+    await db_session.flush()
+
+    mock_stripe_client.subscriptions.cancel_async = AsyncMock()
+    mock_stripe_client.construct_event.return_value = {
+        "id": "evt_upgrade_001",
+        "type": "checkout.session.completed",
+        "data": {"object": {"customer": "cus_upgrade", "subscription": "sub_new_checkout"}},
+    }
+
+    resp = await client.post(
+        "/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=s"},
+    )
+    assert resp.status_code == 200
+
+    mock_stripe_client.subscriptions.cancel_async.assert_called_once_with("sub_prior_old")
+
+    result = await db_session.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one()
+    assert user.stripe_subscription_id == "sub_new_checkout"
+    assert user.plan == "pro"
+
+
+@pytest.mark.asyncio
+async def test_checkout_completed_cancel_fails_gracefully(
+    client: AsyncClient, db_session, email_stub, mock_stripe_client
+):
+    """If Stripe cancellation of prior sub fails, new subscription is still created."""
+    from unittest.mock import AsyncMock
+    from sqlalchemy import select
+
+    user_id = await register_verify_and_login(client, email_stub, email="cancel-fail@test.com")
+    await db_session.execute(
+        update(User).where(User.id == user_id).values(
+            stripe_customer_id="cus_cancelfail",
+            stripe_subscription_id="sub_prior_failing",
+        )
+    )
+    await db_session.flush()
+
+    mock_stripe_client.subscriptions.cancel_async = AsyncMock(
+        side_effect=Exception("stripe network error")
+    )
+    mock_stripe_client.construct_event.return_value = {
+        "id": "evt_cancel_fail_001",
+        "type": "checkout.session.completed",
+        "data": {"object": {"customer": "cus_cancelfail", "subscription": "sub_new_despite_err"}},
+    }
+
+    resp = await client.post(
+        "/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=s"},
+    )
+    assert resp.status_code == 200
+
+    result = await db_session.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one()
+    assert user.stripe_subscription_id == "sub_new_despite_err"
+    assert user.plan == "pro"
+
+
+@pytest.mark.asyncio
+async def test_checkout_completed_first_subscription_no_cancellation(
+    client: AsyncClient, db_session, email_stub, mock_stripe_client
+):
+    """First-time subscriber: no Stripe cancellation is attempted (no prior sub)."""
+    from unittest.mock import AsyncMock
+    from sqlalchemy import select
+
+    user_id = await register_verify_and_login(client, email_stub, email="firstsub@test.com")
+    await db_session.execute(
+        update(User).where(User.id == user_id).values(
+            stripe_customer_id="cus_firstsub",
+            # stripe_subscription_id left NULL intentionally
+        )
+    )
+    await db_session.flush()
+
+    mock_stripe_client.subscriptions.cancel_async = AsyncMock()
+    mock_stripe_client.construct_event.return_value = {
+        "id": "evt_first_sub_001",
+        "type": "checkout.session.completed",
+        "data": {"object": {"customer": "cus_firstsub", "subscription": "sub_first"}},
+    }
+
+    resp = await client.post(
+        "/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=s"},
+    )
+    assert resp.status_code == 200
+
+    mock_stripe_client.subscriptions.cancel_async.assert_not_called()
+
+    result = await db_session.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one()
+    assert user.stripe_subscription_id == "sub_first"
+    assert user.plan == "pro"
+
+
+@pytest.mark.asyncio
+async def test_invoice_paid_ignores_old_subscription(
+    client: AsyncClient, db_session, email_stub, mock_stripe_client
+):
+    """invoice.paid from an old sub does not overwrite current stripe_subscription_id."""
+    from sqlalchemy import select
+
+    user_id = await register_verify_and_login(client, email_stub, email="old-invoice@test.com")
+    await db_session.execute(
+        update(User).where(User.id == user_id).values(
+            stripe_customer_id="cus_oldinv",
+            stripe_subscription_id="sub_current",
+            plan="pro",
+        )
+    )
+    await db_session.flush()
+
+    mock_stripe_client.construct_event.return_value = {
+        "id": "evt_old_invoice_001",
+        "type": "invoice.paid",
+        "data": {"object": {"customer": "cus_oldinv", "subscription": "sub_old_abandoned"}},
+    }
+
+    resp = await client.post(
+        "/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=s"},
+    )
+    assert resp.status_code == 200
+
+    result = await db_session.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one()
+    assert user.stripe_subscription_id == "sub_current"  # unchanged
+    assert user.plan == "pro"
