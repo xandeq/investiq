@@ -71,11 +71,18 @@ Retorne APENAS JSON array com 3-5 itens."""
 async def _analyze_with_semaphore(sem: asyncio.Semaphore, ticker: str, brapi_token: str, redis_client: Any) -> dict | None:
     async with sem:
         try:
-            await asyncio.sleep(0.4)
+            await asyncio.sleep(0.5)  # stagger to avoid BRAPI 429
             from app.modules.chart_analyzer.analyzer import analyze
             result = await analyze(ticker, brapi_token=brapi_token, redis_client=redis_client)
             if result and not result.get("error"):
                 return {"ticker": ticker, **result}
+            # If 429/rate-limit error — wait and retry once
+            if result and result.get("error") and "429" in str(result.get("error", "")):
+                logger.info("copilot: 429 on %s — retrying after 6s", ticker)
+                await asyncio.sleep(6)
+                result = await analyze(ticker, brapi_token=brapi_token, redis_client=redis_client)
+                if result and not result.get("error"):
+                    return {"ticker": ticker, **result}
         except Exception as exc:
             logger.debug("copilot: analyze failed for %s: %s", ticker, exc)
     return None
@@ -114,7 +121,7 @@ async def build_copilot_picks(redis_client=None, force: bool = False) -> dict[st
             logger.warning("copilot: cache read failed: %s", exc)
 
     brapi_token = os.environ.get("BRAPI_TOKEN", "")
-    sem = asyncio.Semaphore(4)
+    sem = asyncio.Semaphore(2)  # conservative — BRAPI free plan allows ~2 concurrent
 
     logger.info("copilot: scanning %d tickers", len(COPILOT_UNIVERSE))
     tasks = [_analyze_with_semaphore(sem, t, brapi_token, redis_client) for t in COPILOT_UNIVERSE]

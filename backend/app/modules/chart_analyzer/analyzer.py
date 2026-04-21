@@ -23,7 +23,7 @@ from app.modules.chart_analyzer.regime import detect_regime
 
 logger = logging.getLogger(__name__)
 
-_REDIS_TTL = 300  # 5 minutes
+_REDIS_TTL = 4 * 3600  # 4 hours — daily OHLCV doesn't change intraday
 
 
 def _redis_key(ticker: str) -> str:
