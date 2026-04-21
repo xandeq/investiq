@@ -38,7 +38,7 @@ async def generate_risks(macro_data: dict[str, Any], news: list[dict]) -> list[d
     try:
         import json
         from app.modules.ai.provider import call_llm
-        raw = await call_llm(prompt, system=_SYSTEM_RISKS, tier="free", max_tokens=800)
+        raw = await call_llm(prompt, system=_SYSTEM_RISKS, tier="standard", max_tokens=800)
         start = raw.find("[")
         end = raw.rfind("]") + 1
         if start >= 0 and end > start:

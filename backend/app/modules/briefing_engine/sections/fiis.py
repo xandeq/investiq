@@ -62,7 +62,7 @@ async def generate_fii_recommendations(data: dict[str, Any]) -> list[dict[str, A
     try:
         import json
         from app.modules.ai.provider import call_llm
-        raw = await call_llm(prompt, system=_SYSTEM_FIIS, tier="free", max_tokens=700)
+        raw = await call_llm(prompt, system=_SYSTEM_FIIS, tier="standard", max_tokens=700)
         start = raw.find("[")
         end = raw.rfind("]") + 1
         if start >= 0 and end > start:

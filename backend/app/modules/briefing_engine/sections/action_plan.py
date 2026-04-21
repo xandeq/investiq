@@ -49,7 +49,7 @@ async def generate_action_plan(
     try:
         import json
         from app.modules.ai.provider import call_llm
-        raw = await call_llm(prompt, system=_SYSTEM_ACTION, tier="free", max_tokens=1000)
+        raw = await call_llm(prompt, system=_SYSTEM_ACTION, tier="standard", max_tokens=1000)
         start = raw.find("{")
         end = raw.rfind("}") + 1
         if start >= 0 and end > start:
