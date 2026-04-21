@@ -146,6 +146,24 @@ def _build_confluences(df: pd.DataFrame, patterns: list[dict]) -> list[str]:
     return confluences[:6]
 
 
+def fetch_ohlcv(ticker: str, brapi_token: str | None = None) -> pd.DataFrame:
+    """Public wrapper to fetch OHLCV DataFrame for a ticker.
+
+    Useful for callers (e.g. Telegram bot) that need the raw DataFrame
+    separately from the full analysis result.
+
+    Returns a DataFrame with OHLCV columns + indicator columns (ema20, ema50).
+    Raises ValueError if data cannot be fetched or is insufficient.
+    """
+    token = brapi_token or os.environ.get("BRAPI_TOKEN", "")
+    df = _fetch_ohlcv(ticker.upper(), token)
+    df = _build_indicators(df)
+    df = df.dropna(subset=["ema50", "atr"]).reset_index(drop=True)
+    if len(df) < 5:
+        raise ValueError(f"Insufficient data for {ticker}")
+    return df
+
+
 async def analyze(
     ticker: str,
     brapi_token: str | None = None,

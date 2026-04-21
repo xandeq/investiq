@@ -276,40 +276,76 @@ def _fii_signal(discount_pct: float, dy: Optional[float], segmento: str) -> str:
 # Crypto radar
 # ---------------------------------------------------------------------------
 
+def _fetch_coingecko_data(coingecko_id: str) -> Optional[dict]:
+    """Fetch market data from CoinGecko for a single coin.
+
+    Returns raw market_data dict or None if the API is unavailable.
+    Wrapped separately so callers can apply gracious fallback.
+    """
+    try:
+        resp = requests.get(
+            f"https://api.coingecko.com/api/v3/coins/{coingecko_id}",
+            params={
+                "localization": "false",
+                "tickers": "false",
+                "market_data": "true",
+                "community_data": "false",
+                "developer_data": "false",
+            },
+            timeout=12,
+        )
+        resp.raise_for_status()
+        return resp.json().get("market_data", {})
+    except Exception as exc:
+        logger.warning(
+            "CoinGecko unavailable for %s (%s) — skipping ATH check",
+            coingecko_id,
+            exc,
+        )
+        return None
+
+
 def _build_crypto_radar() -> list[dict]:
     items = []
     for asset in RADAR_CRYPTO:
         try:
-            # CoinGecko for ATH in BRL
-            resp = requests.get(
-                f"https://api.coingecko.com/api/v3/coins/{asset['coingecko_id']}",
-                params={
-                    "localization": "false",
-                    "tickers": "false",
-                    "market_data": "true",
-                    "community_data": "false",
-                    "developer_data": "false",
-                },
-                timeout=12,
-            )
-            resp.raise_for_status()
-            cg = resp.json()
-            md = cg.get("market_data", {})
+            md = _fetch_coingecko_data(asset["coingecko_id"])
 
-            current_brl = md.get("current_price", {}).get("brl")
-            ath_brl = md.get("ath", {}).get("brl")
-            ath_date = md.get("ath_date", {}).get("brl", "")
-            ath_change_brl = md.get("ath_change_percentage", {}).get("brl")
-            current_usd = md.get("current_price", {}).get("usd")
-            ath_usd = md.get("ath", {}).get("usd")
-            change_24h = md.get("price_change_percentage_24h")
-            change_30d = md.get("price_change_percentage_30d")
-            change_1y = md.get("price_change_percentage_1y")
+            current_brl = md.get("current_price", {}).get("brl") if md else None
+            ath_brl = md.get("ath", {}).get("brl") if md else None
+            ath_date = md.get("ath_date", {}).get("brl", "") if md else ""
+            current_usd = md.get("current_price", {}).get("usd") if md else None
+            ath_usd = md.get("ath", {}).get("usd") if md else None
+            change_24h = md.get("price_change_percentage_24h") if md else None
+            change_30d = md.get("price_change_percentage_30d") if md else None
+            change_1y = md.get("price_change_percentage_1y") if md else None
 
-            if not current_brl or not ath_brl:
+            if not current_brl:
+                # CoinGecko unavailable — include asset with partial data so
+                # the radar still returns a row (no ATH info shown)
+                if md is None:
+                    items.append({
+                        "symbol": asset["coingecko_id"].upper()[:3],
+                        "name": asset["name"],
+                        "current_price_brl": None,
+                        "current_price_usd": None,
+                        "ath_brl": None,
+                        "ath_usd": None,
+                        "ath_date": "",
+                        "discount_from_ath_pct": None,
+                        "change_24h_pct": None,
+                        "change_30d_pct": None,
+                        "change_1y_pct": None,
+                        "signal": "⚠️ CoinGecko indisponível — dados ATH ausentes",
+                    })
                 continue
 
-            discount_pct = ((current_brl - ath_brl) / ath_brl) * 100
+            if not ath_brl:
+                discount_pct = None
+                signal = "⚪ ATH indisponível"
+            else:
+                discount_pct = ((current_brl - ath_brl) / ath_brl) * 100
+                signal = _crypto_signal(discount_pct, change_30d)
 
             # Format ATH date
             ath_date_fmt = ""
@@ -320,17 +356,15 @@ def _build_crypto_radar() -> list[dict]:
                 except Exception:
                     ath_date_fmt = ath_date[:7]
 
-            signal = _crypto_signal(discount_pct, change_30d)
-
             items.append({
                 "symbol": asset["coingecko_id"].upper()[:3],
                 "name": asset["name"],
                 "current_price_brl": round(current_brl, 0),
                 "current_price_usd": round(current_usd, 0) if current_usd else None,
-                "ath_brl": round(ath_brl, 0),
+                "ath_brl": round(ath_brl, 0) if ath_brl else None,
                 "ath_usd": round(ath_usd, 0) if ath_usd else None,
                 "ath_date": ath_date_fmt,
-                "discount_from_ath_pct": round(discount_pct, 1),
+                "discount_from_ath_pct": round(discount_pct, 1) if discount_pct is not None else None,
                 "change_24h_pct": round(change_24h, 1) if change_24h else None,
                 "change_30d_pct": round(change_30d, 1) if change_30d else None,
                 "change_1y_pct": round(change_1y, 1) if change_1y else None,

@@ -26,6 +26,40 @@ UNIVERSE: list[str] = [
 ]
 
 
+async def get_dynamic_universe(db=None) -> list[str]:
+    """Combine UNIVERSE base with tickers from user portfolios.
+
+    Queries transactions table for distinct active tickers and merges with
+    the static UNIVERSE list. Falls back to UNIVERSE on any DB error.
+    """
+    portfolio_tickers: set[str] = set()
+
+    if db is not None:
+        try:
+            from sqlalchemy import text as sa_text
+
+            result = await db.execute(
+                sa_text(
+                    "SELECT DISTINCT ticker FROM transactions "
+                    "WHERE deleted_at IS NULL AND ticker IS NOT NULL"
+                )
+            )
+            rows = result.fetchall()
+            portfolio_tickers = {row[0].upper() for row in rows if row[0]}
+        except Exception as exc:
+            logger.warning("get_dynamic_universe: DB query failed (%s) — using base UNIVERSE", exc)
+
+    combined = list(set(UNIVERSE) | portfolio_tickers)
+    combined.sort()
+    logger.debug(
+        "get_dynamic_universe: %d tickers (%d base + %d portfolio-only)",
+        len(combined),
+        len(UNIVERSE),
+        len(portfolio_tickers - set(UNIVERSE)),
+    )
+    return combined
+
+
 async def _analyze_ticker(ticker: str, brapi_token: str, redis_client: Any) -> dict | None:
     """Analyze a single ticker and return a serializable signal dict if A+, else None."""
     try:

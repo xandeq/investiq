@@ -219,6 +219,12 @@ def create_celery_app() -> Celery:
                 "schedule": crontab(minute=30, hour=18, day_of_week="1-5"),
                 "options": {"queue": "celery"},
             },
+            # Sprint 4: weekly pattern weight recalibration — Sunday 20h BRT
+            "recalibrate-patterns-weekly": {
+                "task": "signal_engine.recalibrate_patterns",
+                "schedule": crontab(minute=0, hour=20, day_of_week="0"),
+                "options": {"queue": "celery"},
+            },
         },
     )
 

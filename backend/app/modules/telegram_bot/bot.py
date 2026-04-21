@@ -73,6 +73,23 @@ async def cmd_analisa(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         except Exception as exc:
             logger.warning("LLM tese failed for %s: %s", ticker, exc)
 
+    # Send PNG chart if a setup was detected
+    if analysis.get("has_setup") and not analysis.get("error"):
+        try:
+            import asyncio
+            from app.modules.chart_analyzer.analyzer import fetch_ohlcv
+            from app.modules.chart_analyzer.chart_image import generate_chart_png
+
+            df = await asyncio.get_event_loop().run_in_executor(
+                None, fetch_ohlcv, ticker, brapi_token
+            )
+            png_bytes = generate_chart_png(df, ticker, analysis.get("setup"))
+            if png_bytes:
+                await update.message.reply_photo(photo=png_bytes, caption=msg[:1024])
+                return
+        except Exception as exc:
+            logger.warning("cmd_analisa: chart PNG failed for %s (%s) — falling back to text", ticker, exc)
+
     await update.message.reply_html(msg)
 
 

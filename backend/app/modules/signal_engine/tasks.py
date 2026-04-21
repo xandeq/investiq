@@ -192,6 +192,57 @@ async def _run_check_stop_loss() -> list[str]:
     return triggered
 
 
+@shared_task(name="signal_engine.recalibrate_patterns")
+def recalibrate_patterns() -> dict:
+    """Recalibrate pattern weights from real outcomes — runs Sunday 20h BRT.
+
+    Fetches expectancy per pattern from signal_outcomes, updates PATTERN_WEIGHTS
+    in-memory and in Redis, and sends a Telegram notification if patterns changed.
+    """
+    import os
+
+    from app.modules.signal_engine.calibration import recalibrate_and_notify
+
+    bot_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
+
+    r_sync = _get_sync_redis()
+
+    try:
+        # Use sync psycopg2 session (Celery cannot use asyncpg)
+        from app.core.db_sync import get_superuser_sync_db_session  # type: ignore[import]
+
+        with get_superuser_sync_db_session() as db:
+            report = recalibrate_and_notify(
+                redis_client=r_sync,
+                telegram_token=bot_token,
+                chat_id=chat_id,
+                db_session=db,
+            )
+    except Exception as exc:
+        logger.warning(
+            "recalibrate_patterns: DB session unavailable (%s) — running without DB", exc
+        )
+        report = recalibrate_and_notify(
+            redis_client=r_sync,
+            telegram_token=bot_token,
+            chat_id=chat_id,
+        )
+    finally:
+        try:
+            r_sync.close()
+        except Exception:
+            pass
+
+    logger.info(
+        "recalibrate_patterns: disabled=%s boosted=%s errors=%s",
+        report.get("disabled"),
+        report.get("boosted"),
+        report.get("errors"),
+    )
+    return {"status": "ok", "report": report}
+
+
 @shared_task(name="signal_engine.check_stop_loss")
 def check_stop_loss() -> dict:
     """Monitor open swing trade operations for stop-loss hits.

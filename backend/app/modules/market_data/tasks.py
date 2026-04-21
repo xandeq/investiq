@@ -64,11 +64,44 @@ def _get_redis() -> redis_lib.Redis:
     return redis_lib.Redis.from_url(url)
 
 
+def _get_portfolio_tickers() -> set[str]:
+    """Query DB for all distinct tickers from active portfolio transactions.
+
+    Uses a psycopg2 sync connection (Celery context — asyncpg not available).
+    Returns empty set on any error so the task degrades gracefully.
+    """
+    import psycopg2
+
+    db_url = os.environ.get("DATABASE_URL", "")
+    if not db_url:
+        logger.debug("refresh_quotes: DATABASE_URL not set — skipping portfolio tickers")
+        return set()
+
+    # Convert asyncpg URL to psycopg2 format if needed
+    sync_url = db_url.replace("postgresql+asyncpg://", "postgresql://")
+
+    try:
+        conn = psycopg2.connect(sync_url)
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT DISTINCT ticker FROM transactions "
+                    "WHERE deleted_at IS NULL AND ticker IS NOT NULL"
+                )
+                rows = cur.fetchall()
+                return {row[0].upper() for row in rows if row[0]}
+        finally:
+            conn.close()
+    except Exception as exc:
+        logger.warning("refresh_quotes: portfolio ticker query failed (%s) — using defaults only", exc)
+        return set()
+
+
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
 def refresh_quotes(self) -> None:
     """Fetch B3 quotes from brapi.dev and write to Redis cache.
 
-    Fetches all DEFAULT_TICKERS plus IBOVESPA index.
+    Fetches DEFAULT_TICKERS + portfolio tickers for all users + IBOVESPA index.
     Each quote is written with TTL=1200 (20 min).
     On failure, retries up to 3 times with 60s delay.
     """
@@ -76,8 +109,15 @@ def refresh_quotes(self) -> None:
     client = BrapiClient()
 
     try:
-        logger.info("refresh_quotes: fetching %d tickers", len(DEFAULT_TICKERS))
-        quotes = client.fetch_quotes(DEFAULT_TICKERS)
+        portfolio_tickers = _get_portfolio_tickers()
+        all_tickers = list(set(DEFAULT_TICKERS) | portfolio_tickers)
+        logger.info(
+            "refresh_quotes: fetching %d tickers (%d default + %d portfolio)",
+            len(all_tickers),
+            len(DEFAULT_TICKERS),
+            len(portfolio_tickers),
+        )
+        quotes = client.fetch_quotes(all_tickers)
 
         now_iso = datetime.now(timezone.utc).isoformat()
         for q in quotes:
@@ -100,7 +140,7 @@ def refresh_quotes(self) -> None:
         logger.info("refresh_quotes: wrote %d quotes to Redis", len(quotes))
 
         # Populate fundamentals cache for each ticker (used by AI analysis tasks)
-        for ticker in DEFAULT_TICKERS:
+        for ticker in all_tickers:
             try:
                 fund = client.fetch_fundamentals(ticker)
                 # Add required FundamentalsCache fields
@@ -111,7 +151,7 @@ def refresh_quotes(self) -> None:
                 logger.debug("Wrote %s to Redis (TTL=%d)", key, _FUNDAMENTALS_TTL)
             except Exception as fund_exc:
                 logger.warning("refresh_quotes: fundamentals skipped for %s — %s", ticker, fund_exc)
-        logger.info("refresh_quotes: fundamentals refreshed for %d tickers", len(DEFAULT_TICKERS))
+        logger.info("refresh_quotes: fundamentals refreshed for %d tickers", len(all_tickers))
 
         # Also fetch IBOVESPA index — may fail on unauthenticated free tier
         try:
