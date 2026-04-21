@@ -68,7 +68,7 @@ async def fetch_and_rank_news(hours_back: int = 48) -> list[dict[str, Any]]:
         from app.modules.ai.provider import call_llm
 
         prompt = f"Notícias recentes de mercado:\n\n{headlines_txt}\n\nRanqueie e analise as 9 mais relevantes."
-        raw = await call_llm(prompt, system=_RANK_SYSTEM, tier="standard", max_tokens=1500)
+        raw = await call_llm(prompt, system=_RANK_SYSTEM, tier="paid", max_tokens=1500)
 
         # Extract JSON
         start = raw.find("[")

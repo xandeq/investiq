@@ -75,7 +75,7 @@ async def generate_equity_recommendations(data: dict[str, Any]) -> list[dict[str
     try:
         import json
         from app.modules.ai.provider import call_llm
-        raw = await call_llm(prompt, system=_SYSTEM_EQUITIES, tier="standard", max_tokens=800)
+        raw = await call_llm(prompt, system=_SYSTEM_EQUITIES, tier="paid", max_tokens=800)
         start = raw.find("[")
         end = raw.rfind("]") + 1
         if start >= 0 and end > start:
