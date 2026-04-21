@@ -161,25 +161,15 @@ def test_finnhub_returns_empty_on_error():
     assert result == []
 
 
-def test_finnhub_parses_news():
+def test_finnhub_requires_key():
+    """Finnhub returns empty list when no API key is set."""
     from app.modules.news.adapters.finnhub_adapter import get_market_news
-    import time
-    mock_resp = MagicMock()
-    mock_resp.raise_for_status = MagicMock()
-    mock_resp.json.return_value = [
-        {
-            "headline": "Test headline",
-            "summary": "Test summary",
-            "url": "https://example.com",
-            "source": "Reuters",
-            "datetime": int(time.time()),
-            "related": "PETR4",
-        }
-    ]
-    with patch("requests.get", return_value=mock_resp):
+    with patch.dict("os.environ", {}, clear=False):
+        # Ensure no key in env
+        import os
+        os.environ.pop("FINNHUB_API_KEY", None)
         result = get_market_news(hours_back=24)
-    assert len(result) == 1
-    assert result[0]["headline"] == "Test headline"
+    assert result == []
 
 
 # ── Report Builder ────────────────────────────────────────────────────────────

@@ -31,14 +31,16 @@ async def fetch_and_rank_news(hours_back: int = 48) -> list[dict[str, Any]]:
             return []
 
     from app.modules.news.adapters.cvm_rss import get_cvm_news
+    from app.modules.news.adapters.gnews_adapter import get_financial_news
     from app.modules.news.adapters.finnhub_adapter import get_market_news
 
     cvm_task = asyncio.create_task(_safe(get_cvm_news, hours_back))
+    gnews_task = asyncio.create_task(_safe(get_financial_news, hours_back))
     finnhub_task = asyncio.create_task(_safe(get_market_news, "general", hours_back))
 
-    cvm_news, finnhub_news = await asyncio.gather(cvm_task, finnhub_task)
+    cvm_news, gnews_news, finnhub_news = await asyncio.gather(cvm_task, gnews_task, finnhub_task)
 
-    all_news = cvm_news + finnhub_news
+    all_news = cvm_news + gnews_news + finnhub_news
 
     if not all_news:
         return []

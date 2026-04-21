@@ -28,15 +28,18 @@ def _get_key() -> str:
 
 
 def get_market_news(category: str = "general", hours_back: int = 24) -> list[dict[str, Any]]:
-    """Fetch market news from Finnhub.
+    """Fetch market news from Finnhub (requires API key).
 
     category: 'general', 'forex', 'crypto', 'merger'
     Returns list of dicts: headline, summary, url, source, published_at, tickers
+    Falls back to empty list if no key.
     """
-    params: dict = {"category": category}
     key = _get_key()
-    if key:
-        params["token"] = key
+    if not key:
+        logger.debug("finnhub: FINNHUB_API_KEY not set — skipping news")
+        return []
+
+    params: dict = {"category": category, "token": key}
 
     try:
         resp = requests.get(f"{_BASE}/news", params=params, timeout=_TIMEOUT)

@@ -101,21 +101,69 @@ def get_tesouro_rates() -> list[dict[str, Any]]:
         return []
 
 
-def get_top_tesouro(n: int = 3) -> list[dict[str, Any]]:
-    """Return top N Tesouro bonds: Selic, best IPCA+, best Prefixado."""
+def _synthetic_rates_from_selic(selic: float | None = None) -> list[dict[str, Any]]:
+    """Generate synthetic Tesouro rates based on SELIC when API is unavailable.
+
+    Uses historical spread patterns:
+    - Selic: SELIC rate (overnight liquidity)
+    - IPCA+: SELIC/2 + ~3% (long term real rate)
+    - Prefixado: SELIC - ~1.5% (medium term locked rate)
+    """
+    if selic is None:
+        selic = 14.65  # Last known value
+
+    return [
+        {
+            "name": "Tesouro Selic",
+            "label": "Tesouro Selic",
+            "maturity_date": "2029-03-01",
+            "annual_rate": round(selic, 2),
+            "min_investment": 100.0,
+            "price": 14500.0,
+            "profile": "conservador – liquidez diária",
+            "synthetic": True,
+        },
+        {
+            "name": "Tesouro IPCA+",
+            "label": "Tesouro IPCA+",
+            "maturity_date": "2035-05-15",
+            "annual_rate": round(selic * 0.45 + 2.5, 2),  # approx IPCA+ spread
+            "min_investment": 30.0,
+            "price": 4000.0,
+            "profile": "proteção inflação – longo prazo",
+            "synthetic": True,
+        },
+        {
+            "name": "Tesouro Prefixado",
+            "label": "Tesouro Prefixado",
+            "maturity_date": "2028-01-01",
+            "annual_rate": round(selic - 1.5, 2),
+            "min_investment": 30.0,
+            "price": 850.0,
+            "profile": "travar taxa – cenário de queda de juros",
+            "synthetic": True,
+        },
+    ]
+
+
+def get_top_tesouro(n: int = 3, selic_rate: float | None = None) -> list[dict[str, Any]]:
+    """Return top N Tesouro bonds: Selic, best IPCA+, best Prefixado.
+
+    Falls back to synthetic rates based on SELIC when API is unavailable.
+    """
     all_bonds = get_tesouro_rates()
     if not all_bonds:
-        return []
+        # Fallback: synthetic rates from SELIC
+        return _synthetic_rates_from_selic(selic_rate)[:n]
 
-    selic = [b for b in all_bonds if "Selic" in b["label"] and "+" not in b["label"]]
+    selic_bonds = [b for b in all_bonds if "Selic" in b["label"] and "+" not in b["label"]]
     ipca = [b for b in all_bonds if "IPCA+" in b["label"] and "Semestral" not in b["label"]]
     prefixado = [b for b in all_bonds if "Prefixado" in b["label"] and "Semestral" not in b["label"]]
 
     picks = []
-    if selic:
-        picks.append({**selic[0], "profile": "conservador – liquidez diária"})
+    if selic_bonds:
+        picks.append({**selic_bonds[0], "profile": "conservador – liquidez diária"})
     if ipca:
-        # Best IPCA+ = highest rate
         best_ipca = max(ipca, key=lambda x: x["annual_rate"])
         picks.append({**best_ipca, "profile": "proteção inflação – longo prazo"})
     if prefixado:

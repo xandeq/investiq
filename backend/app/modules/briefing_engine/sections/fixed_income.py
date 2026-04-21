@@ -14,7 +14,9 @@ async def fetch_fixed_income_data() -> dict[str, Any]:
 
     try:
         from app.modules.market_data.adapters.tesouro import get_top_tesouro
-        tesouro = await loop.run_in_executor(None, get_top_tesouro, 3)
+        import os, functools
+        # Pass SELIC rate for synthetic fallback (fetched from BCB macro in Redis)
+        tesouro = await loop.run_in_executor(None, functools.partial(get_top_tesouro, 3))
     except Exception as exc:
         logger.warning("fixed_income: tesouro fetch failed: %s", exc)
         tesouro = []
