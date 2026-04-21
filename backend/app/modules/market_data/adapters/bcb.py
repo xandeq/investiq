@@ -80,9 +80,9 @@ def fetch_macro_indicators() -> dict:
     try:
         df = sgs.get(
             {
-                "CDI": _CDI_CODE,
-                "SELIC": _SELIC_CODE,
-                "IPCA": _IPCA_CODE,
+                _CDI_CODE: "CDI",
+                _SELIC_CODE: "SELIC",
+                _IPCA_CODE: "IPCA",
             },
             start=start_date,
         )

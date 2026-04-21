@@ -65,9 +65,7 @@ REDIS_DEDUP_PREFIX = "opportunity_detector:sent"
 # Alert destinations — Phase 1 hardcoded
 # ---------------------------------------------------------------------------
 
-TELEGRAM_BOT_TOKEN: str = os.environ.get(
-    "TELEGRAM_BOT_TOKEN", "8360754042:AAGgfXO917A1ocUqAn_kPpqS7C6ozQTrg60"
-)
+TELEGRAM_BOT_TOKEN: str = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 # Set after first /start message to the bot — see setup instructions in README
 TELEGRAM_CHAT_ID: str = os.environ.get("TELEGRAM_CHAT_ID", "")
 

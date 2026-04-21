@@ -1,8 +1,16 @@
+import sys
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_INSECURE_DEFAULTS = {"change-me-in-production", "secret", ""}
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    def model_post_init(self, __context: object) -> None:
+        if self.ENVIRONMENT == "production" and self.SECRET_KEY in _INSECURE_DEFAULTS:
+            sys.exit("FATAL: SECRET_KEY is insecure default — refusing to start in production")
 
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@postgres:5432/investiq"
     # AUTH_DATABASE_URL: superuser connection used by auth endpoints (register/login/verify).
