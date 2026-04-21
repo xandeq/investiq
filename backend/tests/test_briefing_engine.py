@@ -266,23 +266,23 @@ def test_risks_formatter_with_data():
     assert "consumo" in result
 
 
-# ── Briefing API endpoint ─────────────────────────────────────────────────────
+# ── Report structure validation ───────────────────────────────────────────────
 
-@pytest.mark.asyncio
-async def test_briefing_api_uses_cache(async_client, auth_headers):
-    """GET /briefing/daily returns 200 (from cache or generated)."""
-    import json
-    mock_report = {
-        "sections": {},
-        "telegram_chunks": ["Test chunk"],
-        "summary": "Test summary",
-        "generated_at": "2026-04-21T08:00:00",
-        "raw_data": {},
-        "from_cache": True,
+def test_report_structure_has_required_keys():
+    """Verify _chunk_message and report helpers produce expected structure."""
+    from app.modules.briefing_engine.report import _chunk_message
+    from app.modules.briefing_engine.sections.action_plan import format_action_plan_section
+
+    plan = {
+        "plano_conservador": "Renda fixa",
+        "plano_moderado": "Ações de dividendos",
+        "plano_agressivo": "Swing com stop",
+        "plano_cripto": "Aguardar confirmação",
+        "watchlist": [{"ativo": "BBSE3", "gatilho": "pullback até 40"}],
     }
-
-    with patch("redis.asyncio.Redis.get", new_callable=AsyncMock, return_value=json.dumps(mock_report)):
-        resp = await async_client.get("/briefing/daily", headers=auth_headers)
-
-    # Acceptable: 200 (with mock) or 401 (auth issue in test env)
-    assert resp.status_code in (200, 401, 403)
+    text = format_action_plan_section(plan)
+    assert "Plano de Ação" in text
+    assert "BBSE3" in text
+    assert "pullback" in text
+    chunks = _chunk_message(text)
+    assert len(chunks) >= 1
