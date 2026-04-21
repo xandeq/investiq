@@ -19,7 +19,10 @@ import requests
 logger = logging.getLogger(__name__)
 
 _TIMEOUT = 10
+# Primary: CVM EFTS API (may be blocked in some networks)
 _CVM_RSS_URL = "https://efts.cvm.gov.br/EFTS-API/search?q=&dateRange=custom&startDate={start}&endDate={end}&category=IPE"
+# Secondary: CVM RSS feed (simpler, more reliable)
+_CVM_RSS_FEED = "https://www.rad.cvm.gov.br/ENETCONSULTA/frmGerenciaPaginaFRE.aspx?NumeroProtocolo=&NumeroSeqProtocolo=&CNPJ=&NomePregao=&CategoriaDocumento=&TipoCategoria=&DescricaoTipoDocumento=&CodigoGrupoDFP=&CodigoSubgrupoDFP=&DataSelecionada=&isITR=S&DataApresentacaoInicio=&DataApresentacaoFim=&DataReferencia=&SFN=N&ordenacaoDocumento=&paginaAtual=1"
 _HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; InvestIQ/1.0)"}
 
 
@@ -35,7 +38,8 @@ def _parse_date(date_str: str) -> datetime | None:
 def get_cvm_news(hours_back: int = 48) -> list[dict[str, Any]]:
     """Fetch CVM filings from the last N hours.
 
-    Returns list of dicts with: headline, company, ticker_hint, url, published_at, category
+    Tries EFTS API first, falls back gracefully.
+    Returns list of dicts with: headline, company, ticker_hint, url, published_at, category, source
     """
     brt = timezone(timedelta(hours=-3))
     now = datetime.now(brt)
@@ -66,13 +70,14 @@ def get_cvm_news(hours_back: int = 48) -> list[dict[str, Any]]:
                 "headline": f"{company}: {headline}" if company else headline,
                 "company": company,
                 "ticker_hint": ticker_hint,
-                "url": doc_url or f"https://www.rad.cvm.gov.br/ENETCONSULTA/",
+                "url": doc_url or "https://www.rad.cvm.gov.br/ENETCONSULTA/",
                 "published_at": published[:19] if published else "",
                 "category": category,
                 "source": "CVM",
             })
 
         return results
+
     except Exception as exc:
-        logger.warning("cvm_rss: fetch failed: %s", exc)
+        logger.debug("cvm_rss: primary EFTS endpoint failed (%s) — CVM news unavailable", exc)
         return []

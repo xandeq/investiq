@@ -17,10 +17,44 @@ _BASE = "https://stooq.com/q/d/l/"
 _TIMEOUT = 10
 
 
+def _fetch_yahoo(symbol: str) -> float | None:
+    """Fetch latest price from Yahoo Finance (primary source — works from VPS)."""
+    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+    try:
+        resp = requests.get(
+            url,
+            params={"interval": "1d", "range": "5d"},
+            timeout=_TIMEOUT,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; InvestIQ/1.0)"},
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        closes = data["chart"]["result"][0]["indicators"]["quote"][0]["close"]
+        # Last non-null close
+        valid = [c for c in closes if c is not None]
+        return float(valid[-1]) if valid else None
+    except Exception as exc:
+        logger.warning("yahoo: failed to fetch %s: %s", symbol, exc)
+        return None
+
+
 def _fetch(symbol: str) -> float | None:
-    """Fetch the latest close price for a Stooq symbol."""
+    """Fetch the latest close price — tries Yahoo Finance first, then Stooq."""
+    # Map Stooq symbols to Yahoo Finance equivalents
+    _yahoo_map = {
+        "^vix": "%5EVIX",
+        "^spx": "%5EGSPC",
+        "^ndx": "%5EIXIC",  # Nasdaq composite
+        "^bvsp": "%5EBVSP",
+        "cl.f": "CL=F",  # WTI crude oil futures
+    }
+    yahoo_sym = _yahoo_map.get(symbol.lower(), symbol)
+    result = _fetch_yahoo(yahoo_sym)
+    if result is not None:
+        return result
+
+    # Fallback: Stooq
     today = date.today()
-    # Request last 5 days to handle weekends/holidays
     start = (today - timedelta(days=5)).strftime("%Y%m%d")
     end = today.strftime("%Y%m%d")
     url = f"{_BASE}?s={symbol}&d1={start}&d2={end}&i=d"
@@ -32,8 +66,7 @@ def _fetch(symbol: str) -> float | None:
             return None
         last = lines[-1].split(",")
         if len(last) >= 5:
-            close = last[4]  # Date,Open,High,Low,Close
-            return float(close)
+            return float(last[4])
         return None
     except Exception as exc:
         logger.warning("stooq: failed to fetch %s: %s", symbol, exc)
@@ -41,7 +74,7 @@ def _fetch(symbol: str) -> float | None:
 
 
 def get_global_indices() -> dict[str, Any]:
-    """Return latest values for VIX, S&P500, Nasdaq100, Ibovespa."""
+    """Return latest values for VIX, S&P500, Nasdaq, Ibovespa."""
     return {
         "vix": _fetch("^vix"),
         "sp500": _fetch("^spx"),

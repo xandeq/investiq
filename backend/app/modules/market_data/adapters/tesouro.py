@@ -14,7 +14,10 @@ import requests
 
 logger = logging.getLogger(__name__)
 
+# Primary endpoint (blocked on some servers — falls back gracefully)
 _URL = "https://www.tesourotransparencia.gov.br/thot/tesourodireto/obterTaxasTesouro.json"
+# Secondary: Tesouro Direto direct API
+_URL2 = "https://www.tesourodireto.com.br/json/br/com/b3/tesourodireto/geralatividade/rest/tesouroDiretoGetTaxasTesouroDireto.json"
 _TIMEOUT = 10
 
 # Map official names to short labels
@@ -29,19 +32,45 @@ _LABEL_MAP = {
 }
 
 
+def _get_bonds_from_url(url: str) -> list | None:
+    """Try fetching bond list from a specific URL. Returns None on failure."""
+    try:
+        resp = requests.get(url, timeout=_TIMEOUT, headers={"User-Agent": "Mozilla/5.0"})
+        resp.raise_for_status()
+        data = resp.json()
+        # Primary URL format
+        bonds = data.get("response", {}).get("TrsrBdTradgList")
+        if bonds is not None:
+            return bonds
+        # Secondary URL format (tesourodireto.com.br)
+        for key in ("BdTradgList", "TrsrBdTradgList"):
+            bonds = data.get(key)
+            if bonds:
+                return bonds
+        # Try nested
+        for v in data.values():
+            if isinstance(v, list) and v:
+                return v
+        return None
+    except Exception:
+        return None
+
+
 def get_tesouro_rates() -> list[dict[str, Any]]:
     """Fetch current Tesouro Direto rates.
 
-    Returns list of dicts with:
-      name, label, maturity_date, annual_rate, min_investment, price
-    Sorted by maturity date ascending.
-    Returns empty list on failure.
+    Tries primary URL then secondary. Returns empty list on both failures.
     """
+    for url in [_URL, _URL2]:
+        bonds = _get_bonds_from_url(url)
+        if bonds:
+            break
+    else:
+        logger.warning("tesouro: all endpoints failed")
+        return []
+
+    bonds = bonds  # type: ignore[assignment]
     try:
-        resp = requests.get(_URL, timeout=_TIMEOUT)
-        resp.raise_for_status()
-        data = resp.json()
-        bonds = data.get("response", {}).get("TrsrBdTradgList", [])
 
         results = []
         for item in bonds:
