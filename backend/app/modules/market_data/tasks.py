@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_TICKERS = [
     # IBOV top 30 — full coverage with BRAPI Pro
     "PETR4", "VALE3", "ITUB4", "BBDC4", "ABEV3", "WEGE3", "BBSE3", "BBAS3",
-    "EGIE3", "TOTS3", "HAPV3", "BRFS3", "RDOR3", "SBSP3", "PRIO3", "RENT3",
+    "EGIE3", "TOTS3", "HAPV3", "BEEF3", "RDOR3", "SBSP3", "PRIO3", "RENT3",
     "EMBR3", "SUZB3", "LREN3", "B3SA3", "RADL3", "ELET3", "ENEV3", "CMIG4",
     "TAEE11", "JBSS3", "VIVT3", "KLBN11", "FLRY3", "CYRE3",
     "BOVA11",  # ETF benchmark

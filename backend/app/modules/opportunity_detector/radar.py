@@ -67,7 +67,7 @@ RADAR_ACOES: list[dict] = [
     # Consumo & Varejo
     {"ticker": "ABEV3", "name": "Ambev",              "setor": "Bebidas"},
     {"ticker": "JBSS3", "name": "JBS",                "setor": "Alimentos"},
-    {"ticker": "BRFS3", "name": "BRF",                "setor": "Alimentos"},
+    {"ticker": "BEEF3", "name": "Minerva Foods",      "setor": "Alimentos"},
     {"ticker": "SMTO3", "name": "São Martinho",       "setor": "Açúcar & Álcool"},
     {"ticker": "BEEF3", "name": "Minerva Foods",      "setor": "Alimentos"},
     {"ticker": "SLCE3", "name": "SLC Agrícola",       "setor": "Agro"},
