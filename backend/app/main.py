@@ -42,6 +42,7 @@ from app.modules.swing_trade.router import router as swing_trade_router
 from app.modules.advisor.router import router as advisor_router
 from app.modules.health.router import router as health_router
 from app.modules.chart_analyzer.router import router as chart_analyzer_router
+from app.modules.signal_engine.router import router as signal_engine_router
 
 
 @asynccontextmanager
@@ -147,6 +148,8 @@ app.include_router(advisor_router, prefix="/advisor", tags=["advisor"])
 app.include_router(health_router, prefix="/health", tags=["health"])
 # Chart Analyzer — technical analysis on demand
 app.include_router(chart_analyzer_router, prefix="/chart-analyzer", tags=["Chart Analyzer"])
+# Signal Engine — A+ setup scanner and gate evaluator (Sprint 2)
+app.include_router(signal_engine_router, prefix="/signals", tags=["Signal Engine"])
 
 
 @app.get("/health")

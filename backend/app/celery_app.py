@@ -49,6 +49,7 @@ def create_celery_app() -> Celery:
             "app.modules.dashboard.tasks",
             "app.modules.dashboard.digest_tasks",
             "app.modules.billing.tasks",
+            "app.modules.signal_engine.tasks",
         ],
     )
 
@@ -192,6 +193,19 @@ def create_celery_app() -> Celery:
                 "task": "advisor.refresh_universe_entry_signals",
                 "schedule": crontab(minute=0, hour=2),
                 "args": [],
+            },
+            # Signal Engine — A+ setup scanner (Sprint 2)
+            "scan-signals-market-hours": {
+                "task": "signal_engine.scan_signals",
+                # Every 30min, Mon-Fri, 10h-17h BRT
+                "schedule": crontab(minute="*/30", hour="10-17", day_of_week="1-5"),
+                "options": {"queue": "celery", "expires": 28 * 60},
+            },
+            "check-stop-loss-market-hours": {
+                "task": "signal_engine.check_stop_loss",
+                # Every 30min, Mon-Fri, 10h-17h BRT — aligned with scan
+                "schedule": crontab(minute="*/30", hour="10-17", day_of_week="1-5"),
+                "options": {"queue": "celery", "expires": 28 * 60},
             },
         },
     )

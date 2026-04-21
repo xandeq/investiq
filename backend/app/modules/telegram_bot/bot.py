@@ -27,6 +27,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "Comandos:\n"
         "/analisa <TICKER> — analise tecnica de uma acao\n"
         "/regime — diagnostico do mercado atual (BOVA11)\n"
+        "/sinais — setups A+ ativos agora\n"
         "/ping — verifica se o bot esta online"
     )
 
@@ -108,6 +109,50 @@ async def cmd_ping(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("pong — InvestIQ Bot online")
 
 
+async def cmd_sinais(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handler for /sinais — lista setups A+ ativos agora."""
+    await update.message.reply_text("Buscando setups A+...")
+
+    try:
+        import redis.asyncio as aioredis
+        from app.modules.signal_engine.scanner import get_active_signals
+
+        redis_url = os.environ.get("REDIS_URL", "redis://redis:6379/0")
+        redis_client = aioredis.from_url(redis_url, decode_responses=True)
+        try:
+            signals = await get_active_signals(redis_client)
+        finally:
+            try:
+                await redis_client.aclose()
+            except Exception:
+                pass
+    except Exception as exc:
+        logger.warning("cmd_sinais: failed to fetch signals: %s", exc)
+        signals = []
+
+    if not signals:
+        await update.message.reply_text(
+            "Hoje sem setups A+ — mercado nao oferece oportunidade agora."
+        )
+        return
+
+    lines = ["<b>Setups A+ Ativos</b>", ""]
+    for s in signals:
+        setup = s.get("setup") or {}
+        ticker = s.get("ticker", "?")
+        pattern = setup.get("pattern", "N/D")
+        direction = setup.get("direction", "N/D")
+        entry = setup.get("entry", "?")
+        stop = setup.get("stop", "?")
+        rr = setup.get("rr", "?")
+        lines.append(
+            f"<b>{ticker}</b> — {pattern} ({direction})\n"
+            f"  Entrada: R${entry} | Stop: R${stop} | R/R: {rr}"
+        )
+
+    await update.message.reply_html("\n".join(lines))
+
+
 def create_application(token: str) -> Application:
     """Build and configure the Telegram Application."""
     app = Application.builder().token(token).build()
@@ -115,4 +160,5 @@ def create_application(token: str) -> Application:
     app.add_handler(CommandHandler("analisa", cmd_analisa))
     app.add_handler(CommandHandler("regime", cmd_regime))
     app.add_handler(CommandHandler("ping", cmd_ping))
+    app.add_handler(CommandHandler("sinais", cmd_sinais))
     return app
