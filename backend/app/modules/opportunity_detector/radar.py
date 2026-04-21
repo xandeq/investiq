@@ -29,45 +29,120 @@ RADAR_CACHE_TTL = 1800  # 30 minutes
 # Curated asset lists
 # ---------------------------------------------------------------------------
 
-# Top IBOV stocks to scan — sectors included for display
+# Full IBOV + selected mid caps — expanded for BRAPI Pro (no rate limit)
 RADAR_ACOES: list[dict] = [
-    {"ticker": "PETR4", "name": "Petrobras PN",      "setor": "Petróleo & Gás"},
+    # Petróleo & Gás
+    {"ticker": "PETR4", "name": "Petrobras PN",       "setor": "Petróleo & Gás"},
+    {"ticker": "PRIO3", "name": "PRIO",               "setor": "Petróleo & Gás"},
+    {"ticker": "RECV3", "name": "PetroRecôncavo",     "setor": "Petróleo & Gás"},
+    {"ticker": "VBBR3", "name": "Vibra Energia",      "setor": "Petróleo & Gás"},
+    {"ticker": "RAIZ4", "name": "Raízen",             "setor": "Petróleo & Gás"},
+    # Mineração & Siderurgia
     {"ticker": "VALE3", "name": "Vale",               "setor": "Mineração"},
+    {"ticker": "CSNA3", "name": "CSN",                "setor": "Siderurgia"},
+    {"ticker": "GGBR4", "name": "Gerdau PN",          "setor": "Siderurgia"},
+    {"ticker": "USIM5", "name": "Usiminas PNA",       "setor": "Siderurgia"},
+    # Bancos & Financeiro
     {"ticker": "ITUB4", "name": "Itaú Unibanco",      "setor": "Bancos"},
     {"ticker": "BBAS3", "name": "Banco do Brasil",    "setor": "Bancos"},
     {"ticker": "BBDC4", "name": "Bradesco PN",        "setor": "Bancos"},
-    {"ticker": "ABEV3", "name": "Ambev",              "setor": "Bebidas"},
-    {"ticker": "WEGE3", "name": "Weg",                "setor": "Industrial"},
-    {"ticker": "RENT3", "name": "Localiza",           "setor": "Locação de Veículos"},
-    {"ticker": "LREN3", "name": "Lojas Renner",       "setor": "Varejo"},
-    {"ticker": "SUZB3", "name": "Suzano",             "setor": "Papel & Celulose"},
-    {"ticker": "B3SA3", "name": "B3",                 "setor": "Bolsa de Valores"},
-    {"ticker": "RADL3", "name": "Raia Drogasil",      "setor": "Farmácias"},
-    {"ticker": "EGIE3", "name": "Engie Brasil",       "setor": "Energia Elétrica"},
+    {"ticker": "SANB11","name": "Santander",           "setor": "Bancos"},
+    {"ticker": "BPAN4", "name": "Banco Pan",          "setor": "Bancos"},
+    {"ticker": "B3SA3", "name": "B3",                 "setor": "Financeiro"},
     {"ticker": "BBSE3", "name": "BB Seguridade",      "setor": "Seguros"},
-    {"ticker": "PRIO3", "name": "PRIO",               "setor": "Petróleo & Gás"},
-    {"ticker": "SBSP3", "name": "Sabesp",             "setor": "Saneamento"},
+    {"ticker": "IRBR3", "name": "IRB Brasil RE",      "setor": "Seguros"},
+    {"ticker": "CIEL3", "name": "Cielo",              "setor": "Meios de Pagamento"},
+    # Energia Elétrica
+    {"ticker": "EGIE3", "name": "Engie Brasil",       "setor": "Energia Elétrica"},
     {"ticker": "ELET3", "name": "Eletrobras ON",      "setor": "Energia Elétrica"},
+    {"ticker": "CMIG4", "name": "Cemig PN",           "setor": "Energia Elétrica"},
+    {"ticker": "CPFE3", "name": "CPFL Energia",       "setor": "Energia Elétrica"},
+    {"ticker": "ENEV3", "name": "Eneva",              "setor": "Energia Elétrica"},
+    {"ticker": "ENBR3", "name": "Energias BR",        "setor": "Energia Elétrica"},
+    {"ticker": "AURE3", "name": "Auren Energia",      "setor": "Energia Elétrica"},
+    {"ticker": "TAEE11","name": "Taesa",               "setor": "Energia Elétrica"},
+    # Saneamento
+    {"ticker": "SBSP3", "name": "Sabesp",             "setor": "Saneamento"},
+    {"ticker": "CSAN3", "name": "Cosan",              "setor": "Saneamento"},
+    # Consumo & Varejo
+    {"ticker": "ABEV3", "name": "Ambev",              "setor": "Bebidas"},
+    {"ticker": "JBSS3", "name": "JBS",                "setor": "Alimentos"},
+    {"ticker": "BRFS3", "name": "BRF",                "setor": "Alimentos"},
+    {"ticker": "SMTO3", "name": "São Martinho",       "setor": "Açúcar & Álcool"},
+    {"ticker": "BEEF3", "name": "Minerva Foods",      "setor": "Alimentos"},
+    {"ticker": "SLCE3", "name": "SLC Agrícola",       "setor": "Agro"},
+    {"ticker": "LREN3", "name": "Lojas Renner",       "setor": "Varejo"},
+    {"ticker": "MGLU3", "name": "Magazine Luiza",     "setor": "Varejo"},
+    {"ticker": "PETZ3", "name": "Petz",               "setor": "Varejo"},
+    # Locação & Logística
+    {"ticker": "RENT3", "name": "Localiza",           "setor": "Locação de Veículos"},
+    {"ticker": "MOVI3", "name": "Movida",             "setor": "Locação de Veículos"},
+    {"ticker": "LOGG3", "name": "Log Commercial",     "setor": "Logística"},
+    # Papel, Celulose & Madeira
+    {"ticker": "SUZB3", "name": "Suzano",             "setor": "Papel & Celulose"},
+    {"ticker": "KLBN11","name": "Klabin",              "setor": "Papel & Celulose"},
+    {"ticker": "DXCO3", "name": "Dexco",              "setor": "Construção"},
+    # Industrial & Tecnologia
+    {"ticker": "WEGE3", "name": "WEG",                "setor": "Industrial"},
     {"ticker": "EMBR3", "name": "Embraer",            "setor": "Aeronáutica"},
     {"ticker": "TOTS3", "name": "Totvs",              "setor": "Tecnologia"},
+    {"ticker": "TOTVS3","name": "Totvs ON",           "setor": "Tecnologia"},
+    {"ticker": "LWSA3", "name": "Locaweb",            "setor": "Tecnologia"},
+    {"ticker": "GETL3", "name": "Getnet",             "setor": "Tecnologia"},
+    # Saúde
     {"ticker": "RDOR3", "name": "Rede D'Or",          "setor": "Saúde"},
+    {"ticker": "HAPV3", "name": "Hapvida",            "setor": "Saúde"},
+    {"ticker": "FLRY3", "name": "Fleury",             "setor": "Saúde"},
+    {"ticker": "RADL3", "name": "Raia Drogasil",      "setor": "Farmácias"},
+    {"ticker": "ODPV3", "name": "Odontoprev",         "setor": "Saúde"},
+    # Imobiliário
+    {"ticker": "MRVE3", "name": "MRV",                "setor": "Construção Civil"},
+    {"ticker": "CYRE3", "name": "Cyrela",             "setor": "Construção Civil"},
+    {"ticker": "EZTC3", "name": "EZTEC",              "setor": "Construção Civil"},
+    {"ticker": "DIRR3", "name": "Direcional",         "setor": "Construção Civil"},
+    # Telecomunicações
+    {"ticker": "VIVT3", "name": "Vivo",               "setor": "Telecomunicações"},
+    {"ticker": "TIMS3", "name": "TIM",                "setor": "Telecomunicações"},
+    # Educação
+    {"ticker": "COGN3", "name": "Cogna",              "setor": "Educação"},
+    {"ticker": "YDUQ3", "name": "Yduqs",              "setor": "Educação"},
+    {"ticker": "ANIM3", "name": "Ânima",              "setor": "Educação"},
 ]
 
-# Top FIIs to scan with reference P/VP (approximate fair value baseline)
-# P/VP ref = value when fund trades at book value historically
+# Top FIIs to scan — expanded to 25 with reference P/VP
 RADAR_FIIS: list[dict] = [
-    {"ticker": "HGLG11", "name": "Pátria Logística",       "segmento": "Logística",     "pvp_ref": 1.00},
-    {"ticker": "XPML11", "name": "XP Malls",               "segmento": "Shopping",      "pvp_ref": 1.00},
-    {"ticker": "MXRF11", "name": "Maxi Renda",             "segmento": "Papel (CRI)",   "pvp_ref": 1.00},
-    {"ticker": "KNCR11", "name": "Kinea Rendimentos",      "segmento": "Papel (CRI)",   "pvp_ref": 1.00},
-    {"ticker": "BCFF11", "name": "BTG Pactual Fundo Fundos","segmento": "Fundo de Fundos","pvp_ref": 1.00},
-    {"ticker": "VISC11", "name": "Vinci Shopping Centers", "segmento": "Shopping",      "pvp_ref": 1.00},
-    {"ticker": "HSML11", "name": "HSI Malls",              "segmento": "Shopping",      "pvp_ref": 1.00},
-    {"ticker": "BRCO11", "name": "Bresco Logística",       "segmento": "Logística",     "pvp_ref": 1.00},
-    {"ticker": "BTLG11", "name": "BTG Pactual Logística",  "segmento": "Logística",     "pvp_ref": 1.00},
-    {"ticker": "IRDM11", "name": "Iridium Recebíveis",     "segmento": "Papel (CRI)",   "pvp_ref": 1.00},
-    {"ticker": "HFOF11", "name": "Hedge Fund de Fundos",   "segmento": "Fundo de Fundos","pvp_ref": 1.00},
-    {"ticker": "RBRF11", "name": "RBR Alpha Fund",         "segmento": "Fundo de Fundos","pvp_ref": 1.00},
+    # Papel / CRI (renda fixa imobiliária)
+    {"ticker": "KNCR11", "name": "Kinea Rendimentos",       "segmento": "Papel (CRI)",    "pvp_ref": 1.00},
+    {"ticker": "MXRF11", "name": "Maxi Renda",              "segmento": "Papel (CRI)",    "pvp_ref": 1.00},
+    {"ticker": "IRDM11", "name": "Iridium Recebíveis",      "segmento": "Papel (CRI)",    "pvp_ref": 1.00},
+    {"ticker": "XPCA11", "name": "XP Crédito Agrícola",     "segmento": "Papel (CRI)",    "pvp_ref": 1.00},
+    {"ticker": "RZTR11", "name": "Riza Terrax",              "segmento": "Papel (CRI)",    "pvp_ref": 1.00},
+    {"ticker": "HCTR11", "name": "Hectare CE",              "segmento": "Papel (CRI)",    "pvp_ref": 1.00},
+    # Logística
+    {"ticker": "HGLG11", "name": "Pátria Logística",        "segmento": "Logística",      "pvp_ref": 1.05},
+    {"ticker": "BTLG11", "name": "BTG Pactual Logística",   "segmento": "Logística",      "pvp_ref": 1.05},
+    {"ticker": "BRCO11", "name": "Bresco Logística",        "segmento": "Logística",      "pvp_ref": 1.05},
+    {"ticker": "XPLG11", "name": "XP Log",                  "segmento": "Logística",      "pvp_ref": 1.05},
+    {"ticker": "LVBI11", "name": "VBI Logística",           "segmento": "Logística",      "pvp_ref": 1.00},
+    # Shopping / Varejo
+    {"ticker": "XPML11", "name": "XP Malls",                "segmento": "Shopping",       "pvp_ref": 1.05},
+    {"ticker": "VISC11", "name": "Vinci Shopping Centers",  "segmento": "Shopping",       "pvp_ref": 1.05},
+    {"ticker": "HSML11", "name": "HSI Malls",               "segmento": "Shopping",       "pvp_ref": 1.00},
+    {"ticker": "MALL11", "name": "Malls Brasil Plural",     "segmento": "Shopping",       "pvp_ref": 1.00},
+    # Escritórios
+    {"ticker": "HGRE11", "name": "CSHG Real Estate",        "segmento": "Lajes Corporativas","pvp_ref": 0.90},
+    {"ticker": "RBRP11", "name": "RBR Properties",          "segmento": "Lajes Corporativas","pvp_ref": 0.90},
+    {"ticker": "BRCR11", "name": "BC Fund",                 "segmento": "Lajes Corporativas","pvp_ref": 0.85},
+    # Fundo de Fundos (FoF)
+    {"ticker": "BCFF11", "name": "BTG Pactual FoF",         "segmento": "Fundo de Fundos", "pvp_ref": 0.95},
+    {"ticker": "HFOF11", "name": "Hedge FoF",               "segmento": "Fundo de Fundos", "pvp_ref": 0.95},
+    {"ticker": "RBRF11", "name": "RBR Alpha",               "segmento": "Fundo de Fundos", "pvp_ref": 0.95},
+    {"ticker": "KNRI11", "name": "Kinea Renda Imóveis",     "segmento": "Híbrido",         "pvp_ref": 1.00},
+    # Residencial
+    {"ticker": "HASI11", "name": "Habitat Imóveis Aluguel", "segmento": "Residencial",     "pvp_ref": 1.00},
+    # Saúde / Outros
+    {"ticker": "HCRI11", "name": "Hospital da Criança",     "segmento": "Saúde",           "pvp_ref": 1.00},
+    {"ticker": "GGRC11", "name": "GGR Covepi",              "segmento": "Logística",       "pvp_ref": 1.00},
 ]
 
 # Crypto symbols via Binance (USDT) and CoinGecko IDs

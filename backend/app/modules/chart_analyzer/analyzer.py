@@ -31,11 +31,18 @@ def _redis_key(ticker: str) -> str:
 
 
 def _fetch_ohlcv(ticker: str, brapi_token: str | None) -> pd.DataFrame:
-    """Fetch 90 days of daily OHLCV from BRAPI and return a DataFrame."""
+    """Fetch 6 months of daily OHLCV from BRAPI and return a DataFrame.
+
+    6mo range (vs previous 3mo) gives better multi-timeframe context:
+    - EMA200 calculated more accurately
+    - Support/resistance levels more reliable
+    - Pattern detection over longer window
+    Requires BRAPI Pro for full data without truncation.
+    """
     from app.modules.market_data.adapters.brapi import BrapiClient
 
     client = BrapiClient(token=brapi_token)
-    records = client.fetch_historical(ticker, range="3mo")
+    records = client.fetch_historical(ticker, range="6mo")
     if not records:
         raise ValueError(f"No historical data returned for {ticker}")
 

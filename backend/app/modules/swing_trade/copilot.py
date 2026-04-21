@@ -20,20 +20,33 @@ logger = logging.getLogger(__name__)
 _CACHE_KEY = "swing_trade:copilot:v2"
 _CACHE_TTL = 4 * 3600  # 4 hours
 
-# Extended universe: liquid large/mid caps covering sectors
+# Full scanning universe — all liquid large/mid caps on B3
+# Expanded for BRAPI Pro (no rate limit)
 COPILOT_UNIVERSE = [
-    # Financials
+    # Petróleo & Gás
+    "PETR4", "PRIO3", "RECV3", "VBBR3",
+    # Mineração
+    "VALE3", "GGBR4", "CSNA3",
+    # Bancos & Financeiro
     "ITUB4", "BBDC4", "BBAS3", "SANB11", "B3SA3", "BBSE3", "IRBR3",
-    # Energy / Commodities
-    "PETR4", "VALE3", "PRIO3", "UGPA3", "CSAN3", "SUZB3", "KLBN11",
-    # Utilities / Dividend players
-    "EGIE3", "TAEE11", "CMIG4", "ENEV3", "SBSP3", "SAPR11",
-    # Consumer / Retail
-    "ABEV3", "BRFS3", "RENT3", "LREN3", "PCAR3",
-    # Tech / Services
-    "WEGE3", "TOTS3", "TOTVS3", "LWSA3",
-    # Healthcare / Others
-    "HAPV3", "RDOR3", "EMBR3",
+    # Energia Elétrica
+    "EGIE3", "TAEE11", "CMIG4", "ELET3", "ENEV3", "CPFE3", "AURE3",
+    # Saneamento
+    "SBSP3", "CSAN3",
+    # Consumo & Alimentos
+    "ABEV3", "JBSS3", "BRFS3", "SMTO3", "BEEF3",
+    # Varejo & Locação
+    "LREN3", "RENT3", "MOVI3",
+    # Papel & Celulose
+    "SUZB3", "KLBN11",
+    # Industrial & Tecnologia
+    "WEGE3", "EMBR3", "TOTS3", "TOTVS3", "LWSA3",
+    # Saúde
+    "RDOR3", "HAPV3", "RADL3", "FLRY3",
+    # Imobiliário / Construção
+    "CYRE3", "MRVE3", "EZTC3",
+    # Telecomunicações
+    "VIVT3", "TIMS3",
 ]
 
 _SYSTEM_SWING = """Você é um trader de swing trade brasileiro experiente.
@@ -88,21 +101,20 @@ async def _analyze_with_semaphore(sem: asyncio.Semaphore, ticker: str, brapi_tok
     return None
 
 
-async def _get_dy(ticker: str, redis_client: Any) -> float | None:
-    """Fetch DY from Redis fundamentals cache."""
+async def _get_fundamentals(ticker: str, redis_client: Any) -> dict:
+    """Fetch fundamentals from Redis cache (populated by refresh_quotes task)."""
     if redis_client is None:
-        return None
+        return {}
     try:
         raw = await redis_client.get(f"market:fundamentals:{ticker}")
         if raw:
             if isinstance(raw, bytes):
                 raw = raw.decode()
             data = json.loads(raw)
-            dy = data.get("dividend_yield")
-            return float(dy) if dy is not None else None
+            return data
     except Exception:
         pass
-    return None
+    return {}
 
 
 async def build_copilot_picks(redis_client=None, force: bool = False) -> dict[str, Any]:
@@ -121,7 +133,7 @@ async def build_copilot_picks(redis_client=None, force: bool = False) -> dict[st
             logger.warning("copilot: cache read failed: %s", exc)
 
     brapi_token = os.environ.get("BRAPI_TOKEN", "")
-    sem = asyncio.Semaphore(2)  # conservative — BRAPI free plan allows ~2 concurrent
+    sem = asyncio.Semaphore(8)  # Pro plan — can handle more concurrent requests
 
     logger.info("copilot: scanning %d tickers", len(COPILOT_UNIVERSE))
     tasks = [_analyze_with_semaphore(sem, t, brapi_token, redis_client) for t in COPILOT_UNIVERSE]
@@ -133,11 +145,20 @@ async def build_copilot_picks(redis_client=None, force: bool = False) -> dict[st
     if not analyzed:
         return _empty_response("Sem dados técnicos disponíveis no momento (BRAPI indisponível).")
 
-    # Enrich with DY
-    dy_tasks = [_get_dy(a["ticker"], redis_client) for a in analyzed]
-    dy_values = await asyncio.gather(*dy_tasks, return_exceptions=True)
-    for a, dy in zip(analyzed, dy_values):
-        a["dy"] = dy if isinstance(dy, float) else None
+    # Enrich with fundamentals from Redis cache
+    fund_tasks = [_get_fundamentals(a["ticker"], redis_client) for a in analyzed]
+    fund_values = await asyncio.gather(*fund_tasks, return_exceptions=True)
+    for a, fund in zip(analyzed, fund_values):
+        if isinstance(fund, dict):
+            a["dy"] = fund.get("dy")
+            a["pl"] = fund.get("pl")
+            a["pvp"] = fund.get("pvp")
+            a["roe"] = fund.get("roe")
+            a["margem_liquida"] = fund.get("margem_liquida")
+            a["divida_sobre_ebitda"] = fund.get("divida_sobre_ebitda")
+        else:
+            a["dy"] = a["pl"] = a["pvp"] = a["roe"] = None
+            a["margem_liquida"] = a["divida_sobre_ebitda"] = None
 
     swing_picks = await _generate_swing_picks(analyzed)
     dividend_plays = await _generate_dividend_plays(analyzed)
@@ -231,6 +252,14 @@ async def _generate_dividend_plays(analyzed: list[dict]) -> list[dict]:
     return _fallback_dividend_plays(candidates)
 
 
+def _fmt_fund(val: float | None, suffix: str = "", pct: bool = False) -> str:
+    if val is None:
+        return "N/D"
+    if pct:
+        return f"{val * 100:.1f}%"
+    return f"{val:.2f}{suffix}"
+
+
 def _build_summaries(items: list[dict], include_dy: bool = False) -> str:
     lines = []
     for a in items:
@@ -241,17 +270,42 @@ def _build_summaries(items: list[dict], include_dy: bool = False) -> str:
         regime = ind.get("regime", "?")
         vol = ind.get("volume_ratio", "?")
         ema20 = ind.get("ema20", "?")
-        dy = a.get("dy")
 
+        # Technical summary
         line = (
-            f"- {a['ticker']}: regime={regime}, RSI={rsi}, "
-            f"EMA20={ema20}, vol_ratio={vol}, "
-            f"confluências={len(confluences)}, setup={'sim' if setup.get('pattern') else 'não'}"
+            f"- {a['ticker']}: regime={regime}, RSI={rsi}, EMA20={ema20}, "
+            f"vol={vol}x, confluências={len(confluences)}, "
+            f"setup={'sim' if setup.get('pattern') else 'não'}"
         )
         if setup.get("entry"):
-            line += f", entry={setup['entry']:.2f}, stop={setup['stop']:.2f}, alvo={setup.get('target_1', '?')}"
-        if include_dy and dy:
-            line += f", DY={dy:.1f}%"
+            rr = setup.get("rr", "?")
+            line += f" | entry={setup['entry']:.2f} stop={setup['stop']:.2f} alvo={setup.get('target_1','?')} RR={rr}"
+
+        # Fundamental enrichment (from BRAPI Pro)
+        fund_parts = []
+        pl = a.get("pl")
+        pvp = a.get("pvp")
+        dy = a.get("dy")
+        roe = a.get("roe")
+        margem = a.get("margem_liquida")
+        div_ebitda = a.get("divida_sobre_ebitda")
+
+        if pl:
+            fund_parts.append(f"P/L={pl:.1f}")
+        if pvp:
+            fund_parts.append(f"P/VP={pvp:.2f}")
+        if dy:
+            fund_parts.append(f"DY={_fmt_fund(dy, pct=True)}")
+        if roe:
+            fund_parts.append(f"ROE={_fmt_fund(roe, pct=True)}")
+        if margem:
+            fund_parts.append(f"Margem={_fmt_fund(margem, pct=True)}")
+        if div_ebitda is not None:
+            fund_parts.append(f"Div/EBITDA={div_ebitda:.1f}x")
+
+        if fund_parts:
+            line += " | " + " ".join(fund_parts)
+
         lines.append(line)
     return "\n".join(lines)
 

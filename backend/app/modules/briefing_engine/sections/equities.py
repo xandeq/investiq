@@ -47,6 +47,22 @@ async def fetch_equities_data(redis_client=None) -> dict[str, Any]:
         if isinstance(result, dict) and not result.get("error"):
             analyzed.append({"ticker": ticker, "analysis": result})
 
+    # Enrich with fundamentals from Redis (populated by refresh_quotes task)
+    if redis_client is not None:
+        import json as _json
+        for item in analyzed:
+            try:
+                raw = await redis_client.get(f"market:fundamentals:{item['ticker']}")
+                if raw:
+                    if isinstance(raw, bytes):
+                        raw = raw.decode()
+                    item["fund"] = _json.loads(raw)
+            except Exception:
+                item["fund"] = {}
+    else:
+        for item in analyzed:
+            item["fund"] = {}
+
     return {"analyzed": analyzed}
 
 
@@ -56,7 +72,9 @@ async def generate_equity_recommendations(data: dict[str, Any]) -> list[dict[str
     if not analyzed:
         return []
 
-    # Build summary for LLM
+    # Build summary for LLM — include fundamentals from Redis cache
+    import json as _json
+    import os as _os
     summaries = []
     for item in analyzed:
         t = item["ticker"]
@@ -64,11 +82,27 @@ async def generate_equity_recommendations(data: dict[str, Any]) -> list[dict[str
         ind = a.get("indicators", {})
         setup = a.get("setup")
         confluences = a.get("confluences", [])
-        summaries.append(
+
+        line = (
             f"- {t}: regime={ind.get('regime','?')}, RSI={ind.get('rsi_14','?')}, "
-            f"EMA20>{ind.get('ema20','?')} vs EMA50>{ind.get('ema50','?')}, "
             f"confluências={len(confluences)}, setup={'sim' if setup else 'não'}"
         )
+
+        # Add fundamentals from Redis if available
+        fund = item.get("fund", {})
+        fund_parts = []
+        if fund.get("pl"):
+            fund_parts.append(f"P/L={fund['pl']:.1f}")
+        if fund.get("pvp"):
+            fund_parts.append(f"P/VP={fund['pvp']:.2f}")
+        if fund.get("dy"):
+            fund_parts.append(f"DY={fund['dy']*100:.1f}%" if fund['dy'] < 1 else f"DY={fund['dy']:.1f}%")
+        if fund.get("roe"):
+            fund_parts.append(f"ROE={fund['roe']*100:.1f}%" if fund['roe'] < 1 else f"ROE={fund['roe']:.1f}%")
+        if fund_parts:
+            line += " | " + " ".join(fund_parts)
+
+        summaries.append(line)
 
     prompt = "Analise as seguintes ações e recomende as 3-5 melhores para carteira agora:\n\n" + "\n".join(summaries)
 

@@ -42,20 +42,18 @@ logger = logging.getLogger(__name__)
 # Default tickers to refresh every 15 minutes during market hours.
 # Phase 3+: replace with DB query for all tickers in active portfolios.
 DEFAULT_TICKERS = [
-    "PETR4",
-    "VALE3",
-    "ITUB4",
-    "BBDC4",
-    "WEGE3",
-    "MGLU3",
-    "ABEV3",
-    "BOVA11",
+    # IBOV top 30 — full coverage with BRAPI Pro
+    "PETR4", "VALE3", "ITUB4", "BBDC4", "ABEV3", "WEGE3", "BBSE3", "BBAS3",
+    "EGIE3", "TOTS3", "HAPV3", "BRFS3", "RDOR3", "SBSP3", "PRIO3", "RENT3",
+    "EMBR3", "SUZB3", "LREN3", "B3SA3", "RADL3", "ELET3", "ENEV3", "CMIG4",
+    "TAEE11", "JBSS3", "VIVT3", "KLBN11", "FLRY3", "CYRE3",
+    "BOVA11",  # ETF benchmark
 ]
 
 # Redis TTLs (in seconds)
-_QUOTE_TTL = 1200        # 20 min — slightly longer than 15-min refresh interval
+_QUOTE_TTL = 900         # 15 min — matches BRAPI Pro update frequency
 _MACRO_TTL = 25200       # 7h — longer than 6h refresh interval
-_FUNDAMENTALS_TTL = 14400  # 4h — fundamentals change rarely
+_FUNDAMENTALS_TTL = 21600  # 6h — fundamentals stable intraday
 
 
 def _get_redis() -> redis_lib.Redis:

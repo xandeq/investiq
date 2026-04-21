@@ -22,12 +22,22 @@ from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
 
-# Proxy for liquid large-caps on B3 (ADV > R$50M).
-# Add more tickers here as the universe grows.
+# Liquid B3 large + mid caps (ADV > R$20M) — full IBOV + selected small caps.
+# Expanded for BRAPI Pro which allows scanning the full universe without 429s.
 RADAR_ACOES: frozenset[str] = frozenset({
+    # IBOV core (top 76 by liquidity)
     "PETR4", "VALE3", "ITUB4", "BBDC4", "ABEV3", "WEGE3", "BBSE3", "BBAS3",
     "EGIE3", "TOTS3", "HAPV3", "BRFS3", "RDOR3", "SBSP3", "PRIO3", "RENT3",
-    "EMBR3", "SUZB3", "LREN3", "B3SA3", "BOVA11",
+    "EMBR3", "SUZB3", "LREN3", "B3SA3", "BOVA11", "RADL3", "ELET3", "ENEV3",
+    "SANB11", "CSAN3", "UGPA3", "JBSS3", "MRVE3", "CYRE3", "EZTC3", "DIRR3",
+    "TAEE11", "CMIG4", "CPFE3", "ENBR3", "TIMS3", "VIVT3", "TASA4", "ALPA4",
+    "MULT3", "IGTA3", "BEEF3", "SMTO3", "SLCE3", "AGRO3", "TTEN3", "SOJA3",
+    "KLBN11", "DXCO3", "IRBR3", "CIEL3", "GETL3", "PETZ3", "RECV3", "BPAN4",
+    "AURE3", "VBBR3", "RAIZ4", "CBAV3", "INTB3", "LOGG3", "GMAT3", "LWSA3",
+    "TOTVS3", "MOVI3", "FLRY3", "ODPV3", "QUAL3", "ONCO3", "HAPV3", "AMER3",
+    "MGLU3", "VIVA3", "ANIM3", "COGN3", "YDUQ3",
+    # ETFs reference
+    "BOVA11", "SMAL11", "IVVB11",
 })
 
 _GRADE_SCORE_MAP: dict[str, float] = {
