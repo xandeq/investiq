@@ -3,6 +3,7 @@ import { usePnl } from "@/features/portfolio/hooks/usePnl";
 import { formatBRL, formatPct } from "@/lib/formatters";
 import { useSortedData } from "@/hooks/useSort";
 import { SortableHeader } from "@/components/ui/SortableHeader";
+import { PortfolioExportButtons } from "./PortfolioExportButtons";
 
 const ASSET_CLASS_LABELS: Record<string, string> = {
   acao: "Ação", fii: "FII", renda_fixa: "Renda Fixa", bdr: "BDR", etf: "ETF",
@@ -41,7 +42,10 @@ export function PnlTable() {
 
   return (
     <div className="rounded-lg bg-white p-6">
-      <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-1">P&L por Ativo</h3>
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">P&L por Ativo</h3>
+        <PortfolioExportButtons pnl={pnl} />
+      </div>
       <p className="text-xs text-muted-foreground mb-4">desde a compra / no mês / no ano</p>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
