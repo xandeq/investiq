@@ -22,6 +22,7 @@ from app.core.middleware import get_authed_db, get_current_tenant_id
 from app.core.security import get_current_user
 from app.modules.portfolio.service import PortfolioService
 from app.modules.swing_trade.schemas import (
+    CopilotResponse,
     OperationClose,
     OperationCreate,
     OperationListResponse,
@@ -171,6 +172,31 @@ async def close_operation_endpoint(
 # ---------------------------------------------------------------------------
 # DELETE /swing-trade/operations/{id}
 # ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# GET /swing-trade/copilot
+# ---------------------------------------------------------------------------
+
+
+@limiter.limit("10/minute")
+@router.get(
+    "/copilot",
+    response_model=CopilotResponse,
+    summary="Copiloto de Swing Trade — 5 picks prontas com entry/stop/gain/thesis",
+)
+async def get_copilot(
+    request: Request,
+    tenant_id: str = Depends(get_current_tenant_id),
+    redis=Depends(_get_redis),
+    current_user: dict = Depends(get_current_user),
+    force: bool = False,
+) -> CopilotResponse:
+    """Return AI-curated swing trade and dividend picks ready to execute."""
+    from app.modules.swing_trade.copilot import build_copilot_picks
+
+    result = await build_copilot_picks(redis_client=redis, force=force)
+    return CopilotResponse(**result)
 
 
 @limiter.limit("30/minute")

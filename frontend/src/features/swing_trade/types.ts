@@ -76,3 +76,38 @@ export interface OperationClosePayload {
   exit_price: number;
   exit_date?: string; // ISO 8601 datetime
 }
+
+// ---------------------------------------------------------------------------
+// Copilot types
+// ---------------------------------------------------------------------------
+
+export interface SwingPick {
+  ticker: string;
+  tese: string;
+  entrada: number;
+  stop_loss: number;
+  stop_gain: number;
+  rr: number;
+  prazo: string;   // "dias" | "semanas" | "meses"
+  confianca: string; // "alta" | "média" | "baixa"
+  motivo: string;
+}
+
+export interface DividendPlay {
+  ticker: string;
+  tese: string;
+  entrada: number;
+  stop_loss: number;
+  alvo_preco: number;
+  dy_estimado: string;
+  prazo_sugerido: string;
+  motivo_desconto: string;
+}
+
+export interface CopilotResponse {
+  swing_picks: SwingPick[];
+  dividend_plays: DividendPlay[];
+  universe_scanned: number;
+  from_cache: boolean;
+  error?: string | null;
+}

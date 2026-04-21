@@ -99,3 +99,45 @@ class OperationListResponse(BaseModel):
     open_count: int
     closed_count: int
     results: list[OperationResponse]
+
+
+# ---------------------------------------------------------------------------
+# Copilot schemas
+# ---------------------------------------------------------------------------
+
+
+class SwingPick(BaseModel):
+    """A single swing trade ready-decision pick."""
+
+    ticker: str
+    tese: str
+    entrada: float
+    stop_loss: float
+    stop_gain: float
+    rr: float
+    prazo: str  # "dias" | "semanas" | "meses"
+    confianca: str  # "alta" | "média" | "baixa"
+    motivo: str
+
+
+class DividendPlay(BaseModel):
+    """A cheap dividend stock to buy-and-hold."""
+
+    ticker: str
+    tese: str
+    entrada: float
+    stop_loss: float
+    alvo_preco: float
+    dy_estimado: str
+    prazo_sugerido: str
+    motivo_desconto: str
+
+
+class CopilotResponse(BaseModel):
+    """GET /swing-trade/copilot response."""
+
+    swing_picks: list[SwingPick]
+    dividend_plays: list[DividendPlay]
+    universe_scanned: int
+    from_cache: bool
+    error: str | None = None

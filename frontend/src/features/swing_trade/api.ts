@@ -1,5 +1,6 @@
 import { apiClient } from "@/lib/api-client";
 import type {
+  CopilotResponse,
   OperationClosePayload,
   OperationCreatePayload,
   OperationListResponse,
@@ -61,4 +62,13 @@ export async function deleteOperation(id: string): Promise<void> {
   return apiClient<void>(`/swing-trade/operations/${id}`, {
     method: "DELETE",
   });
+}
+
+// ---------------------------------------------------------------------------
+// GET /swing-trade/copilot — AI-curated picks ready to execute
+// ---------------------------------------------------------------------------
+
+export async function fetchCopilot(force = false): Promise<CopilotResponse> {
+  const qs = force ? "?force=true" : "";
+  return apiClient<CopilotResponse>(`/swing-trade/copilot${qs}`);
 }
