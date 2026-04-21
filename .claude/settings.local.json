@@ -92,7 +92,21 @@
       "Bash(cd D:/claude-code/financas/backend && python -m pytest tests/test_schema.py tests/test_rls.py -v --tb=short -p no:anyio 2>&1)",
       "Bash(cd D:/claude-code/financas/backend && python -m pytest tests/test_schema.py tests/test_rls.py tests/test_auth.py -v --tb=short -p no:anyio 2>&1)",
       "Bash(cd D:/claude-code/financas/backend && python -m pytest tests/ -v --tb=short -p no:anyio 2>&1 | tail -25)",
-      "Bash(node \"$HOME/.claude/get-shit-done/bin/gsd-tools.cjs\" state update-progress 2>&1)"
+      "Bash(node \"$HOME/.claude/get-shit-done/bin/gsd-tools.cjs\" state update-progress 2>&1)",
+      "Skill(gsd:discuss-phase)",
+      "Skill(gsd:discuss-phase:*)",
+      "Skill(gsd:plan-phase)",
+      "Skill(gsd:plan-phase:*)",
+      "Skill(gsd:execute-phase)",
+      "Skill(gsd:execute-phase:*)",
+      "Skill(gsd:new-milestone)",
+      "Skill(gsd:new-milestone:*)",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_select_option",
+      "mcp__playwright__browser_type",
+      "mcp__playwright__browser_close",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_console_messages"
     ]
   }
 }

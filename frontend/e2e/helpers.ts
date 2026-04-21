@@ -11,7 +11,14 @@ export async function login(page: Page) {
   await page.getByLabel('Email').fill(TEST_EMAIL);
   await page.locator('#password').fill(TEST_PASSWORD);
   await page.getByRole('button', { name: /entrar/i }).click();
-  await page.waitForURL(/dashboard|portfolio|\/app/, { timeout: 15000 });
+  await page.waitForLoadState('networkidle').catch(() => null);
+  const url = page.url();
+  const body = await page.locator('body').innerText().catch(() => '');
+  console.log(`[LOGIN] Final URL: ${url}`);
+  console.log(`[LOGIN] Body preview: ${body.substring(0, 200)}`);
+  if (url.includes('login') || body.match(/email ou senha|não verificado/i)) {
+    throw new Error(`Login failed - still on login page or auth error. URL: ${url}`);
+  }
 }
 
 export async function pageIsOk(page: Page, path: string): Promise<string> {
