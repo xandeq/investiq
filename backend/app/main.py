@@ -41,6 +41,7 @@ from app.modules.opportunity_detector.router import router as opportunity_detect
 from app.modules.swing_trade.router import router as swing_trade_router
 from app.modules.advisor.router import router as advisor_router
 from app.modules.health.router import router as health_router
+from app.modules.chart_analyzer.router import router as chart_analyzer_router
 
 
 @asynccontextmanager
@@ -144,6 +145,8 @@ app.include_router(swing_trade_router, prefix="/swing-trade", tags=["swing-trade
 app.include_router(advisor_router, prefix="/advisor", tags=["advisor"])
 # System health & data freshness (public, no auth)
 app.include_router(health_router, prefix="/health", tags=["health"])
+# Chart Analyzer — technical analysis on demand
+app.include_router(chart_analyzer_router, prefix="/chart-analyzer", tags=["Chart Analyzer"])
 
 
 @app.get("/health")
