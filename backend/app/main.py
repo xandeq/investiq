@@ -43,6 +43,7 @@ from app.modules.advisor.router import router as advisor_router
 from app.modules.health.router import router as health_router
 from app.modules.chart_analyzer.router import router as chart_analyzer_router
 from app.modules.signal_engine.router import router as signal_engine_router
+from app.modules.outcome_tracker.router import router as outcome_tracker_router
 
 
 @asynccontextmanager
@@ -150,6 +151,8 @@ app.include_router(health_router, prefix="/health", tags=["health"])
 app.include_router(chart_analyzer_router, prefix="/chart-analyzer", tags=["Chart Analyzer"])
 # Signal Engine — A+ setup scanner and gate evaluator (Sprint 2)
 app.include_router(signal_engine_router, prefix="/signals", tags=["Signal Engine"])
+# Outcome Tracker — signal entry/exit + R-multiple + expectancy (Sprint 3)
+app.include_router(outcome_tracker_router, prefix="/outcomes", tags=["Outcome Tracker"])
 
 
 @app.get("/health")
