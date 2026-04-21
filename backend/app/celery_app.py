@@ -50,6 +50,7 @@ def create_celery_app() -> Celery:
             "app.modules.dashboard.digest_tasks",
             "app.modules.billing.tasks",
             "app.modules.signal_engine.tasks",
+            "app.modules.telegram_bot.tasks",
         ],
     )
 
@@ -206,6 +207,17 @@ def create_celery_app() -> Celery:
                 # Every 30min, Mon-Fri, 10h-17h BRT — aligned with scan
                 "schedule": crontab(minute="*/30", hour="10-17", day_of_week="1-5"),
                 "options": {"queue": "celery", "expires": 28 * 60},
+            },
+            # Sprint 3: Telegram briefings
+            "send-morning-briefing": {
+                "task": "telegram_bot.send_morning_briefing",
+                "schedule": crontab(minute=30, hour=8, day_of_week="1-5"),
+                "options": {"queue": "celery"},
+            },
+            "send-evening-summary": {
+                "task": "telegram_bot.send_evening_summary",
+                "schedule": crontab(minute=30, hour=18, day_of_week="1-5"),
+                "options": {"queue": "celery"},
             },
         },
     )

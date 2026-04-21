@@ -28,6 +28,8 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "/analisa <TICKER> — analise tecnica de uma acao\n"
         "/regime — diagnostico do mercado atual (BOVA11)\n"
         "/sinais — setups A+ ativos agora\n"
+        "/carteira — posicoes abertas + P&L + outcomes (30d)\n"
+        "/briefing — briefing imediato do mercado\n"
         "/ping — verifica se o bot esta online"
     )
 
@@ -109,6 +111,144 @@ async def cmd_ping(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("pong — InvestIQ Bot online")
 
 
+async def cmd_carteira(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handler for /carteira — open positions + P&L + outcome summary."""
+    await update.message.reply_text("Buscando carteira...")
+
+    from datetime import date
+    import redis.asyncio as aioredis
+
+    redis_url = os.environ.get("REDIS_URL", "redis://redis:6379/0")
+    today = date.today().strftime("%d/%m/%Y")
+
+    lines = [f"<b>Carteira — {today}</b>", ""]
+
+    # Fetch open swing trade operations
+    try:
+        from sqlalchemy import text
+        from app.core.db import async_session_factory
+
+        async with async_session_factory() as db:
+            result = await db.execute(
+                text(
+                    "SELECT ticker, entry_price, target_price, quantity "
+                    "FROM swing_trade_operations "
+                    "WHERE status = 'open' AND deleted_at IS NULL "
+                    "ORDER BY ticker"
+                )
+            )
+            ops = result.fetchall()
+
+        if ops:
+            lines.append(f"<b>Posições abertas:</b> {len(ops)}")
+
+            # Try to enrich with current prices
+            try:
+                redis_client = aioredis.from_url(redis_url, decode_responses=True)
+                try:
+                    from app.modules.market_data.service import MarketDataService
+
+                    svc = MarketDataService(redis_client)
+                    for row in ops[:5]:
+                        ticker, entry_price, target_price, qty = (
+                            row[0], float(row[1]), row[2], float(row[3])
+                        )
+                        try:
+                            quote = await svc.get_quote(ticker)
+                            if not quote.data_stale and quote.regularMarketPrice:
+                                current = float(quote.regularMarketPrice)
+                                pnl_pct = (current - entry_price) / entry_price * 100
+                                pnl_sign = "+" if pnl_pct >= 0 else ""
+                                lines.append(
+                                    f"  • <b>{ticker}</b> entrada R${entry_price:.2f} | "
+                                    f"atual R${current:.2f} | P&L: {pnl_sign}{pnl_pct:.1f}%"
+                                )
+                                continue
+                        except Exception:
+                            pass
+                        lines.append(
+                            f"  • <b>{ticker}</b> entrada R${entry_price:.2f}"
+                            + (f" alvo R${float(target_price):.2f}" if target_price else "")
+                        )
+                finally:
+                    try:
+                        await redis_client.aclose()
+                    except Exception:
+                        pass
+            except Exception as exc:
+                logger.warning("cmd_carteira: failed to enrich with prices: %s", exc)
+                for row in ops[:5]:
+                    ticker, entry_price, target_price = row[0], float(row[1]), row[2]
+                    lines.append(
+                        f"  • <b>{ticker}</b> entrada R${entry_price:.2f}"
+                        + (f" alvo R${float(target_price):.2f}" if target_price else "")
+                    )
+        else:
+            lines.append("<b>Posições abertas:</b> nenhuma")
+    except Exception as exc:
+        logger.warning("cmd_carteira: swing trade fetch failed: %s", exc)
+        lines.append("<b>Posições abertas:</b> dados indisponíveis")
+
+    lines.append("")
+
+    # Fetch outcomes summary (last 30 days)
+    try:
+        from sqlalchemy import text
+        from app.core.db import async_session_factory
+        from datetime import timedelta, date as dt_date
+
+        cutoff = (dt_date.today() - timedelta(days=30)).isoformat()
+        async with async_session_factory() as db:
+            result = await db.execute(
+                text(
+                    "SELECT COUNT(*), AVG(r_multiple) "
+                    "FROM signal_outcomes "
+                    "WHERE status = 'closed' AND exit_date >= :cutoff"
+                ),
+                {"cutoff": cutoff},
+            )
+            row = result.fetchone()
+
+        count = int(row[0] or 0)
+        expectancy = float(row[1]) if row[1] is not None else None
+        if count > 0 and expectancy is not None:
+            lines.append(
+                f"<b>Outcomes fechados (30d):</b> {count} trades | "
+                f"Expectancy: {expectancy:+.2f}R"
+            )
+        elif count == 0:
+            lines.append("<b>Outcomes (30d):</b> sem trades fechados")
+    except Exception as exc:
+        logger.warning("cmd_carteira: outcomes fetch failed: %s", exc)
+        lines.append("<b>Outcomes (30d):</b> dados indisponíveis")
+
+    await update.message.reply_html("\n".join(lines))
+
+
+async def cmd_briefing(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handler for /briefing — force an immediate morning briefing."""
+    await update.message.reply_text("Compilando briefing...")
+
+    try:
+        import redis.asyncio as aioredis
+        from app.modules.telegram_bot.briefings import build_morning_briefing
+
+        redis_url = os.environ.get("REDIS_URL", "redis://redis:6379/0")
+        redis_client = aioredis.from_url(redis_url, decode_responses=True)
+        try:
+            message = await build_morning_briefing(redis_client)
+        finally:
+            try:
+                await redis_client.aclose()
+            except Exception:
+                pass
+
+        await update.message.reply_html(message)
+    except Exception as exc:
+        logger.error("cmd_briefing: failed: %s", exc)
+        await update.message.reply_text(f"Erro ao compilar briefing: {exc}")
+
+
 async def cmd_sinais(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handler for /sinais — lista setups A+ ativos agora."""
     await update.message.reply_text("Buscando setups A+...")
@@ -161,4 +301,6 @@ def create_application(token: str) -> Application:
     app.add_handler(CommandHandler("regime", cmd_regime))
     app.add_handler(CommandHandler("ping", cmd_ping))
     app.add_handler(CommandHandler("sinais", cmd_sinais))
+    app.add_handler(CommandHandler("carteira", cmd_carteira))
+    app.add_handler(CommandHandler("briefing", cmd_briefing))
     return app

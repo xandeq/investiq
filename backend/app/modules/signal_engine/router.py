@@ -1,7 +1,8 @@
 """FastAPI router for /signals endpoints.
 
-GET /signals/active       — list active A+ signals from Redis (auth required)
-GET /signals/{ticker}/evaluate — on-demand evaluation for a specific ticker
+GET  /signals/active            — list active A+ signals from Redis (auth required)
+GET  /signals/{ticker}/evaluate — on-demand evaluation for a specific ticker
+POST /signals/sizing            — calculate Kelly fractional position size
 """
 from __future__ import annotations
 
@@ -9,12 +10,15 @@ import logging
 import os
 
 import redis.asyncio as aioredis
+from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from pydantic import BaseModel
 
 from app.core.limiter import limiter
 from app.core.security import get_current_user
 from app.modules.chart_analyzer.analyzer import analyze
 from app.modules.signal_engine.gates import evaluate_signal
+from app.modules.signal_engine.kelly import calculate_position_size
 from app.modules.signal_engine.scanner import get_active_signals
 
 logger = logging.getLogger(__name__)
@@ -110,3 +114,39 @@ async def evaluate_ticker_signal(
             for g in evaluation.gates
         ],
     }
+
+
+class SizingRequest(BaseModel):
+    book_value: Decimal
+    entry: Decimal
+    stop: Decimal
+    win_rate: float = 0.5
+    avg_win_r: float = 2.5
+    open_positions: int = 0
+    daily_pnl_pct: float = 0.0
+
+
+@router.post("/sizing")
+@limiter.limit("20/minute")
+async def calculate_sizing(
+    request: Request,
+    body: SizingRequest,
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """Calculate Kelly fractional position size with risk guardrails.
+
+    Returns allocation fraction, BRL amount, share count, and any blocking
+    reasons (drawdown limit, max open positions).
+    """
+    result = calculate_position_size(
+        book_value=body.book_value,
+        entry=body.entry,
+        stop=body.stop,
+        win_rate=body.win_rate,
+        avg_win_r=body.avg_win_r,
+        open_positions=body.open_positions,
+        daily_pnl_pct=body.daily_pnl_pct,
+    )
+    # Convert Decimal to float for JSON serialization
+    result["amount_brl"] = float(result["amount_brl"])
+    return result
