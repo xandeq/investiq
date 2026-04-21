@@ -15,7 +15,7 @@ TOP_30_IBOV: list[str] = [
     "PETR4", "VALE3", "ITUB4", "BBDC4", "ABEV3",
     "B3SA3", "WEGE3", "RENT3", "LREN3", "JBSS3",
     "SUZB3", "BBAS3", "RADL3", "EGIE3", "TOTS3",
-    "HAPV3", "BBSE3", "BRFS3", "CSAN3", "PRIO3",
+    "HAPV3", "BBSE3", "BEEF3", "CSAN3", "PRIO3",
     "RDOR3", "SBSP3", "VBBR3", "BPAC11", "ELET3",
     "ENEV3", "UGPA3", "EMBR3", "CMIN3", "COGN3",
 ]

@@ -34,7 +34,7 @@ COPILOT_UNIVERSE = [
     # Saneamento
     "SBSP3", "CSAN3",
     # Consumo & Alimentos
-    "ABEV3", "JBSS3", "BRFS3", "SMTO3", "BEEF3",
+    "ABEV3", "JBSS3", "SMTO3", "BEEF3",
     # Varejo & Locação
     "LREN3", "RENT3", "MOVI3",
     # Papel & Celulose
