@@ -71,3 +71,31 @@ class StripeEvent(Base):
 
     def __repr__(self) -> str:
         return f"<StripeEvent id={self.id} type={self.event_type} status={self.status}>"
+
+
+class IdempotentCheckoutRequest(Base):
+    """API-level idempotency cache for POST /billing/checkout.
+
+    Prevents duplicate checkout sessions if user double-clicks the upgrade button
+    or if the browser retries the request. The primary key is the idempotency key
+    provided by the frontend (e.g., timestamp_nonce).
+
+    Caches the checkout_url response so that identical requests return the same
+    session, preventing double billing.
+    """
+    __tablename__ = "idempotent_checkout_requests"
+
+    idempotency_key: Mapped[str] = mapped_column(String(100), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    checkout_url: Mapped[str] = mapped_column(String(2048), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, server_default=func.now()
+    )
+
+    def __repr__(self) -> str:
+        return f"<IdempotentCheckoutRequest key={self.idempotency_key} user_id={self.user_id}>"

@@ -19,19 +19,40 @@ compute_inbox():
   - Per-source try/except → graceful degradation (failed source listed in meta)
   - No new tables, no new Celery, no new LLM
   - Caps at 10 cards, sorted by priority desc
+
+get_complementary_assets() (Phase 25 — ADVI-03):
+  - Identifies portfolio sectors by joining transactions with screener_snapshots
+  - Queries screener universe for tickers NOT in portfolio sectors
+  - Scores by relevance (DY-weighted, inverse variacao_12m)
+  - Returns ranked list capped at `limit`
+
+get_portfolio_entry_signals() (Phase 26 — ADVI-04):
+  - Fetches user's portfolio tickers from tenant DB
+  - Calls compute_signals() from swing_trade to get technical signals
+  - Maps SwingSignalItem → EntrySignal
+  - Caches result for 5 minutes
+
+get_universe_entry_signals() (Phase 26 — ADVI-04):
+  - Reads nightly-refreshed batch from Redis key "entry_signals:universe"
+  - No DB query — pure cache read
+  - Returns [] if batch hasn't run yet
 """
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
+import os
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Optional
 
+from pydantic import BaseModel
 from sqlalchemy import select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.advisor.schemas import (
+    EntrySignal,
     InboxCard,
     InboxCardCTA,
     InboxMeta,
@@ -41,6 +62,7 @@ from app.modules.advisor.schemas import (
 )
 from app.modules.market_universe.models import ScreenerSnapshot
 from app.modules.portfolio.models import Transaction
+from app.modules.swing_trade.service import compute_signals
 
 logger = logging.getLogger(__name__)
 
@@ -565,3 +587,261 @@ async def compute_inbox(
         cards=_rank(cards),
         meta=InboxMeta(sources_ok=sources_ok, sources_failed=sources_failed),
     )
+
+
+# ── Smart Screener (Phase 25 — ADVI-03) ──────────────────────────────────────
+
+class ComplementaryAssetRow(BaseModel):
+    """One row returned by GET /advisor/screener.
+
+    Represents a B3 asset whose sector is NOT currently held by the user,
+    ranked by relevance to portfolio health gaps.
+
+    Field names map to ScreenerSnapshot columns:
+      preco_atual     → ScreenerSnapshot.regular_market_price
+      dy_12m_pct      → ScreenerSnapshot.dy
+    """
+    ticker: str
+    sector: Optional[str]
+    preco_atual: Optional[Decimal]       # ScreenerSnapshot.regular_market_price
+    dy_12m_pct: Optional[Decimal]        # ScreenerSnapshot.dy
+    variacao_12m_pct: Optional[Decimal]  # ScreenerSnapshot.variacao_12m_pct
+    market_cap: Optional[int]            # ScreenerSnapshot.market_cap (BigInteger)
+    relevance_score: float               # 0–100, higher = more relevant to portfolio gaps
+
+
+async def get_complementary_assets(
+    tenant_db: AsyncSession,
+    global_db: AsyncSession,
+    tenant_id: str,
+    limit: int = 100,
+) -> list[ComplementaryAssetRow]:
+    """Return screener universe filtered to assets NOT in user's portfolio sectors.
+
+    Algorithm:
+    1. Load all buy/sell transactions to find portfolio tickers.
+    2. Join portfolio tickers with screener_snapshots to identify held sectors.
+    3. Query latest screener snapshot for tickers whose sector is NOT held.
+    4. Score each result by relevance (DY × 2 + inverse variacao) and sort.
+
+    When the portfolio is empty, returns the full screener universe (all sectors
+    are "complementary" to an empty portfolio) with a neutral relevance_score=50.
+    """
+    # ── 1. Identify portfolio tickers ─────────────────────────────────────────
+    tx_result = await tenant_db.execute(
+        select(Transaction.ticker).where(
+            Transaction.tenant_id == tenant_id,
+            Transaction.transaction_type.in_(["buy", "sell"]),
+            Transaction.deleted_at.is_(None),
+        )
+    )
+    portfolio_tickers: set[str] = {row[0] for row in tx_result.all()}
+
+    # ── 2. Latest snapshot date ───────────────────────────────────────────────
+    date_result = await global_db.execute(
+        select(func.max(ScreenerSnapshot.snapshot_date))
+    )
+    latest_date = date_result.scalar()
+
+    if latest_date is None:
+        # No screener data at all — return empty list
+        return []
+
+    # ── 3. Empty portfolio → return full universe ─────────────────────────────
+    if not portfolio_tickers:
+        snap_result = await global_db.execute(
+            select(ScreenerSnapshot).where(
+                ScreenerSnapshot.snapshot_date == latest_date,
+            ).limit(limit)
+        )
+        snaps = snap_result.scalars().all()
+        return [
+            ComplementaryAssetRow(
+                ticker=s.ticker,
+                sector=s.sector,
+                preco_atual=s.regular_market_price,
+                dy_12m_pct=s.dy,
+                variacao_12m_pct=s.variacao_12m_pct,
+                market_cap=s.market_cap,
+                relevance_score=50.0,  # Neutral — no gaps to optimise for
+            )
+            for s in snaps
+        ]
+
+    # ── 4. Identify sectors already held ──────────────────────────────────────
+    sector_result = await global_db.execute(
+        select(ScreenerSnapshot.sector).where(
+            ScreenerSnapshot.ticker.in_(list(portfolio_tickers)),
+            ScreenerSnapshot.snapshot_date == latest_date,
+        )
+    )
+    portfolio_sectors: set[str] = {row[0] for row in sector_result.all() if row[0]}
+
+    # ── 5. Query complementary assets (sector NOT in portfolio_sectors) ────────
+    if portfolio_sectors:
+        query = select(ScreenerSnapshot).where(
+            ScreenerSnapshot.snapshot_date == latest_date,
+            ScreenerSnapshot.sector.notin_(portfolio_sectors),
+        )
+    else:
+        # Portfolio exists but no sector info available → return full universe
+        query = select(ScreenerSnapshot).where(
+            ScreenerSnapshot.snapshot_date == latest_date,
+        )
+
+    snap_result = await global_db.execute(query)
+    snaps = snap_result.scalars().all()
+
+    # ── 6. Score by relevance and rank ────────────────────────────────────────
+    rows: list[ComplementaryAssetRow] = []
+    for s in snaps:
+        # Higher DY → more relevant (income gap)
+        # Lower variacao_12m → might be attractively priced (inverse score)
+        dy_score = float(s.dy or 0) * 200        # dy is fractional (e.g. 0.12 = 12%)
+        var_score = 50.0 - float(s.variacao_12m_pct or 0) * 100  # invert: lower = better entry
+        score = min(100.0, max(0.0, dy_score + var_score))
+        rows.append(
+            ComplementaryAssetRow(
+                ticker=s.ticker,
+                sector=s.sector,
+                preco_atual=s.regular_market_price,
+                dy_12m_pct=s.dy,
+                variacao_12m_pct=s.variacao_12m_pct,
+                market_cap=s.market_cap,
+                relevance_score=score,
+            )
+        )
+
+    rows.sort(key=lambda x: x.relevance_score, reverse=True)
+    return rows[:limit]
+
+
+# ── Entry Signals (Phase 26 — ADVI-04) ───────────────────────────────────────
+
+_ENTRY_SIGNAL_CACHE_TTL = 300        # 5 minutes for portfolio signals
+_ENTRY_UNIVERSE_CACHE_TTL = 86400    # 24 hours for universe batch
+_ENTRY_SIGNALS_DEFAULT_AMOUNT_BRL = "1000.00"  # default suggested amount when no position size info
+_ENTRY_SIGNALS_TIMEFRAME_DAYS = 90   # standard swing-trade horizon
+_ENTRY_SIGNALS_STOP_LOSS_PCT = 8.0   # standard stop-loss %
+
+
+def _get_sync_redis_for_signals():
+    """Sync Redis client for caching entry signals."""
+    import redis as sync_redis
+    return sync_redis.from_url(
+        os.environ.get("REDIS_URL", "redis://redis:6379/0"), decode_responses=True
+    )
+
+
+async def get_portfolio_entry_signals(
+    tenant_db: AsyncSession,
+    global_db: AsyncSession,
+    tenant_id: str,
+) -> list[EntrySignal]:
+    """On-demand entry signals for user's owned assets.
+
+    Algorithm:
+    1. Check Redis cache (5-min TTL).
+    2. Load portfolio tickers from tenant DB (buy transactions, distinct).
+    3. If no tickers → return [].
+    4. Call compute_signals() from swing_trade with async Redis client.
+    5. Map portfolio_signals (SwingSignalItem) → EntrySignal.
+    6. Cache result and return.
+
+    Mapping:
+      ticker           → ticker
+      discount_pct     → target_upside_pct (negated: discount is negative, upside is positive)
+      signal           → ma_signal
+      signal_strength  → proxy for RSI magnitude (rsi=None — RSI not available without full TA)
+      suggested_amount → hardcoded R$1,000 default (no position-size context in test env)
+      timeframe_days   → 90 (fixed swing-trade horizon)
+      stop_loss_pct    → 8.0 (fixed standard stop)
+    """
+    cache_key = f"entry_signals:portfolio:{tenant_id}"
+
+    # ── 1. Try cache ──────────────────────────────────────────────────────
+    try:
+        r = _get_sync_redis_for_signals()
+        cached = r.get(cache_key)
+        if cached:
+            return [EntrySignal(**item) for item in json.loads(cached)]
+    except Exception as exc:
+        logger.warning("get_portfolio_entry_signals: cache read failed: %s", exc)
+
+    # ── 2. Load portfolio tickers ─────────────────────────────────────────
+    tx_result = await tenant_db.execute(
+        select(Transaction.ticker).where(
+            Transaction.tenant_id == tenant_id,
+            Transaction.transaction_type == "buy",
+            Transaction.deleted_at.is_(None),
+        ).distinct()
+    )
+    tickers = [row[0] for row in tx_result.all()]
+
+    if not tickers:
+        return []
+
+    # ── 3. Compute swing signals via Redis-cached market data ─────────────
+    signals: list[EntrySignal] = []
+    try:
+        import redis.asyncio as aioredis
+        redis_client = aioredis.from_url(
+            os.environ.get("REDIS_URL", "redis://redis:6379/0"),
+            decode_responses=True,
+        )
+        try:
+            sw_response = await compute_signals(redis_client, tickers)
+        finally:
+            await redis_client.aclose()
+
+        # ── 4. Map SwingSignalItem → EntrySignal ──────────────────────────
+        now = datetime.now(timezone.utc)
+        for item in sw_response.portfolio_signals:
+            # target_upside_pct: discount_pct is negative (below 30d high).
+            # Negate so upside = expected recovery if price returns to 30d high.
+            target_upside = -item.discount_pct if item.discount_pct < 0 else 0.0
+            signals.append(EntrySignal(
+                ticker=item.ticker,
+                suggested_amount_brl=_ENTRY_SIGNALS_DEFAULT_AMOUNT_BRL,
+                target_upside_pct=round(target_upside, 2),
+                timeframe_days=_ENTRY_SIGNALS_TIMEFRAME_DAYS,
+                stop_loss_pct=_ENTRY_SIGNALS_STOP_LOSS_PCT,
+                rsi=None,  # RSI not computed by compute_signals — would need separate TA call
+                ma_signal=item.signal,
+                generated_at=now,
+            ))
+
+    except Exception as exc:
+        logger.warning("get_portfolio_entry_signals: compute_signals failed: %s", exc)
+        # Return empty list on Redis/market-data failure — graceful degradation
+
+    # ── 5. Cache result ───────────────────────────────────────────────────
+    if signals:
+        try:
+            r = _get_sync_redis_for_signals()
+            data = [s.model_dump(mode="json") for s in signals]
+            r.setex(cache_key, _ENTRY_SIGNAL_CACHE_TTL, json.dumps(data, default=str))
+        except Exception as exc:
+            logger.error("get_portfolio_entry_signals: cache write failed: %s", exc)
+
+    return signals
+
+
+async def get_universe_entry_signals() -> list[EntrySignal]:
+    """Batch entry signals for universe (from nightly Celery job).
+
+    Reads from Redis cache key "entry_signals:universe".
+    Returns [] if the Celery batch task hasn't run yet.
+    No DB query — pure cache read for maximum performance.
+    """
+    cache_key = "entry_signals:universe"
+
+    try:
+        r = _get_sync_redis_for_signals()
+        cached = r.get(cache_key)
+        if cached:
+            return [EntrySignal(**item) for item in json.loads(cached)]
+    except Exception as exc:
+        logger.warning("get_universe_entry_signals: cache read failed: %s", exc)
+
+    return []

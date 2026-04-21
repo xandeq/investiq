@@ -1,98 +1,16 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { requestPortfolioAnalysis } from "../api";
-import { useAnalysisJob } from "../hooks/useAnalysisJob";
-import { useJobList } from "../hooks/useJobList";
-import { PremiumGate } from "./PremiumGate";
+import { startAdvisorAnalysis } from "@/features/advisor/api";
 import { usePortfolioHealth } from "@/features/advisor/hooks/usePortfolioHealth";
-import type { AnalysisJob } from "../types";
-import type { PortfolioHealth } from "@/features/advisor/types";
+import { useAdvisorJob } from "@/features/advisor/hooks/useAdvisorJob";
+import { useSmartScreener } from "@/features/advisor/hooks/useSmartScreener";
+import { usePortfolioEntrySignals, useUniverseEntrySignals } from "@/features/advisor/hooks/useEntrySignals";
+import { PremiumGate } from "./PremiumGate";
+import type { PortfolioHealth, AdvisorAnalysisResult, ComplementaryAsset, EntrySignal } from "@/features/advisor/types";
 
-interface AdvisorResult {
-  diagnostico: string;
-  pontos_positivos: string[];
-  pontos_de_atencao: string[];
-  sugestoes: string[];
-  proximos_passos: string[];
-  disclaimer?: string;
-}
+// ── Health Score helpers ────────────────────────────────────────────────────
 
-function ResultCard({ title, items, colorClass }: { title: string; items: string[]; colorClass: string }) {
-  if (!items || items.length === 0) return null;
-  return (
-    <div className={`rounded-lg p-5 ${colorClass}`}>
-      <h3 className="text-sm font-bold mb-3">{title}</h3>
-      <ul className="space-y-2">
-        {items.map((item, i) => (
-          <li key={i} className="text-sm flex gap-2">
-            <span className="mt-0.5 shrink-0 text-current">•</span>
-            <span>{item}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function AdvisorResultView({ result }: { result: AdvisorResult }) {
-  return (
-    <div className="space-y-4">
-      <div className="rounded-lg bg-gray-100 p-5">
-        <h3 className="text-sm font-bold mb-2">Diagnóstico</h3>
-        <p className="text-sm text-muted-foreground leading-relaxed">{result.diagnostico}</p>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <ResultCard title="Pontos Positivos" items={result.pontos_positivos} colorClass="bg-emerald-50 border-l-4 border-emerald-500" />
-        <ResultCard title="Pontos de Atenção" items={result.pontos_de_atencao} colorClass="bg-amber-50 border-l-4 border-amber-500" />
-      </div>
-      <ResultCard title="Sugestões" items={result.sugestoes} colorClass="bg-blue-50 border-l-4 border-blue-500" />
-      <ResultCard title="Próximos Passos" items={result.proximos_passos} colorClass="bg-gray-100 border-l-4 border-gray-400" />
-      {result.disclaimer && (
-        <p className="text-xs text-muted-foreground border-t border-gray-100 pt-3">{result.disclaimer}</p>
-      )}
-    </div>
-  );
-}
-
-function AdvisorHistory({ jobs, onSelect }: { jobs: AnalysisJob[]; onSelect: (jobId: string) => void }) {
-  const portfolioJobs = jobs.filter((j) => j.job_type === "portfolio");
-  if (portfolioJobs.length === 0) return null;
-
-  return (
-    <div className="space-y-2">
-      <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Análises anteriores</h3>
-      {portfolioJobs.slice(0, 5).map((job) => (
-        <button
-          key={job.id}
-          onClick={() => job.status === "completed" && onSelect(job.id)}
-          disabled={job.status !== "completed"}
-          className="w-full text-left rounded-md bg-gray-100 px-4 py-3 text-sm hover:bg-gray-200 transition-all duration-200 disabled:opacity-50"
-        >
-          <div className="flex items-center justify-between">
-            <span className="font-semibold">Análise de carteira</span>
-            <span className={
-              job.status === "completed" ? "text-emerald-600 text-xs font-medium" :
-              job.status === "failed" ? "text-red-500 text-xs font-medium" :
-              "text-amber-600 text-xs font-medium"
-            }>
-              {job.status === "completed" ? "Concluída" :
-               job.status === "failed" ? "Falhou" : "Em andamento"}
-            </span>
-          </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {new Date(job.created_at).toLocaleDateString("pt-BR", {
-              day: "2-digit", month: "2-digit", year: "numeric",
-              hour: "2-digit", minute: "2-digit"
-            })}
-          </p>
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// ── Health Score badge color ─────────────────────────────────────────────────
 function scoreColor(score: number): string {
   if (score >= 80) return "text-emerald-600";
   if (score >= 60) return "text-amber-500";
@@ -105,14 +23,24 @@ function scoreLabel(score: number): string {
   return "Revisar";
 }
 
-function fmtBRL(value: string): string {
+function fmtBRL(value: string | null): string {
+  if (!value) return "R$ 0,00";
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
     parseFloat(value)
   );
 }
 
-// ── Portfolio Health Section ──────────────────────────────────────────────────
-function HealthSection({ health, isLoading }: { health: PortfolioHealth | undefined; isLoading: boolean }) {
+// ── Portfolio Health Section (Phase 23 — ADVI-01) ─────────────────────────
+
+function HealthSection({
+  health,
+  isLoading,
+  onRefresh,
+}: {
+  health: PortfolioHealth | undefined;
+  isLoading: boolean;
+  onRefresh: () => void;
+}) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 animate-pulse">
@@ -138,20 +66,31 @@ function HealthSection({ health, isLoading }: { health: PortfolioHealth | undefi
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Saúde da Carteira</h2>
-        {health.data_as_of && (
-          <span className="text-[11px] text-muted-foreground">
-            Dados de {new Date(health.data_as_of).toLocaleDateString("pt-BR")}
-          </span>
-        )}
+        <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+          Saúde da Carteira
+        </h2>
+        <div className="flex items-center gap-3">
+          {health.data_as_of && (
+            <span className="text-[11px] text-muted-foreground">
+              Dados de {new Date(health.data_as_of).toLocaleDateString("pt-BR")}
+            </span>
+          )}
+          <button
+            onClick={onRefresh}
+            className="text-[11px] text-blue-500 hover:text-blue-400 transition-colors"
+          >
+            Atualizar
+          </button>
+        </div>
       </div>
 
-      {/* 4 metric cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {/* Score */}
         <div className="rounded-lg border border-gray-200 bg-white p-4 text-center">
           <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Score</p>
-          <p className={`text-3xl font-bold ${scoreColor(health.health_score)}`}>{health.health_score}</p>
+          <p className={`text-3xl font-bold ${scoreColor(health.health_score)}`}>
+            {health.health_score}
+          </p>
           <p className={`text-[11px] font-medium mt-1 ${scoreColor(health.health_score)}`}>
             {scoreLabel(health.health_score)}
           </p>
@@ -159,7 +98,9 @@ function HealthSection({ health, isLoading }: { health: PortfolioHealth | undefi
 
         {/* Risk */}
         <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Principal Risco</p>
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
+            Principal Risco
+          </p>
           <p className="text-sm font-medium text-foreground leading-snug">
             {health.biggest_risk ?? "Nenhum identificado"}
           </p>
@@ -167,35 +108,443 @@ function HealthSection({ health, isLoading }: { health: PortfolioHealth | undefi
 
         {/* Passive income */}
         <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Renda Mensal</p>
-          <p className="text-xl font-bold text-emerald-600">{fmtBRL(health.passive_income_monthly_brl)}</p>
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
+            Renda Mensal
+          </p>
+          <p className="text-xl font-bold text-emerald-600">
+            {fmtBRL(health.passive_income_monthly_brl)}
+          </p>
           <p className="text-[11px] text-muted-foreground mt-1">últ. 12 meses ÷ 12</p>
         </div>
 
         {/* Underperformers */}
         <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Queda &gt; 10% no ano</p>
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
+            Queda &gt; 10% no ano
+          </p>
           {health.underperformers.length === 0 ? (
             <p className="text-sm text-emerald-600 font-medium">Nenhum</p>
           ) : (
             <ul className="space-y-0.5">
               {health.underperformers.map((u) => (
-                <li key={u} className="text-xs text-red-500 font-mono">{u}</li>
+                <li key={u} className="text-xs text-red-500 font-mono">
+                  {u}
+                </li>
               ))}
             </ul>
           )}
         </div>
       </div>
 
-      {/* Risk alert */}
       {health.biggest_risk && (
         <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
-          <span className="font-semibold">Alerta: </span>{health.biggest_risk}
+          <span className="font-semibold">Alerta: </span>
+          {health.biggest_risk}
         </div>
       )}
     </div>
   );
 }
+
+// ── AI Diagnosis Section (Phase 24 — ADVI-02) ─────────────────────────────
+
+function BulletCard({
+  title,
+  items,
+  colorClass,
+}: {
+  title: string;
+  items: string[];
+  colorClass: string;
+}) {
+  if (!items || items.length === 0) return null;
+  return (
+    <div className={`rounded-lg p-5 ${colorClass}`}>
+      <h3 className="text-sm font-bold mb-3">{title}</h3>
+      <ul className="space-y-2">
+        {items.map((item, i) => (
+          <li key={i} className="text-sm flex gap-2">
+            <span className="mt-0.5 shrink-0">•</span>
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function AIDiagnosisSection({ result }: { result: AdvisorAnalysisResult }) {
+  return (
+    <div className="space-y-4">
+      <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+        Diagnóstico IA
+      </h2>
+
+      {/* Main narrative */}
+      <div className="rounded-lg bg-gray-50 border border-gray-200 p-5">
+        <p className="text-sm text-foreground leading-relaxed">{result.diagnostico}</p>
+      </div>
+
+      {/* Positives + Concerns grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <BulletCard
+          title="Pontos Positivos"
+          items={result.pontos_positivos}
+          colorClass="bg-emerald-50 border-l-4 border-emerald-500"
+        />
+        <BulletCard
+          title="Pontos de Atenção"
+          items={result.pontos_de_atencao}
+          colorClass="bg-amber-50 border-l-4 border-amber-500"
+        />
+      </div>
+
+      {/* Suggestions */}
+      <BulletCard
+        title="Sugestões"
+        items={result.sugestoes}
+        colorClass="bg-blue-50 border-l-4 border-blue-500"
+      />
+
+      {/* Next steps */}
+      <BulletCard
+        title="Próximos Passos"
+        items={result.proximos_passos}
+        colorClass="bg-gray-100 border-l-4 border-gray-400"
+      />
+
+      {result.disclaimer && (
+        <p className="text-xs text-muted-foreground border-t border-gray-100 pt-3">
+          {result.disclaimer}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ── Smart Screener Section (Phase 25 — ADVI-03) ───────────────────────────
+
+function SmartScreenerSection({
+  assets,
+  isLoading,
+}: {
+  assets: ComplementaryAsset[];
+  isLoading: boolean;
+}) {
+  const [filterSector, setFilterSector] = useState<string>("");
+
+  const sectors = useMemo(
+    () => Array.from(new Set(assets.map((a) => a.sector).filter(Boolean))) as string[],
+    [assets]
+  );
+
+  const filtered = useMemo(
+    () => assets.filter((a) => !filterSector || a.sector === filterSector),
+    [assets, filterSector]
+  );
+
+  if (isLoading) {
+    return (
+      <div className="rounded-lg border border-gray-200 p-6 space-y-3 animate-pulse">
+        <div className="h-5 bg-gray-100 rounded w-48" />
+        <div className="h-32 bg-gray-100 rounded" />
+      </div>
+    );
+  }
+
+  if (!assets.length) {
+    return (
+      <div className="rounded-lg border border-gray-200 p-5 text-center">
+        <p className="text-sm text-muted-foreground">
+          Nenhum ativo complementar encontrado. Importe sua carteira para ver sugestões
+          personalizadas.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+          Smart Screener
+        </h2>
+        <p className="text-[11px] text-muted-foreground">
+          Ativos de setores não presentes na sua carteira
+        </p>
+      </div>
+
+      {/* Sector filter */}
+      <div className="flex items-center gap-2">
+        <select
+          value={filterSector}
+          onChange={(e) => setFilterSector(e.target.value)}
+          className="text-sm px-3 py-1.5 border border-gray-200 rounded-md bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">Todos os setores ({filtered.length})</option>
+          {sectors.map((s) => (
+            <option key={s} value={s}>
+              {s} ({assets.filter((a) => a.sector === s).length})
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Results table */}
+      <div className="rounded-lg border border-gray-200 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Ticker
+              </th>
+              <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Setor
+              </th>
+              <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                DY 12m
+              </th>
+              <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Var. 12m
+              </th>
+              <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Preço
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {filtered.slice(0, 50).map((a) => {
+              const dyPct = a.dy_12m_pct != null ? (a.dy_12m_pct * 100).toFixed(2) : null;
+              const varPct =
+                a.variacao_12m_pct != null ? (a.variacao_12m_pct * 100).toFixed(2) : null;
+              const isPositive = (a.variacao_12m_pct ?? 0) >= 0;
+
+              return (
+                <tr key={a.ticker} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-2.5">
+                    <a
+                      href={`/stock/${a.ticker}`}
+                      className="font-mono text-blue-600 hover:text-blue-500 hover:underline font-semibold"
+                    >
+                      {a.ticker}
+                    </a>
+                  </td>
+                  <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                    {a.sector ?? "—"}
+                  </td>
+                  <td className="text-right px-4 py-2.5 text-xs font-medium text-emerald-600">
+                    {dyPct != null ? `${dyPct}%` : "—"}
+                  </td>
+                  <td
+                    className={`text-right px-4 py-2.5 text-xs font-medium ${
+                      isPositive ? "text-emerald-600" : "text-red-500"
+                    }`}
+                  >
+                    {varPct != null ? `${isPositive ? "+" : ""}${varPct}%` : "—"}
+                  </td>
+                  <td className="text-right px-4 py-2.5 text-xs">
+                    {a.preco_atual != null
+                      ? `R$ ${a.preco_atual.toFixed(2)}`
+                      : "—"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        {filtered.length > 50 && (
+          <div className="px-4 py-2.5 bg-gray-50 border-t border-gray-200 text-center">
+            <p className="text-[11px] text-muted-foreground">
+              Mostrando 50 de {filtered.length} resultados
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Entry Signals Section (Phase 26 — ADVI-04) ──────────────────────────────
+
+interface EntrySignalsSectionProps {
+  portfolioSignals: EntrySignal[];
+  portfolioLoading: boolean;
+  universeSignals: EntrySignal[];
+  universeLoading: boolean;
+}
+
+function SignalTable({ signals }: { signals: EntrySignal[] }) {
+  return (
+    <div className="rounded-lg border border-gray-200 overflow-hidden">
+      <table className="w-full text-sm">
+        <thead className="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Ticker
+            </th>
+            <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Valor Sugerido
+            </th>
+            <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Alvo
+            </th>
+            <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground hidden md:table-cell">
+              Stop
+            </th>
+            <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Sinal
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {signals.map((signal) => (
+            <tr key={signal.ticker} className="hover:bg-gray-50 transition-colors">
+              <td className="px-4 py-2.5">
+                <a
+                  href={`/stock/${signal.ticker}`}
+                  className="font-mono text-blue-600 hover:text-blue-500 hover:underline font-semibold"
+                >
+                  {signal.ticker}
+                </a>
+              </td>
+              <td className="text-right px-4 py-2.5 text-xs">
+                R$ {parseFloat(signal.suggested_amount_brl).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </td>
+              <td className={`text-right px-4 py-2.5 text-xs font-medium ${signal.target_upside_pct > 0 ? "text-emerald-600" : "text-red-500"}`}>
+                {signal.target_upside_pct > 0 ? "+" : ""}{signal.target_upside_pct.toFixed(1)}%
+              </td>
+              <td className="text-right px-4 py-2.5 text-xs text-red-500 hidden md:table-cell">
+                -{signal.stop_loss_pct.toFixed(1)}%
+              </td>
+              <td className="text-right px-4 py-2.5">
+                <span
+                  className={`inline-block text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${
+                    signal.ma_signal === "buy"
+                      ? "bg-emerald-100 text-emerald-700"
+                      : signal.ma_signal === "sell"
+                      ? "bg-red-100 text-red-700"
+                      : "bg-gray-100 text-gray-600"
+                  }`}
+                >
+                  {signal.ma_signal ?? "—"}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function EntrySignalsSection({
+  portfolioSignals,
+  portfolioLoading,
+  universeSignals,
+  universeLoading,
+}: EntrySignalsSectionProps) {
+  return (
+    <div className="space-y-6">
+      <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+        Entry Signals
+      </h2>
+
+      {/* Portfolio signals — on-demand */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold">Seus Ativos</h3>
+          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+            Atualizado agora
+          </span>
+        </div>
+
+        {portfolioLoading && (
+          <div className="rounded-lg border border-gray-200 p-6 animate-pulse">
+            <div className="h-4 bg-gray-100 rounded w-48 mb-2" />
+            <div className="h-4 bg-gray-100 rounded w-32" />
+          </div>
+        )}
+
+        {!portfolioLoading && portfolioSignals.length === 0 && (
+          <div className="rounded-lg border border-gray-200 p-5 text-center">
+            <p className="text-sm text-muted-foreground">
+              Nenhum sinal disponível — sem dados de mercado para seus ativos no momento.
+            </p>
+          </div>
+        )}
+
+        {!portfolioLoading && portfolioSignals.length > 0 && (
+          <SignalTable signals={portfolioSignals} />
+        )}
+      </div>
+
+      {/* Universe signals — daily batch */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold">Oportunidades (Universo)</h3>
+          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+            Diário
+          </span>
+        </div>
+
+        {universeLoading && (
+          <div className="rounded-lg border border-gray-200 p-6 animate-pulse">
+            <div className="h-4 bg-gray-100 rounded w-48 mb-2" />
+            <div className="h-4 bg-gray-100 rounded w-32" />
+          </div>
+        )}
+
+        {!universeLoading && universeSignals.length === 0 && (
+          <div className="rounded-lg border border-gray-200 p-5 text-center">
+            <p className="text-sm text-muted-foreground">
+              Nenhum sinal disponível — batch noturno ainda não executado.
+            </p>
+          </div>
+        )}
+
+        {!universeLoading && universeSignals.length > 0 && (
+          <>
+            <SignalTable signals={universeSignals.slice(0, 20)} />
+            {universeSignals.length > 20 && (
+              <p className="text-[11px] text-muted-foreground text-center">
+                Mostrando 20 de {universeSignals.length} sinais
+              </p>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── In-Progress Indicator ─────────────────────────────────────────────────
+
+function AnalysisInProgress() {
+  return (
+    <div className="rounded-lg bg-gray-100 p-6 space-y-3">
+      <div className="flex items-center gap-3">
+        <span className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-blue-500" />
+        <span className="text-sm font-semibold">Análise em andamento...</span>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Isso leva ~1-2 minutos. Você pode navegar para outras páginas — o resultado aparecerá aqui
+        quando você voltar.
+      </p>
+      {["Carregando posições e P&L", "Buscando contexto macro", "Processando com IA", "Estruturando diagnóstico"].map(
+        (step) => (
+          <div
+            key={step}
+            className="h-3 bg-gray-200 rounded animate-pulse"
+            style={{ width: `${60 + Math.random() * 30}%` }}
+          />
+        )
+      )}
+    </div>
+  );
+}
+
+// ── Main Advisor Component ────────────────────────────────────────────────
 
 function AdvisorMain() {
   const [jobId, setJobId] = useState<string | null>(null);
@@ -203,37 +552,34 @@ function AdvisorMain() {
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  const { data: health, isLoading: healthLoading } = usePortfolioHealth();
-
-  const { data: jobs } = useJobList();
-  const { data: job } = useAnalysisJob(jobId);
-
-  // Resume polling if user navigated away while a job was running
-  useEffect(() => {
-    if (jobId !== null) return;
-    const inProgress = (jobs ?? []).find(
-      (j) => j.job_type === "portfolio" && (j.status === "pending" || j.status === "running")
-    );
-    if (inProgress) setJobId(inProgress.id);
-  }, [jobs, jobId]);
+  const { data: health, isLoading: healthLoading, refetch: refetchHealth } = usePortfolioHealth();
+  const { data: job } = useAdvisorJob(jobId);
+  const { data: screenerAssets, isLoading: screenerLoading } = useSmartScreener(
+    health?.has_portfolio === true
+  );
+  const { data: portfolioSignals, isLoading: portfolioSignalsLoading } = usePortfolioEntrySignals(
+    health?.has_portfolio === true
+  );
+  const { data: universeSignals, isLoading: universeSignalsLoading } = useUniverseEntrySignals();
 
   const isRunning =
     isSubmitting || (!!jobId && (job?.status === "pending" || job?.status === "running"));
 
-  const advisorResult: AdvisorResult | null =
-    job?.status === "completed" && job.result?.advisor ? job.result.advisor as AdvisorResult : null;
+  const advisorResult: AdvisorAnalysisResult | null =
+    job?.status === "completed" ? (job.result ?? null) : null;
 
   const jobFailed = !!jobId && job?.status === "failed";
-  const failureMessage = job?.error_message || "A análise falhou. Tente novamente em alguns minutos.";
+  const failureMessage =
+    job?.error_message || "A análise falhou. Tente novamente em alguns minutos.";
 
   async function handleAnalyze() {
     setError(null);
     setIsSubmitting(true);
     setJobId(null);
     try {
-      const created = await requestPortfolioAnalysis();
-      setJobId(created.id);
-      queryClient.invalidateQueries({ queryKey: ["ai", "jobs"] });
+      const created = await startAdvisorAnalysis();
+      setJobId(created.job_id);
+      queryClient.invalidateQueries({ queryKey: ["advisor"] });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao iniciar análise");
     } finally {
@@ -241,60 +587,79 @@ function AdvisorMain() {
     }
   }
 
+  async function handleRefreshHealth() {
+    queryClient.invalidateQueries({ queryKey: ["advisor", "health"] });
+    refetchHealth();
+  }
+
   return (
     <div className="space-y-8">
-      {/* Health check — deterministic, loads immediately */}
-      <HealthSection health={health} isLoading={healthLoading} />
+      {/* 1. Health Check Card — deterministic, loads immediately (Phase 23) */}
+      <HealthSection health={health} isLoading={healthLoading} onRefresh={handleRefreshHealth} />
 
-      {/* Action button */}
-      <div className="rounded-lg bg-[#111827] text-white p-8 text-center space-y-4">
-        <div>
-          <h2 className="text-lg font-bold tracking-tight">Análise completa da carteira</h2>
-          <p className="text-sm text-gray-400 mt-1">
-            A IA analisa suas posições, alocação, P&L e contexto macro para gerar um diagnóstico personalizado.
-          </p>
-        </div>
-        <button
-          onClick={handleAnalyze}
-          disabled={isRunning}
-          className="px-6 py-3 rounded-md bg-blue-500 text-white hover:bg-blue-400 hover:scale-105 disabled:opacity-50 transition-all duration-200 font-semibold"
-        >
-          {isRunning ? (
-            <span className="flex items-center gap-2">
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-              Analisando sua carteira...
-            </span>
-          ) : (
-            "Analisar minha carteira agora"
-          )}
-        </button>
-        {error && <p className="text-sm text-red-400">{error}</p>}
-        {jobFailed && !error && (
-          <p className="text-sm text-red-400">{failureMessage}</p>
-        )}
-      </div>
+      {/* 2. AI Diagnosis — shows after analysis completes (Phase 24) */}
+      {advisorResult && <AIDiagnosisSection result={advisorResult} />}
 
-      {/* In progress indicator */}
-      {isRunning && !advisorResult && (
-        <div className="rounded-lg bg-gray-100 p-6 space-y-3">
-          <div className="flex items-center gap-3">
-            <span className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-blue-500" />
-            <span className="text-sm font-semibold">Análise em andamento...</span>
+      {/* 3. Smart Screener — complementary assets (sectors not in portfolio) (Phase 25) */}
+      {health?.has_portfolio && (
+        <SmartScreenerSection
+          assets={screenerAssets ?? []}
+          isLoading={screenerLoading}
+        />
+      )}
+
+      {/* 4. Entry Signals — on-demand portfolio + daily universe batch (Phase 26) */}
+      <EntrySignalsSection
+        portfolioSignals={portfolioSignals ?? []}
+        portfolioLoading={portfolioSignalsLoading}
+        universeSignals={universeSignals ?? []}
+        universeLoading={universeSignalsLoading}
+      />
+
+      {/* In-progress state */}
+      {isRunning && !advisorResult && <AnalysisInProgress />}
+
+      {/* Analyze CTA */}
+      {!advisorResult && (
+        <div className="rounded-lg bg-[#111827] text-white p-8 text-center space-y-4">
+          <div>
+            <h2 className="text-lg font-bold tracking-tight">Análise completa da carteira</h2>
+            <p className="text-sm text-gray-400 mt-1">
+              A IA analisa suas posições, alocação, P&L e contexto macro para gerar um
+              diagnóstico personalizado.
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Isso leva ~1-2 minutos. Você pode navegar para outras páginas — a análise continua em segundo plano e o resultado aparecerá aqui quando você voltar.
-          </p>
-          {["Carregando posições e P&L", "Buscando contexto macro", "Processando com IA", "Estruturando resultados"].map((step) => (
-            <div key={step} className="h-3 bg-gray-200 rounded animate-pulse" style={{ width: `${60 + Math.random() * 30}%` }} />
-          ))}
+          <button
+            onClick={handleAnalyze}
+            disabled={isRunning}
+            className="px-6 py-3 rounded-md bg-blue-500 text-white hover:bg-blue-400 hover:scale-105 disabled:opacity-50 transition-all duration-200 font-semibold"
+          >
+            {isRunning ? (
+              <span className="flex items-center gap-2">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                Analisando sua carteira...
+              </span>
+            ) : (
+              "Analisar minha carteira agora"
+            )}
+          </button>
+          {error && <p className="text-sm text-red-400">{error}</p>}
+          {jobFailed && !error && <p className="text-sm text-red-400">{failureMessage}</p>}
         </div>
       )}
 
-      {/* Result */}
-      {advisorResult && <AdvisorResultView result={advisorResult} />}
-
-      {/* History */}
-      {!isRunning && <AdvisorHistory jobs={jobs ?? []} onSelect={setJobId} />}
+      {/* Re-analyze button when result is shown */}
+      {advisorResult && (
+        <div className="text-center">
+          <button
+            onClick={handleAnalyze}
+            disabled={isRunning}
+            className="px-5 py-2.5 rounded-md bg-gray-100 text-sm font-medium hover:bg-gray-200 disabled:opacity-50 transition-colors"
+          >
+            {isRunning ? "Atualizando..." : "Atualizar diagnóstico"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

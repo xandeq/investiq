@@ -30,7 +30,7 @@ O usuário controla toda sua carteira em um lugar só, com análise financeira d
 - [ ] FII screener completo (P/VP, DY, segmento, vacância) com toggle "não tenho" — SCRF-01–04
 - [ ] Screener ações: filtros avançados (DY min, P/L max, setor, market cap) — SCRA-01–03
 - [ ] Catálogo Renda Fixa frontend (Tesouro, CDB, LCI/LCA) com retorno líquido por prazo — RF-01–03
-- [ ] Comparador RF vs RV (retorno líquido histórico por prazo) — COMP-01–02
+- ✓ Comparador RF vs RV (retorno líquido por prazo vs CDI/SELIC/IPCA+, IR regressivo, rentabilidade real, gráfico) — v1.6
 - [ ] Simulador de alocação (valor → 3 cenários → delta carteira atual) — SIM-01–03
 - [ ] Admin dashboard (assinantes, status pagamento, plano por usuário) — MON-04
 - [ ] PostgreSQL RLS enforcement no DB level (não só application level) — AUTH-05
@@ -96,26 +96,42 @@ Fases 17–20 completas e deployadas. FII Screener com score composto, página d
 
 ---
 
-## Current Milestone: v1.4 Ferramentas de Análise
+## ✅ v1.4 Ferramentas de Análise — SHIPPED 2026-04-12
 
-**Goal:** Entregar ao usuário as ferramentas de análise que faltam: screener de ações com filtros avançados e catálogo de renda fixa com retorno líquido IR por prazo.
-
-**Target features:**
-- Screener de ações: tabela filtrável por DY, P/L, Setor, Market Cap — ordenável, paginado, link para /stock/[ticker]
-- Catálogo RF: Tesouro Direto + CDB + LCI/LCA com retorno líquido (TaxEngine), destaque isenção LCI/LCA, indicador bate CDI/IPCA
-
-**Requirements:** SCRA-01–04, RF-01–03
-**Phase count:** TBD (roadmapper will define)
-**Starts at:** Phase 21
+Fases 21–22 completas. Screener de ações (~900 tickers, filtros DY/P/L/Setor/MarketCap) + Catálogo RF (Tesouro/CDB/LCI/LCA com retorno líquido IR, indicador CDI/IPCA) em produção.
 
 ---
 
-## Future Milestone Items (Post-v1.4)
+## ✅ v1.5 AI Portfolio Advisor — SHIPPED 2026-04-18
 
-1. v1.5 — AI Portfolio Advisor (Health Check da carteira + recomendações IA personalizadas com contexto da carteira real + Smart Screener personalizado + Entry Signals com contexto fundamentalista)
-2. v1.6 — Comparador RF vs RV + Simulador de Alocação (COMP-01–02, SIM-01–03)
-3. Admin dashboard — MON-04
-4. PostgreSQL RLS enforcement — AUTH-05
+Fases 23–26 completas e deployadas. Portfolio Health Check (score + bigger risk + renda passiva), AI Advisor via Celery job, Smart Screener personalizado (complementary assets), Entry Signals (portfolio on-demand + universe diário às 02h BRT).
 
 ---
-*Last updated: 2026-04-12 after v1.4 milestone start*
+
+## ✅ v1.6 Comparador RF vs RV — SHIPPED 2026-04-19
+
+Fase 27 completa e deployada. Comparador standalone em `/comparador`: formulário (valor, prazo, tipo RF, taxa editável, spread IPCA+), tabela 4 linhas vs CDI/SELIC/IPCA+ com IR regressivo, coluna rentabilidade real, LineChart Recharts 4 séries. Human verification 3/3 passada em produção.
+
+---
+
+## ✅ v1.7 Simulador de Alocação — SHIPPED 2026-04-19
+
+Fase 28 completa e deployada. Página `/simulador` com formulário (valor + prazo), 3 cenários de alocação (Conservador/Moderado/Arrojado) com percentuais RF/Ações/FIIs e retorno projetado via IR regressivo + CDI, e seção Delta vs carteira atual (auth-gated via GET /portfolio/pnl). Playwright 6/6 passando. Human verify APPROVED.
+
+---
+
+## Current Milestone: v1.8 — TBD
+
+**Next milestone not yet defined.** Run `/gsd:new-milestone` to plan the next cycle.
+
+**Backlog candidates:**
+- Admin dashboard (MON-04) — assinantes, status Stripe, churn
+- PostgreSQL RLS enforcement (AUTH-05) — DB-level tenant isolation
+
+## Future Milestone Items (Post-v1.7)
+
+1. Admin dashboard — MON-04
+2. PostgreSQL RLS enforcement — AUTH-05
+
+---
+*Last updated: 2026-04-19 — v1.7 Simulador de Alocação iniciado*

@@ -2,9 +2,13 @@
 
 Endpoints:
   GET  /advisor/health          — synchronous portfolio health (4 metrics, no AI)
+  POST /advisor/health/refresh  — bypass cache, compute fresh
   POST /advisor/analyze         — start async AI narrative job (reuses WizardJob table)
   GET  /advisor/{job_id}        — poll job status + result
   GET  /advisor/inbox           — ranked decision cards from 5 existing sources
+  GET  /advisor/screener        — complementary assets (Phase 25 — ADVI-03)
+  GET  /advisor/signals/portfolio — on-demand entry signals (Phase 26 — ADVI-04)
+  GET  /advisor/signals/universe  — batch universe signals (Phase 26 — ADVI-04)
 """
 from __future__ import annotations
 
@@ -46,13 +50,19 @@ class AdvisorStartResponse(BaseModel):
 
 
 class AdvisorResult(BaseModel):
-    narrative: str                       # AI-generated educational text (PT-BR)
-    health_score: int
-    biggest_risk: str | None
-    passive_income_monthly_brl: str      # Decimal serialized as string
-    underperformers: list[str]
-    provider_used: str | None
-    completed_at: str | None
+    """Structured AI analysis result from run_portfolio_advisor() skill."""
+    diagnostico: str                     # narrative paragraph (PT-BR)
+    pontos_positivos: list[str]          # up to 3 positive aspects
+    pontos_de_atencao: list[str]         # up to 3 attention points
+    sugestoes: list[str]                 # up to 3 actionable suggestions
+    proximos_passos: list[str]           # up to 3 next steps
+    disclaimer: str = CVM_DISCLAIMER
+    # Health snapshot (context for UI — mirrors PortfolioHealth fields)
+    health_score: int | None = None
+    biggest_risk: str | None = None
+    passive_income_monthly_brl: str | None = None
+    underperformers: list[str] = []
+    completed_at: str | None = None
 
 
 class AdvisorJobResponse(BaseModel):
@@ -116,3 +126,31 @@ class InboxResponse(BaseModel):
     generated_at: datetime
     cards: list[InboxCard]
     meta: InboxMeta
+
+
+# ── Entry Signals (Phase 26 — ADVI-04) ────────────────────────────────────────
+
+class EntrySignal(BaseModel):
+    """A single actionable entry signal combining technical + fundamental data.
+
+    Generated from swing_trade compute_signals() output (portfolio) or
+    ScreenerSnapshot data (universe batch via Celery).
+
+    Fields:
+      ticker             — B3 ticker code (e.g. "VALE3")
+      suggested_amount_brl — recommended position size as BRL string
+      target_upside_pct  — expected recovery % (positive = upside potential)
+      timeframe_days     — standard swing-trade horizon (fixed 90 days)
+      stop_loss_pct      — standard stop-loss % (fixed 8.0%)
+      rsi                — RSI value (None if unavailable)
+      ma_signal          — "buy" | "sell" | "neutral" from swing-trade signal
+      generated_at       — UTC datetime when signal was computed
+    """
+    ticker: str
+    suggested_amount_brl: str           # Decimal serialised as string
+    target_upside_pct: float
+    timeframe_days: int
+    stop_loss_pct: float
+    rsi: float | None = None
+    ma_signal: str | None = None        # "buy" | "sell" | "neutral"
+    generated_at: datetime

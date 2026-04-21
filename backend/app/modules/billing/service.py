@@ -138,14 +138,48 @@ class BillingService:
         sub = await client.subscriptions.retrieve_async(subscription_id)
         period_end = datetime.fromtimestamp(sub.current_period_end, tz=timezone.utc)
 
-        # Look up user by stripe_customer_id to get user_id for subscription row
+        # Lock user row for the duration of this transaction.
+        # WITH FOR UPDATE serializes concurrent checkouts for the same user —
+        # prevents the race condition where two simultaneous webhooks both see
+        # no prior subscription and both create an active subscription.
         result = await db.execute(
-            select(User).where(User.stripe_customer_id == stripe_customer_id)
+            select(User)
+            .where(User.stripe_customer_id == stripe_customer_id)
+            .with_for_update()
         )
         user = result.scalar_one_or_none()
         if not user:
             logger.warning("No user found for stripe_customer_id=%s", stripe_customer_id)
             return
+
+        # Cancela assinatura anterior se o usuário está fazendo upgrade
+        if user.stripe_subscription_id and user.stripe_subscription_id != subscription_id:
+            prior_sub_id = user.stripe_subscription_id
+            try:
+                await client.subscriptions.cancel_async(prior_sub_id)
+                logger.info(
+                    "billing.prior_sub_canceled user_id=%s prior_sub=%s...%s new_sub=%s...%s",
+                    user.id,
+                    prior_sub_id[:8], prior_sub_id[-4:],
+                    subscription_id[:8], subscription_id[-4:],
+                )
+            except Exception as exc:
+                logger.error(
+                    "billing.prior_sub_cancel_failed user_id=%s prior_sub=%s...%s error=%s",
+                    user.id, prior_sub_id[:8], prior_sub_id[-4:], exc,
+                )
+                # Fail fast — reject webhook, Stripe will retry. Prevents silent duplicate subscriptions
+                raise
+
+            # Immediately mark the prior subscription row as canceled in our DB.
+            # The Stripe webhook (customer.subscription.deleted) will arrive later to confirm,
+            # but acting now closes the window where two rows show status=active simultaneously.
+            from app.modules.billing.models import Subscription as SubModel
+            await db.execute(
+                update(SubModel)
+                .where(SubModel.stripe_subscription_id == prior_sub_id)
+                .values(status="canceled")
+            )
 
         # Upsert subscription record
         await _upsert_subscription(
@@ -171,6 +205,23 @@ class BillingService:
         )
         await db.flush()
 
+        # Observability: alert if duplicate active subscriptions remain in DB
+        # This should never fire after the cancellation above, but acts as a canary
+        from app.modules.billing.models import Subscription
+        from sqlalchemy import func
+        active_count = await db.scalar(
+            select(func.count()).select_from(Subscription).where(
+                Subscription.user_id == user.id,
+                Subscription.status.in_(["active", "trialing"]),
+            )
+        ) or 0
+        if active_count > 1:
+            logger.warning(
+                "billing.duplicate_sub_detected user_id=%s active_count=%d"
+                " — investigate immediately",
+                user.id, active_count,
+            )
+
         # Send welcome-to-premium email (non-blocking)
         try:
             from app.modules.auth.service import brevo_email_sender
@@ -184,6 +235,25 @@ class BillingService:
         stripe_customer_id = invoice_data.get("customer")
         subscription_id = invoice_data.get("subscription")
         if not stripe_customer_id:
+            return
+
+        # Busca o usuário primeiro para validar a assinatura do invoice
+        result = await db.execute(
+            select(User).where(User.stripe_customer_id == stripe_customer_id)
+        )
+        user = result.scalar_one_or_none()
+        if not user:
+            return
+
+        # Ignora invoices de assinaturas antigas — apenas a assinatura atual é processada
+        if subscription_id and subscription_id != user.stripe_subscription_id:
+            logger.info(
+                "billing.invoice_paid_ignored user_id=%s old_sub=%s...%s current_sub=%s...%s",
+                user.id,
+                subscription_id[:8], subscription_id[-4:],
+                (user.stripe_subscription_id or "")[:8],
+                (user.stripe_subscription_id or "")[-4:],
+            )
             return
 
         # Update subscription record status if it exists
@@ -201,23 +271,18 @@ class BillingService:
 
         await db.execute(
             update(User)
-            .where(User.stripe_customer_id == stripe_customer_id)
-            .values(plan="pro", stripe_subscription_id=subscription_id)
+            .where(User.id == user.id)
+            .values(plan="pro", subscription_status="active")
         )
         await db.flush()
 
         # Send payment-received confirmation (non-blocking)
         try:
             from app.modules.auth.service import brevo_email_sender
-            result = await db.execute(
-                select(User).where(User.stripe_customer_id == stripe_customer_id)
+            subject, html = payment_received_email(
+                user.email, user.subscription_current_period_end
             )
-            paid_user = result.scalar_one_or_none()
-            if paid_user:
-                subject, html = payment_received_email(
-                    paid_user.email, paid_user.subscription_current_period_end
-                )
-                await brevo_email_sender(paid_user.email, subject, html)
+            await brevo_email_sender(user.email, subject, html)
         except Exception as exc:
             logger.warning("Failed to send billing email for customer %s: %s", stripe_customer_id, exc)
 

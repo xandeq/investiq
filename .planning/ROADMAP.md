@@ -143,3 +143,487 @@ v1.3 phases (17–20) completed 2026-04-11. Archive: `.planning/milestones/v1.3-
 
 *Roadmap created: 2026-04-12*
 *Milestone: InvestIQ v1.4 — Ferramentas de Análise*
+
+---
+
+# InvestIQ v1.5 — AI Portfolio Advisor — Roadmap
+
+**Milestone:** v1.5 AI Portfolio Advisor
+**Phases:** 23–26 (continues from v1.4 Phase 22)
+**Granularity:** Coarse (4 phases — module-driven delivery)
+**Status:** Planning Complete
+**Created:** 2026-04-18
+
+---
+
+## Phases
+
+- [x] **Phase 23: Portfolio Health Check** — Diagnostic (ADVI-01) (completed 2026-04-18)
+- [ ] **Phase 24: AI Advisor Recommendations** — Narrative + suggestions (ADVI-02)
+- [x] **Phase 25: Smart Screener** — Complementary assets filtered (ADVI-03) (completed 2026-04-18)
+- [x] **Phase 26: Entry Signals** — Buy suggestions with fundamentals context (ADVI-04) (completed 2026-04-18)
+
+---
+
+## Phase Details
+
+### Phase 23: Portfolio Health Check
+
+**Goal:** User sees instant portfolio diagnosis: health score, biggest risk, passive income, underperformers
+
+**Depends on:** None (compute_portfolio_health() already exists in advisor/service.py)
+
+**Requirements:** ADVI-01
+
+**Success Criteria:**
+  1. `/advisor` page loads portfolio health in <300ms (cached or on-demand refresh)
+  2. Health Check displays: score (10-100), biggest_risk (1-sentence), passive_income_monthly, list of underperformers (up to 3)
+  3. User can click "Atualizar" button to refresh health check; cache invalidates on transaction import/add
+  4. Health Check card is responsive and displays on all screen sizes
+
+**Plans:** 1/1 plan created
+
+Plans:
+- [x] 23-01-PLAN.md — Backend: GET /advisor/health (cached), POST /advisor/health/refresh + Router + Tests; Frontend: Health Check card component in AdvisorContent + usePortfolioHealth hook
+
+---
+
+### Phase 24: AI Advisor Recommendations
+
+**Goal:** User receives personalized portfolio analysis referencing their actual holdings and macro context
+
+**Depends on:** Phase 23 (health check provides context)
+
+**Requirements:** ADVI-02
+
+**Success Criteria:**
+  1. `/advisor` page displays AI-generated diagnosis (diagnostico), positives (pontos_positivos), concerns (pontos_de_atencao), suggestions (sugestoes), next steps (proximos_passos)
+  2. Analysis takes <2s to display (streaming or pre-calculated)
+  3. Analysis references user's specific holdings, sectors, concentrations from health check
+  4. Premium tier gate enforced (existing Stripe integration)
+
+**Plans:** 1/1 plan created
+
+Plans:
+- [x] 24-01-PLAN.md — Backend: POST /advisor/analyze (start job, returns job_id), GET /advisor/analyze/{job_id} (poll result), async job processor, background task + Tests; Frontend: AI Diagnosis section with narrative display + useAdvisorAnalysis hooks
+
+---
+
+### Phase 25: Smart Screener
+
+**Goal:** User sees screener filtered to show only complementary assets that address portfolio health risks
+
+**Depends on:** Phase 23 (health check identifies gaps)
+
+**Requirements:** ADVI-03
+
+**Success Criteria:**
+  1. Smart Screener filters show only sectors NOT in user's portfolio (identified by compute_portfolio_health sector_map)
+  2. Results can be sorted by relevance to portfolio gaps, sector diversity score
+  3. Each result links to `/stock/[ticker]` for full analysis
+  4. Smart Screener data loads in <500ms (pre-calculated from screener_snapshots)
+
+**Plans:** 1/1 plans complete
+
+Plans:
+- [x] 25-01-PLAN.md — Backend: GET /advisor/screener endpoint + get_complementary_assets service + Tests; Frontend: Smart Screener section with table, filtering, sort + useSmartScreener hook
+
+---
+
+### Phase 26: Entry Signals
+
+**Goal:** User sees buy signals (RSI + fundamentals) for portfolio holdings on-demand, and universe recommendations from daily batch
+
+**Depends on:** Phase 23 (context), Phase 25 (screener)
+
+**Requirements:** ADVI-04
+
+**Success Criteria:**
+  1. Entry Signals for owned assets load on-demand (near-realtime, <1s)
+  2. Universe recommendations load from daily Celery batch job (<100ms cache hit)
+  3. Each signal shows: suggested_amount_brl, target_upside_pct, timeframe_days, stop_loss_pct
+  4. Signals include RSI + MA + fundamentals context (reuse from swing_trade/opportunity_detector modules)
+
+**Plans:** 1/1 plans complete
+
+Plans:
+- [x] 26-01-PLAN.md — Backend: GET /advisor/signals/portfolio (on-demand), GET /advisor/signals/universe (daily batch) + service functions + Celery beat task + Tests; Frontend: Entry Signals section with portfolio + universe tables + useEntrySignals hooks
+
+---
+
+## Progress Table
+
+| Phase | Plans | Status | Completed |
+|-------|-------|--------|-----------|
+| 23. Portfolio Health Check | 1/1 | Complete | 2026-04-18 |
+| 24. AI Advisor Recommendations | 1/1 | Planned | — |
+| 25. Smart Screener | 1/1 | Complete   | 2026-04-18 |
+| 26. Entry Signals | 1/1 | Complete   | 2026-04-18 |
+
+---
+
+## Requirements Coverage
+
+| Requirement | Phase | Description | Status |
+|-------------|-------|-------------|--------|
+| ADVI-01 | Phase 23 | Portfolio health score, biggest risk, passive income, underperformers | Complete |
+| ADVI-02 | Phase 24 | AI diagnosis + recommendations referencing user's portfolio | Planned |
+| ADVI-03 | Phase 25 | Smart screener filtered to complementary assets | Planned |
+| ADVI-04 | Phase 26 | Entry signals (hybrid: owned=on-demand, universe=daily) | Planned |
+
+**Coverage:** 4/4 ✓
+
+---
+
+## Architecture Notes
+
+### Common Foundation (All Phases)
+
+- **Portfolio data:** Transactions from tenant DB (RLS-scoped)
+- **Global data:** screener_snapshots, fixed_income_catalog (Celery beat, nightly updates)
+- **Skills reuse:** DCF, earnings analysis, fundamentals already integrated in `/stock/[ticker]`
+- **UI pattern:** Diagnostic-first flow (health → diagnosis → recommendations → signals)
+
+### Phase 23 — Portfolio Health Check
+
+**Backend ready:** `compute_portfolio_health()` in advisor/service.py
+- No external API calls
+- Pure SQL + aggregation, <200ms
+- Returns: score, biggest_risk, passive_income, underperformers, data_as_of
+
+**Frontend work:** Create health check card component, integrate into `/advisor` page
+
+**Caching strategy:** Manual refresh + auto-invalidate on transaction event
+
+### Phase 24 — AI Advisor Recommendations
+
+**Backend ready:** `run_portfolio_advisor()` in ai/skills/portfolio_advisor.py
+- Takes positions, P&L, allocation, macro data
+- Returns structured JSON (diagnostico, pontos_positivos, etc.)
+- Uses Claude API (call_llm)
+
+**Frontend work:** Display narrative in `/advisor` page, positioned after health check
+
+**Tier gating:** Existing Stripe integration already handles premium checks
+
+### Phase 25 — Smart Screener
+
+**Backend ready:** Screener universe exists (screener_v2 router, /acoes/screener from v1.4)
+
+**Personalization logic:** Filter by missing sectors identified in health check
+- SQL query: sectors in portfolio → exclude from recommendations
+- Score by diversity (prefer sectors with low portfolio weight)
+
+**Frontend work:** New component or filter toggle on screener page
+
+### Phase 26 — Entry Signals
+
+**Backend ready:**
+- RSI + MA calculation: swing_trade/service.py
+- Fundamentals context: opportunity_detector/agents/recommendation.py
+- Screener universe: ~900 tickers, nightly batch
+
+**Hybrid approach:**
+- Owned assets: on-demand calculation (user's portfolio) → cache <5min
+- Universe: daily Celery batch job → refresh nightly
+- Two separate API routes: `/advisor/signals/portfolio` (on-demand), `/advisor/signals/universe` (cached)
+
+**Frontend work:** Display signals section with freshness indicators ("Updated now" vs "Daily")
+
+---
+
+## Key Design Decisions
+
+### Why 4 Phases
+
+Sequential module delivery:
+- **Phase 23:** Health foundation (required context for all downstream modules)
+- **Phase 24:** Narrative recommendations (depends on health context)
+- **Phase 25:** Smart screener filtering (depends on health sector analysis)
+- **Phase 26:** Entry signals (depends on all upstream context for personalization)
+
+Each phase delivers one coherent capability; together they create the `/advisor` page.
+
+### Decisions Already Locked (from /gsd:discuss-phase)
+
+1. **Smart Screener:** Complementary assets (Option A) — sectors missing from portfolio
+2. **Page flow:** Diagnostic-first (Option A) — Health Check → AI Diagnosis → Recommendations → Signals
+3. **Entry Signals:** Hybrid (Option C) — Owned=on-demand, universe=daily batch
+4. **Health refresh:** Manual + trigger on transaction (Option C)
+
+---
+
+*Roadmap created: 2026-04-18*
+*Roadmap planning completed: 2026-04-18*
+*Milestone: InvestIQ v1.5 — AI Portfolio Advisor*
+*Status: Ready for execution*
+
+---
+
+# InvestIQ v1.6 — Comparador RF vs RV — Roadmap
+
+**Milestone:** v1.6 Comparador RF vs RV
+**Phases:** 27 (continues from v1.5 Phase 26)
+**Granularity:** Coarse (1 phase — TaxEngine + macro rates already built; tool only useful when table + chart ship together)
+**Status:** Shipped 2026-04-19
+**Created:** 2026-04-18
+
+---
+
+## Overview
+
+Ferramenta standalone para o usuário comparar o retorno líquido de um produto de renda fixa (CDB/LCI/LCA/Tesouro Direto) contra benchmarks de mercado (CDI, SELIC, IPCA+) em qualquer prazo. O backend é thin — TaxEngine, tabela `fixed_income_catalog` e taxas macro no Redis já existem. O trabalho real é a UI: formulário de entrada, tabela comparativa com rentabilidade real e gráfico de evolução do patrimônio.
+
+Por isso, 1 fase única: tabela e gráfico só são úteis juntos, e dividir backend/frontend em fases separadas criaria overhead sem valor.
+
+---
+
+## Phases
+
+- [x] **Phase 27: Comparador RF vs RV** — Endpoint `/comparador` + página `/comparador` com tabela de retorno líquido vs benchmarks, coluna rentabilidade real e gráfico de evolução do patrimônio
+ (completed 2026-04-18)
+
+---
+
+## Phase Details
+
+### Phase 27: Comparador RF vs RV
+
+**Goal:** Usuário informa valor, prazo e tipo de produto RF e vê tabela comparativa de retorno líquido nominal e real versus CDI, SELIC e IPCA+, com gráfico de evolução do patrimônio ao longo do prazo
+
+**Depends on:**
+- `TaxEngine` at `backend/app/modules/market_universe/tax_engine.py` (IR regressivo 22.5%→15%, LCI/LCA isenção) — no changes needed
+- Macro rates (CDI/SELIC/IPCA) in Redis, served by existing `GET /screener/macro-rates` endpoint — no changes needed
+- `fixed_income_catalog` table: Tesouro/CDB/LCI/LCA taxa + vencimento — populated nightly by Celery beat — no changes needed
+- `GET /renda-fixa` endpoint (Phase 22) — read before implementing to confirm available fields
+
+**Requirements:** COMP-01, COMP-02
+
+**Success criteria:**
+1. Usuário acessa `/comparador`, preenche valor (R$), prazo (meses) e seleciona tipo de produto RF (CDB/LCI/LCA/Tesouro Direto) e vê tabela comparativa com retorno líquido nominal para o produto RF selecionado, CDI, SELIC e IPCA+, com IR regressivo aplicado corretamente via TaxEngine
+2. Tabela exibe coluna de rentabilidade real (retorno nominal descontado IPCA projetado) para cada alternativa — LCI/LCA mostram destaque visual de isenção IR
+3. Gráfico de linha mostra a evolução do patrimônio acumulado mês a mês para cada alternativa ao longo do prazo informado
+4. Formulário atualiza tabela e gráfico instantaneamente ao alterar qualquer campo (valor, prazo, tipo RF) sem reload de página
+
+**Canonical refs:**
+- `backend/app/modules/market_universe/tax_engine.py` — TaxEngine core (read before implementing backend)
+- `backend/app/modules/market_universe/router.py` — existing `/renda-fixa` and `/screener/macro-rates` endpoints (confirm structure)
+- `frontend/src/features/billing/components/UpgradeCTA.tsx` — Tailwind card pattern to reuse
+- Phase 22 plans (`22-01-PLAN.md`, `22-02-PLAN.md`) — established TaxEngine integration pattern for frontend
+
+**Notes:**
+- Backend: new `GET /comparador` endpoint takes query params `valor`, `prazo_meses`, `tipo_rf` — calls TaxEngine for each benchmark row and returns projection array (one entry per month) + summary table row per alternative
+- Frontend: standalone page at `frontend/app/comparador/page.tsx` — no portfolio context required, accessible to all users (free tier)
+- Chart: use Recharts (already in codebase from other pages) — LineChart with one series per alternative
+- Projection math: compound monthly growth — `P * (1 + r_monthly)^t` for each month — client-side or backend-side both viable; prefer backend to keep math in one place (TaxEngine)
+- Rentabilidade real: `(1 + retorno_nominal) / (1 + ipca_acumulado) - 1` — IPCA from Redis macro rates
+- Tipo RF input maps to a product from `fixed_income_catalog` (best available rate for that type) or user-supplied custom rate — simplest approach: use catalog median rate for selected type
+- No auth required: tool is standalone, no tenant context needed — use `get_global_db` not `get_db`
+
+**Plans:** 3/3 plans complete
+
+Plans:
+- [x] 27-01-PLAN.md — Backend: extend MacroRatesResponse with selic field (+ service reads market:macro:selic + tests + frontend type mirror)
+- [x] 27-02-PLAN.md — Frontend: new comparador types + useComparadorCalc useMemo hook + ComparadorContent.tsx rewrite with form + 4-row table (LCI/LCA isento, Tesouro IPCA+ spread input) + cleanup stale v1.0 api.ts/useComparador.ts
+- [x] 27-03-PLAN.md — Frontend: ComparadorChart.tsx (Recharts LineChart, 4 series) wired into ComparadorContent + Playwright e2e spec v1.6-comparador.spec.ts
+
+---
+
+## Progress Table
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 27. Comparador RF vs RV | 3/3 | Complete    | 2026-04-18 |
+
+---
+
+## Requirements Coverage
+
+| Requirement | Phase | Description |
+|-------------|-------|-------------|
+| COMP-01 | Phase 27 | Valor + prazo + tipo RF → tabela retorno líquido nominal vs CDI/SELIC/IPCA+ com IR via TaxEngine |
+| COMP-02 | Phase 27 | Coluna rentabilidade real (nominal descontado IPCA) + gráfico evolução patrimônio acumulado |
+
+**Coverage:** 2/2 ✓
+
+---
+
+## Execution Notes
+
+### Patterns to reuse
+
+- **TaxEngine call pattern** (Phase 22): `tax_engine.calculate_net_return(principal, annual_rate, days, product_type)` — returns net amount after IR bracket
+- **Macro rates fetch** (Phase 22 `22-01-PLAN.md`): `GET /screener/macro-rates` → `{ cdi_rate, selic_rate, ipca_rate }` already cached in Redis
+- **`get_global_db`**: use for `/comparador` endpoint — no tenant isolation needed (public catalog data)
+- **Recharts LineChart**: already used in swing_trade or portfolio pages — find existing usage and copy import pattern
+- **Client-side state with no useMemo** (small dataset): comparador computes N rows (4 alternatives) × M months (≤120) — trivial, no caching needed
+
+### Key implementation sequence
+
+1. Backend: `GET /comparador` endpoint — validate params, fetch macro rates from Redis, fetch catalog rate for `tipo_rf`, run TaxEngine + projection loop, return `{ summary: [...], projection: [...] }`
+2. Backend tests: parametric test covering CDB (IR applies), LCI (isenção), Tesouro IPCA+ (mixed), 12-month and 60-month prazos
+3. Frontend: `/comparador` page — form (valor, prazo slider, tipo_rf select), call API on change, render table + Recharts chart
+4. Nav: add "Comparador" link to sidebar/nav alongside /renda-fixa
+
+---
+
+*Milestone: InvestIQ v1.6 — Comparador RF vs RV*
+*Roadmap created: 2026-04-18*
+
+
+---
+
+# InvestIQ v1.7 — Simulador de Alocação — Roadmap
+
+**Milestone:** v1.7 Simulador de Alocação
+**Phases:** 28 (continues from v1.6 Phase 27)
+**Granularity:** Coarse (1 phase — all infra exists; tool only useful when form + scenarios + delta ship together)
+**Status:** Active
+**Created:** 2026-04-19
+
+---
+
+## Overview
+
+Ferramenta de simulação onde o usuário informa valor a investir e prazo e recebe instantaneamente 3 cenários de alocação (conservador/moderado/arrojado) com retorno projetado por classe e — para usuários com portfólio cadastrado — o delta entre o cenário escolhido e a carteira atual.
+
+Todo o cálculo de retorno é client-side: a projeção por classe reutiliza `useComparadorCalc` (Phase 27) com taxas macro do Redis via `GET /screener/macro-rates` já disponível. O delta de portfólio lê diretamente de `GET /advisor/health` (Phase 23) que já retorna alocação por classe. Nenhum novo endpoint backend é necessário.
+
+Por isso, 1 fase: cenários sem retorno projetado (SIM-02) são inúteis; delta sem cenários (SIM-03) é sem sentido. Os três requisitos entregam uma ferramenta coerente.
+
+---
+
+## Phases
+
+- [x] **Phase 28: Simulador de Alocação** — Página `/simulador` com formulário (valor + prazo), 3 cenários de alocação (RF/ações/FIIs) com retorno projetado via TaxEngine + macro rates, e delta vs carteira atual para usuários com portfólio cadastrado (completed 2026-04-19)
+
+---
+
+## Phase Details
+
+### Phase 28: Simulador de Alocação
+
+**Goal:** Usuário informa valor e prazo e vê 3 cenários de alocação com retorno projetado por classe, podendo comparar o cenário escolhido com sua carteira atual para saber o que comprar ou reduzir
+
+**Depends on:**
+- `GET /screener/macro-rates` — CDI/SELIC/IPCA do Redis — Phase 22/27, sem mudanças
+- `useComparadorCalc` hook — projeção client-side com IR regressivo — Phase 27, reuso direto
+- `GET /advisor/health` — retorna alocação atual do portfólio por classe (RF, ações, FIIs) — Phase 23, sem mudanças
+- `compute_portfolio_health()` — já calcula alocação por classe — Phase 23, sem mudanças
+- `TaxEngine` — IR regressivo 22.5%→15%, LCI/LCA isenção — Phase 22, sem mudanças
+
+**Requirements:** SIM-01, SIM-02, SIM-03
+
+**Success Criteria** (what must be TRUE):
+1. Usuário acessa `/simulador`, informa valor (R$) e prazo (meses) e vê 3 cards de cenário (conservador/moderado/arrojado) com percentuais por classe (RF, ações, FIIs) — os cards aparecem instantaneamente sem chamada de API adicional
+2. Cada cenário exibe retorno esperado por classe de ativo e total projetado para o prazo informado, calculado client-side via macro rates do Redis com IR regressivo aplicado via TaxEngine (mesmo cálculo do /comparador)
+3. Usuário com portfólio cadastrado vê seção Delta mostrando quanto comprar (+) ou reduzir (-) por classe de ativo para alinhar com o cenário selecionado — calculado a partir da alocação atual em `GET /advisor/health`
+4. Usuário sem portfólio vê mensagem contextual (não erro) convidando a cadastrar transações para habilitar a seção de delta — SIM-01 e SIM-02 funcionam normalmente sem portfólio
+
+**Plans:** 3/3 plans complete
+
+Plans:
+- [x] 28-01-PLAN.md — Frontend types + useSimuladorCalc hook (SIM-01 + SIM-02 client-side scenario math)
+- [x] 28-02-PLAN.md — useSimuladorPortfolio bridge + SimuladorContent.tsx (form + 3 scenario cards + delta section, SIM-03 auth gate)
+- [x] 28-03-PLAN.md — Playwright v1.7-simulador.spec.ts + deploy + human-verify checkpoint
+
+---
+
+## Progress Table
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 28. Simulador de Alocação | 3/3 | Complete | 2026-04-19 |
+
+---
+
+## Requirements Coverage
+
+| Requirement | Phase | Description | Status |
+|-------------|-------|-------------|--------|
+| SIM-01 | Phase 28 | Formulário valor + prazo → 3 cenários com percentuais RF/ações/FIIs | Complete |
+| SIM-02 | Phase 28 | Retorno esperado por classe e total projetado via TaxEngine + macro rates | Complete |
+| SIM-03 | Phase 28 | Delta vs carteira atual (comprar/reduzir por classe) via GET /portfolio/pnl | Complete |
+
+**Coverage:** 3/3 ✓
+
+---
+
+## Architecture Notes
+
+### Phase 28 — Simulador de Alocação
+
+**No new backend endpoint needed.** All data sources already exist:
+
+| Data | Source | Status |
+|------|--------|--------|
+| CDI/SELIC/IPCA macro rates | `GET /screener/macro-rates` → Redis | Operational |
+| Retorno líquido IR por classe | `useComparadorCalc` hook | Built Phase 27 |
+| Alocação atual do portfólio por classe | `GET /advisor/health` → `allocation_by_class` | Operational |
+| IR regressivo + LCI/LCA isenção | `TaxEngine` (client-side via hook) | Built Phase 22 |
+
+**Cenário allocation percentages** (pre-defined, hardcoded by risk profile):
+
+| Perfil | RF | Ações | FIIs |
+|--------|----|-------|------|
+| Conservador | 80% | 10% | 10% |
+| Moderado | 50% | 35% | 15% |
+| Arrojado | 20% | 65% | 15% |
+
+**Projeção de retorno por classe:**
+- RF: taxa CDB referência do catálogo (ou CDI como proxy) via TaxEngine IR regressivo
+- Ações: IBOV histórico anualizado como proxy de retorno esperado (hardcoded ~12% a.a. nominal) — ou CDI * 1.3 como alternativa conservadora
+- FIIs: DY médio dos FIIs no universo (proxy ~8% a.a. nominal) — ou valor fixo hardcoded
+
+**Delta calculation** (client-side):
+```
+target_valor_classe = cenario_pct_classe * valor_total
+current_valor_classe = health.allocation_by_class[classe] * portfolio_total
+delta_classe = target_valor_classe - current_valor_classe
+```
+
+**Auth gate for SIM-03:** Check `has_portfolio` from health response (already a field in PortfolioHealthResponse). If false, show empty-state call-to-action instead of delta section.
+
+**Page location:** `frontend/app/simulador/page.tsx` — verify if stub exists before creating.
+
+### Key Implementation Sequence
+
+1. Frontend: fetch macro rates (reuse existing `useMacroRates` or inline fetch) + fetch health (reuse `usePortfolioHealth` or inline, gated on auth)
+2. Frontend: `useSimuladorCalc` hook — takes `valor`, `prazo`, `macroRates` → returns 3 scenario objects with projected returns per class
+3. Frontend: `SimuladorContent.tsx` — form + 3 scenario cards (select one) + delta section (conditional on has_portfolio)
+4. Frontend: nav link "Simulador" alongside /comparador
+5. E2E: Playwright spec covering form input → scenario display → delta visibility (logged-in user with portfolio)
+
+### Patterns to Reuse
+
+- `useComparadorCalc` (Phase 27) — projection math with IR; adapt for 3 asset classes instead of 4 benchmark rows
+- `usePortfolioHealth` hook (Phase 23) — reads `GET /advisor/health`; reuse as-is for delta calculation
+- `useMacroRates` or inline fetch pattern (Phase 27) — CDI/SELIC/IPCA from macro-rates endpoint
+- Recharts (Phase 27) — optional bar chart per scenario (valor por classe stacked); not strictly required for v1.7
+
+---
+
+## Key Design Decisions
+
+### Why 1 Phase
+
+With TaxEngine, macro rates, `useComparadorCalc`, and `GET /advisor/health` all operational, the only new work is:
+
+1. `useSimuladorCalc` hook (adapts Phase 27 hook for 3-class scenario math)
+2. `SimuladorContent.tsx` with form + scenario cards + delta section
+3. Playwright E2E spec
+
+SIM-01, SIM-02, SIM-03 are tightly coupled: scenarios without projected returns (SIM-02) are useless; delta without a selected scenario (SIM-03) has no reference point. Shipping them separately would produce dead UI. 1 coherent phase is the right boundary.
+
+### SIM-03 Delta Without New Backend
+
+`GET /advisor/health` already returns `allocation_by_class` (RF/ações/FIIs percentages). The delta is arithmetic:
+- Target allocation = selected scenario percentages × valor_total
+- Current allocation = health.allocation_by_class × portfolio_market_value
+
+No new SQL, no new endpoint. Delta is a client-side subtraction.
+
+---
+
+*Milestone: InvestIQ v1.7 — Simulador de Alocação*
+*Roadmap created: 2026-04-19*

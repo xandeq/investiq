@@ -32,6 +32,7 @@ async def test_macro_rates_endpoint(client: AsyncClient, db_session, email_stub)
     data = resp.json()
     assert "cdi" in data
     assert "ipca" in data
+    assert "selic" in data
 
 
 @pytest.mark.asyncio
@@ -47,3 +48,16 @@ async def test_macro_rates_redis_fallback(client: AsyncClient, db_session, email
     # Redis is not running in test env — both values should be null (graceful fallback)
     assert data["cdi"] is None
     assert data["ipca"] is None
+    assert data["selic"] is None
+
+
+@pytest.mark.asyncio
+async def test_macro_rates_selic_included_in_response(client: AsyncClient, db_session, email_stub):
+    """COMP-01/COMP-02 contract: response shape must include selic key."""
+    await register_verify_and_login(
+        client, email_stub, email="macro_rates_selic@example.com"
+    )
+    resp = await client.get("/renda-fixa/macro-rates")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert set(data.keys()) >= {"cdi", "ipca", "selic"}

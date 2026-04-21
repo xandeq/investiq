@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { apiClient } from "@/lib/api-client";
 import { createCheckoutSession } from "../api";
 
 interface Props {
@@ -14,9 +15,22 @@ export function UpgradeCTA({
   const [loading, setLoading] = useState(false);
 
   const handleUpgrade = async () => {
+    if (loading) return;
     setLoading(true);
     try {
-      const { checkout_url } = await createCheckoutSession();
+      // Fetches fresh plan from server before checkout to guard against stale JWT/cache
+      const me = await apiClient<{ plan: string }>("/me");
+      if (me.plan === "pro") {
+        window.location.href = "/planos";
+        return;
+      }
+      // Generate idempotency key: prevents duplicate checkout if user double-clicks
+      // Format: {timestamp}_{randomNonce} ensures uniqueness per click
+      const timestamp = Date.now();
+      const nonce = Math.random().toString(36).substring(2, 10);
+      const idempotencyKey = `${timestamp}_${nonce}`;
+
+      const { checkout_url } = await createCheckoutSession(idempotencyKey);
       window.location.href = checkout_url;
     } catch {
       setLoading(false);

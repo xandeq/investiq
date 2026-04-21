@@ -187,6 +187,12 @@ def create_celery_app() -> Celery:
                 "args": [],
                 "options": {"expires": 28 * 60},
             },
+            # Phase 26: Universe entry signals — daily at 02h BRT (after screener refresh at 07h-1 day)
+            "refresh-universe-entry-signals-daily": {
+                "task": "advisor.refresh_universe_entry_signals",
+                "schedule": crontab(minute=0, hour=2),
+                "args": [],
+            },
         },
     )
 

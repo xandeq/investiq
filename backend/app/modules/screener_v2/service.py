@@ -451,10 +451,12 @@ async def query_macro_rates() -> MacroRatesResponse:
         r = redis_lib.Redis.from_url(redis_url, decode_responses=True)
         cdi_raw = r.get("market:macro:cdi")
         ipca_raw = r.get("market:macro:ipca")
+        selic_raw = r.get("market:macro:selic")
         return MacroRatesResponse(
             cdi=_safe_decimal(cdi_raw),
             ipca=_safe_decimal(ipca_raw),
+            selic=_safe_decimal(selic_raw),
         )
     except Exception as exc:
         logger.error("query_macro_rates: Redis unavailable: %s", exc)
-        return MacroRatesResponse(cdi=None, ipca=None)
+        return MacroRatesResponse(cdi=None, ipca=None, selic=None)

@@ -1,9 +1,9 @@
-# Requirements: InvestIQ v1.4 — Ferramentas de Análise
+# Requirements: InvestIQ v1.7 — Simulador de Alocação
 
-**Defined:** 2026-04-12
+**Defined:** 2026-04-19
 **Core Value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada — sem precisar de planilha, sem abrir mil plataformas.
 
-## v1.4 Requirements
+## v1.4 Requirements (Complete)
 
 ### Screener de Ações
 
@@ -18,36 +18,36 @@
 - [x] **RF-02**: Cada produto exibe retorno líquido IR por prazo (90d, 1a, 2a, 5a) calculado via TaxEngine — LCI/LCA têm destaque visual de isenção IR
 - [x] **RF-03**: Usuário pode filtrar catálogo por tipo e prazo mínimo, ordenar por retorno líquido, e ver indicador visual se produto bate CDI/IPCA no prazo
 
-## v2 Requirements (Deferred)
+## v1.6 Requirements (Complete)
 
-### AI Portfolio Advisor (v1.5)
+### Comparador RF vs RV
 
-- **ADVI-01**: Usuário vê Portfolio Health Check automático (concentração por setor/tipo, exposição individual, renda passiva projetada, ativos underperforming)
-- **ADVI-02**: Usuário recebe recomendações IA personalizadas referenciando ativos que ele tem na carteira
-- **ADVI-03**: Smart Screener filtra ativos que complementam a carteira atual do usuário
-- **ADVI-04**: Entry Signals com RSI + médias móveis + contexto fundamentalista para cada ativo
+- [x] **COMP-01**: Usuário informa valor, prazo e produto RF (CDB/LCI/LCA/Tesouro Direto) e vê tabela comparativa de retorno líquido nominal do produto vs benchmarks CDI, SELIC e IPCA+ no prazo selecionado — IR regressivo calculado via TaxEngine, dados macro do Redis
+- [x] **COMP-02**: Tabela comparativa inclui coluna de rentabilidade real (retorno nominal descontado IPCA) para cada alternativa, e gráfico de evolução do patrimônio acumulado ao longo do prazo
 
-### Comparador e Simulador (v1.6)
+## v1.7 Requirements
 
-- **COMP-01**: Usuário compara retorno líquido histórico da RF vs carteira de RV por prazo
-- **COMP-02**: Comparador mostra rentabilidade real (descontando inflação)
-- **SIM-01**: Usuário informa valor a investir e recebe 3 cenários de alocação (conservador/moderado/arrojado)
-- **SIM-02**: Simulador mostra delta entre cenário sugerido e carteira atual
-- **SIM-03**: Usuário pode ajustar parâmetros do cenário (prazo, tolerância a risco)
+### Simulador de Alocação
+
+- [x] **SIM-01**: Usuário informa valor a investir e prazo e recebe 3 cenários de alocação (conservador / moderado / arrojado) com percentuais por classe de ativo (RF, ações, FIIs)
+- [x] **SIM-02**: Cada cenário exibe retorno esperado por classe de ativo e total projetado para o prazo, calculado via useComparadorCalc / TaxEngine + macro rates do Redis
+- [x] **SIM-03**: Simulador exibe delta entre o cenário selecionado e a carteira atual do usuário (o que comprar/reduzir por classe para chegar no cenário) — disponível para usuários com portfólio cadastrado
+
+## Future Requirements (Deferred)
 
 ### Outros
 
 - **MON-04**: Admin dashboard (assinantes, status Stripe, churn)
 - **AUTH-05**: PostgreSQL RLS enforcement no nível DB
 
-## Out of Scope (v1.4)
+## Out of Scope (v1.7)
 
 | Feature | Reason |
 |---------|--------|
-| Rating de risco do emissor CDB | Sem API pública confiável para ratings em tempo real |
-| Comparador RF vs RV | Depende do catálogo RF — v1.6 |
-| Simulador de alocação | Requer advisor layer — v1.5/v1.6 |
-| AI Portfolio Advisor | Milestone próprio — v1.5 |
+| Crypto no simulador | Sem feed de preço confiável para projeção — RF/ações/FIIs são suficientes |
+| Ajuste manual de parâmetros (tolerância a risco, perfil) | Complexidade extra sem validação — cenários pré-definidos são suficientes para v1.7 |
+| Salvar cenários / histórico de simulações | Enhancement futuro |
+| Comparação com IBOVESPA histórico | Sem feed histórico de índice disponível |
 
 ## Traceability
 
@@ -60,12 +60,17 @@
 | RF-01 | Phase 22 | Complete |
 | RF-02 | Phase 22 | Complete |
 | RF-03 | Phase 22 | Complete |
+| COMP-01 | Phase 27 | Complete |
+| COMP-02 | Phase 27 | Complete |
+| SIM-01 | Phase 28 | Complete |
+| SIM-02 | Phase 28 | Complete |
+| SIM-03 | Phase 28 | Complete |
 
 **Coverage:**
-- v1.4 requirements: 7 total
-- Mapped to phases: 7
-- Unmapped: 0 ✓
+- v1.4 requirements: 7 total — all complete ✓
+- v1.6 requirements: 2 total — all complete ✓
+- v1.7 requirements: 3 total — all mapped to Phase 28 ✓
 
 ---
 *Requirements defined: 2026-04-12*
-*Last updated: 2026-04-12 — Traceability assigned by roadmapper (Phase 21: SCRA-01–04, Phase 22: RF-01–03)*
+*Last updated: 2026-04-19 — SIM-01/02/03 promoted from deferred to v1.7 active*
