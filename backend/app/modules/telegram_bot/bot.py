@@ -8,6 +8,7 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
 from app.modules.chart_analyzer.analyzer import analyze
+from app.modules.market_data.market_hours import market_status_prefix
 from app.modules.telegram_bot.service import format_analysis_message
 
 logger = logging.getLogger(__name__)
@@ -41,12 +42,13 @@ async def cmd_analisa(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         return
 
     ticker = context.args[0].upper()
+    closed_prefix = market_status_prefix("BR")
     await update.message.reply_text(f"Analisando {ticker}...")
 
     brapi_token = os.environ.get("BRAPI_TOKEN", "")
     analysis = await analyze(ticker, brapi_token=brapi_token)
 
-    msg = await format_analysis_message(analysis)
+    msg = closed_prefix + await format_analysis_message(analysis)
 
     # Add AI thesis if no error
     if not analysis.get("error"):
@@ -247,24 +249,47 @@ async def cmd_carteira(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 
 async def cmd_briefing(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handler for /briefing — force an immediate morning briefing."""
-    await update.message.reply_text("Compilando briefing...")
+    """Handler for /briefing — deliver the full 14-section daily report."""
+    args = context.args or []
+    full_mode = "--full" in args or not args  # default to full report
+
+    await update.message.reply_text("Compilando relatório completo... ⏳ (pode levar ~15s)")
 
     try:
+        import json
         import redis.asyncio as aioredis
-        from app.modules.telegram_bot.briefings import build_morning_briefing
 
         redis_url = os.environ.get("REDIS_URL", "redis://redis:6379/0")
         redis_client = aioredis.from_url(redis_url, decode_responses=True)
         try:
-            message = await build_morning_briefing(redis_client)
+            # Try cache first
+            cached = await redis_client.get("briefing_engine:latest")
+            if cached:
+                report = json.loads(cached)
+                chunks = report.get("telegram_chunks", [report.get("summary", "")])
+                gen_time = report.get("generated_at", "")
+                await update.message.reply_text(f"📋 Relatório em cache — gerado às {gen_time[:16]}")
+            else:
+                # Generate fresh
+                from app.modules.briefing_engine.report import build_full_report
+                report = await build_full_report(redis_client=redis_client)
+                await redis_client.setex(
+                    "briefing_engine:latest", 6 * 3600,
+                    json.dumps(report, default=str)
+                )
+                chunks = report.get("telegram_chunks", [report.get("summary", "")])
+
+            # Send all chunks
+            for chunk in chunks:
+                if chunk.strip():
+                    await update.message.reply_html(chunk)
+
         finally:
             try:
                 await redis_client.aclose()
             except Exception:
                 pass
 
-        await update.message.reply_html(message)
     except Exception as exc:
         logger.error("cmd_briefing: failed: %s", exc)
         await update.message.reply_text(f"Erro ao compilar briefing: {exc}")

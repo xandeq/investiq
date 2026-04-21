@@ -44,6 +44,7 @@ from app.modules.health.router import router as health_router
 from app.modules.chart_analyzer.router import router as chart_analyzer_router
 from app.modules.signal_engine.router import router as signal_engine_router
 from app.modules.outcome_tracker.router import router as outcome_tracker_router
+from app.modules.briefing_engine.router import router as briefing_router
 
 
 @asynccontextmanager
@@ -153,6 +154,8 @@ app.include_router(chart_analyzer_router, prefix="/chart-analyzer", tags=["Chart
 app.include_router(signal_engine_router, prefix="/signals", tags=["Signal Engine"])
 # Outcome Tracker — signal entry/exit + R-multiple + expectancy (Sprint 3)
 app.include_router(outcome_tracker_router, prefix="/outcomes", tags=["Outcome Tracker"])
+# Briefing Engine v2 — full 14-section daily report
+app.include_router(briefing_router, prefix="/briefing", tags=["Briefing Engine"])
 
 
 @app.get("/health")

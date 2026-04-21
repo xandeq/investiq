@@ -33,16 +33,24 @@ def _send_message(text: str) -> None:
 
 @celery_app.task(name="telegram_bot.send_morning_briefing")
 def send_morning_briefing() -> dict:
-    """Send morning briefing at 08h30 BRT (Mon-Fri)."""
+    """Send full morning briefing (Briefing Engine v2) at 08h30 BRT (Mon-Fri)."""
     import redis.asyncio as aioredis
+    import json
 
-    async def _run() -> str:
-        from app.modules.telegram_bot.briefings import build_morning_briefing
-
+    async def _run() -> list[str]:
+        """Build full report and return Telegram chunks."""
         redis_url = os.environ.get("REDIS_URL", "redis://redis:6379/0")
         redis_client = aioredis.from_url(redis_url, decode_responses=True)
         try:
-            return await build_morning_briefing(redis_client)
+            from app.modules.briefing_engine.report import build_full_report
+
+            report = await build_full_report(redis_client=redis_client)
+
+            # Cache report for /briefing on-demand
+            cache_key = "briefing_engine:latest"
+            await redis_client.setex(cache_key, 6 * 3600, json.dumps(report, default=str))
+
+            return report.get("telegram_chunks", [report.get("summary", "Briefing indisponível")])
         finally:
             try:
                 await redis_client.aclose()
@@ -50,10 +58,11 @@ def send_morning_briefing() -> dict:
                 pass
 
     try:
-        message = asyncio.run(_run())
-        _send_message(message)
-        logger.info("telegram_bot.send_morning_briefing: sent")
-        return {"status": "ok"}
+        chunks = asyncio.run(_run())
+        for chunk in chunks:
+            _send_message(chunk)
+        logger.info("telegram_bot.send_morning_briefing: sent %d chunks", len(chunks))
+        return {"status": "ok", "chunks_sent": len(chunks)}
     except Exception as exc:
         logger.error("telegram_bot.send_morning_briefing failed: %s", exc)
         return {"status": "error", "error": str(exc)}
