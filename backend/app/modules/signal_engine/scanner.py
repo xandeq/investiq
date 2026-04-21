@@ -21,7 +21,7 @@ _REDIS_TTL = 30 * 60  # 30 minutes
 
 UNIVERSE: list[str] = [
     "PETR4", "VALE3", "ITUB4", "BBDC4", "ABEV3", "WEGE3", "BBSE3", "BBAS3",
-    "EGIE3", "TOTS3", "HAPV3", "BRFS3", "RDOR3", "SBSP3", "PRIO3", "RENT3",
+    "EGIE3", "TOTS3", "HAPV3", "BEEF3", "RDOR3", "SBSP3", "PRIO3", "RENT3",
     "EMBR3", "SUZB3", "LREN3", "B3SA3", "BOVA11",
 ]
 

@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 RADAR_ACOES: frozenset[str] = frozenset({
     # IBOV core (top 76 by liquidity)
     "PETR4", "VALE3", "ITUB4", "BBDC4", "ABEV3", "WEGE3", "BBSE3", "BBAS3",
-    "EGIE3", "TOTS3", "HAPV3", "BRFS3", "RDOR3", "SBSP3", "PRIO3", "RENT3",
+    "EGIE3", "TOTS3", "HAPV3", "BEEF3", "RDOR3", "SBSP3", "PRIO3", "RENT3",
     "EMBR3", "SUZB3", "LREN3", "B3SA3", "BOVA11", "RADL3", "ELET3", "ENEV3",
     "SANB11", "CSAN3", "UGPA3", "JBSS3", "MRVE3", "CYRE3", "EZTC3", "DIRR3",
     "TAEE11", "CMIG4", "CPFE3", "ENBR3", "TIMS3", "VIVT3", "TASA4", "ALPA4",

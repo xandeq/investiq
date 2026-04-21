@@ -182,9 +182,21 @@ async def build_copilot_picks(redis_client=None, force: bool = False) -> dict[st
 
 async def _generate_swing_picks(analyzed: list[dict]) -> list[dict]:
     """Generate top 5 swing picks via LLM, with technical fallback."""
+    # Quality pre-filter: skip stocks with clearly bad fundamentals
+    quality = [
+        a for a in analyzed
+        if not (
+            (a.get("roe") is not None and a["roe"] < 0)  # negative ROE
+            or (a.get("pl") is not None and a["pl"] > 60)  # overvalued
+            or (a.get("divida_sobre_ebitda") is not None and a["divida_sobre_ebitda"] > 6)  # over-leveraged
+        )
+    ]
+    if not quality:
+        quality = analyzed  # fallback: use all if filter removes everything
+
     # Sort candidates: prefer trending_up, high confluences, RSI 35-65
     candidates = sorted(
-        analyzed,
+        quality,
         key=lambda a: (
             1 if "up" in str(a.get("indicators", {}).get("regime", "")).lower() else 0,
             len(a.get("confluences", [])),
@@ -213,12 +225,17 @@ async def _generate_swing_picks(analyzed: list[dict]) -> list[dict]:
 
 async def _generate_dividend_plays(analyzed: list[dict]) -> list[dict]:
     """Generate dividend play recommendations via LLM."""
-    # Filter: DY > 4% OR known dividend payers
+    # Filter: DY > 4% OR known dividend payers; exclude negative ROE / over-leveraged
     KNOWN_DIVIDEND = {"BBSE3", "TAEE11", "EGIE3", "CMIG4", "ITUB4", "BBAS3", "ABEV3", "KLBN11", "SAPR11", "SANB11"}
     candidates = [
         a for a in analyzed
-        if (a.get("dy") and a["dy"] > 4.0)
-        or a["ticker"] in KNOWN_DIVIDEND
+        if (
+            (a.get("dy") and a["dy"] > 4.0)
+            or a["ticker"] in KNOWN_DIVIDEND
+        ) and not (
+            (a.get("roe") is not None and a["roe"] < 0)
+            or (a.get("divida_sobre_ebitda") is not None and a["divida_sobre_ebitda"] > 5)
+        )
     ]
 
     if not candidates:

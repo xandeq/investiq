@@ -69,7 +69,6 @@ RADAR_ACOES: list[dict] = [
     {"ticker": "JBSS3", "name": "JBS",                "setor": "Alimentos"},
     {"ticker": "BEEF3", "name": "Minerva Foods",      "setor": "Alimentos"},
     {"ticker": "SMTO3", "name": "São Martinho",       "setor": "Açúcar & Álcool"},
-    {"ticker": "BEEF3", "name": "Minerva Foods",      "setor": "Alimentos"},
     {"ticker": "SLCE3", "name": "SLC Agrícola",       "setor": "Agro"},
     {"ticker": "LREN3", "name": "Lojas Renner",       "setor": "Varejo"},
     {"ticker": "MGLU3", "name": "Magazine Luiza",     "setor": "Varejo"},
@@ -187,10 +186,16 @@ def _fetch_brapi_quote_simple(ticker: str, token: str) -> Optional[dict]:
         return None
 
 
-def _build_acoes_radar(token: str) -> list[dict]:
+def _build_acoes_radar(token: str, r: Optional[sync_redis.Redis] = None) -> list[dict]:
     items = []
+    seen_tickers: set[str] = set()
     for asset in RADAR_ACOES:
-        quote = _fetch_brapi_quote_simple(asset["ticker"], token)
+        ticker = asset["ticker"]
+        if ticker in seen_tickers:
+            continue
+        seen_tickers.add(ticker)
+
+        quote = _fetch_brapi_quote_simple(ticker, token)
         if not quote:
             continue
 
@@ -204,11 +209,36 @@ def _build_acoes_radar(token: str) -> list[dict]:
 
         discount_pct = ((current - high_52w) / high_52w) * 100
 
+        # Enrich with Redis fundamentals (populated by refresh_quotes task)
+        roe = None
+        dy = None
+        pvp = None
+        if r is not None:
+            try:
+                raw_fund = r.get(f"market:fundamentals:{ticker}")
+                if raw_fund:
+                    fund = json.loads(raw_fund)
+                    roe = fund.get("roe")
+                    dy = fund.get("dy")
+                    pvp = fund.get("pvp")
+                    # Use fundamentals P/L if BRAPI quote didn't return it
+                    if not pl:
+                        pl = fund.get("pl")
+                    # Quality filter: skip negative ROE or absurdly high P/L
+                    if roe is not None and roe < 0:
+                        logger.debug("radar: skipping %s — negative ROE %.2f", ticker, roe)
+                        continue
+                    if pl is not None and pl > 50:
+                        logger.debug("radar: skipping %s — P/L too high %.1f", ticker, pl)
+                        continue
+            except Exception as exc:
+                logger.debug("radar: fundamentals read failed for %s: %s", ticker, exc)
+
         # Score signal: how deep is the discount, is P/L reasonable?
         signal = _acao_signal(discount_pct, pl)
 
         items.append({
-            "ticker": asset["ticker"],
+            "ticker": ticker,
             "name": asset["name"],
             "setor": asset["setor"],
             "current_price": round(current, 2),
@@ -216,6 +246,9 @@ def _build_acoes_radar(token: str) -> list[dict]:
             "low_52w": round(low_52w, 2) if low_52w else None,
             "discount_from_high_pct": round(discount_pct, 1),
             "pl": round(pl, 1) if pl else None,
+            "roe": round(roe * 100, 1) if roe and abs(roe) < 1 else (round(roe, 1) if roe else None),
+            "dy": round(dy * 100, 1) if dy and abs(dy) < 1 else (round(dy, 1) if dy else None),
+            "pvp": round(pvp, 2) if pvp else None,
             "signal": signal,
             "logo_url": quote.get("logourl"),
         })
@@ -248,10 +281,11 @@ def _acao_signal(discount_pct: float, pl: Optional[float]) -> str:
 # FIIs radar
 # ---------------------------------------------------------------------------
 
-def _build_fiis_radar(token: str) -> list[dict]:
+def _build_fiis_radar(token: str, r: Optional[sync_redis.Redis] = None) -> list[dict]:
     items = []
     for asset in RADAR_FIIS:
-        quote = _fetch_brapi_quote_simple(asset["ticker"], token)
+        ticker = asset["ticker"]
+        quote = _fetch_brapi_quote_simple(ticker, token)
         if not quote:
             continue
 
@@ -265,18 +299,36 @@ def _build_fiis_radar(token: str) -> list[dict]:
         discount_pct = ((current - high_52w) / high_52w) * 100
 
         # Estimate DY from dividends endpoint
-        dy_est = _estimate_fii_dy(asset["ticker"], current, token)
+        dy_est = _estimate_fii_dy(ticker, current, token)
 
+        # Try real P/VP from Redis fundamentals cache (set by refresh_quotes)
+        pvp_real: Optional[float] = None
+        if r is not None:
+            try:
+                raw_fund = r.get(f"market:fundamentals:{ticker}")
+                if raw_fund:
+                    fund = json.loads(raw_fund)
+                    pvp_real = fund.get("pvp")
+                    # Also use cached DY if we couldn't calculate from dividends
+                    if not dy_est and fund.get("dy"):
+                        cached_dy = fund["dy"]
+                        dy_est = cached_dy * 100 if abs(cached_dy) < 1 else cached_dy
+            except Exception as exc:
+                logger.debug("radar FII: fundamentals read failed for %s: %s", ticker, exc)
+
+        pvp_display = pvp_real if pvp_real else asset.get("pvp_ref", 1.0)
         signal = _fii_signal(discount_pct, dy_est, asset["segmento"])
 
         items.append({
-            "ticker": asset["ticker"],
+            "ticker": ticker,
             "name": asset["name"],
             "segmento": asset["segmento"],
             "current_price": round(current, 2),
             "high_52w": round(high_52w, 2),
             "low_52w": round(low_52w, 2) if low_52w else None,
             "discount_from_high_pct": round(discount_pct, 1),
+            "pvp": round(pvp_display, 2) if pvp_display else None,
+            "pvp_source": "real" if pvp_real else "referência",
             "dy_anual_pct": round(dy_est, 1) if dy_est else None,
             "signal": signal,
         })
@@ -654,8 +706,8 @@ def generate_radar_report(force_refresh: bool = False) -> dict:
     token = _get_brapi_token()
 
     macro = _get_macro_snapshot(r)
-    acoes = _build_acoes_radar(token)
-    fiis = _build_fiis_radar(token)
+    acoes = _build_acoes_radar(token, r)
+    fiis = _build_fiis_radar(token, r)
     crypto = _build_crypto_radar()
     renda_fixa = _build_renda_fixa_radar(r)
 
