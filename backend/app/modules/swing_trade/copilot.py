@@ -40,7 +40,7 @@ COPILOT_UNIVERSE = [
     # Papel & Celulose
     "SUZB3", "KLBN11",
     # Industrial & Tecnologia
-    "WEGE3", "EMBR3", "TOTS3", "TOTVS3", "LWSA3",
+    "WEGE3", "EMBR3", "TOTS3", "LWSA3",
     # Saúde
     "RDOR3", "HAPV3", "RADL3", "FLRY3",
     # Imobiliário / Construção

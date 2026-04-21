@@ -34,7 +34,7 @@ RADAR_ACOES: frozenset[str] = frozenset({
     "MULT3", "IGTA3", "BEEF3", "SMTO3", "SLCE3", "AGRO3", "TTEN3", "SOJA3",
     "KLBN11", "DXCO3", "IRBR3", "CIEL3", "GETL3", "PETZ3", "RECV3", "BPAN4",
     "AURE3", "VBBR3", "RAIZ4", "CBAV3", "INTB3", "LOGG3", "GMAT3", "LWSA3",
-    "TOTVS3", "MOVI3", "FLRY3", "ODPV3", "QUAL3", "ONCO3", "HAPV3", "AMER3",
+    "TOTS3",  "MOVI3", "FLRY3", "ODPV3", "QUAL3", "ONCO3", "HAPV3", "AMER3",
     "MGLU3", "VIVA3", "ANIM3", "COGN3", "YDUQ3",
     # ETFs reference
     "BOVA11", "SMAL11", "IVVB11",

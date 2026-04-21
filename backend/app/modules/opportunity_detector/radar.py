@@ -85,7 +85,7 @@ RADAR_ACOES: list[dict] = [
     {"ticker": "WEGE3", "name": "WEG",                "setor": "Industrial"},
     {"ticker": "EMBR3", "name": "Embraer",            "setor": "Aeronáutica"},
     {"ticker": "TOTS3", "name": "Totvs",              "setor": "Tecnologia"},
-    {"ticker": "TOTVS3","name": "Totvs ON",           "setor": "Tecnologia"},
+    {"ticker": "TOTS3", "name": "Totvs",               "setor": "Tecnologia"},
     {"ticker": "LWSA3", "name": "Locaweb",            "setor": "Tecnologia"},
     {"ticker": "GETL3", "name": "Getnet",             "setor": "Tecnologia"},
     # Saúde
