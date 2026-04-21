@@ -300,6 +300,12 @@ class ImportService:
             # Set import_hash on Transaction for future duplicate detection
             txn.import_hash = row.import_hash  # type: ignore[attr-defined]
 
+            # Track which import job created this transaction (enables revert)
+            try:
+                txn.import_job_id = job_id  # type: ignore[attr-defined]
+            except Exception:
+                pass
+
             db.add(txn)
             existing_hashes.add(row.import_hash)  # prevent duplicates within same batch
             confirmed_count += 1

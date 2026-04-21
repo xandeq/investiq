@@ -115,6 +115,10 @@ class Transaction(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow, onupdate=_utcnow, server_default=func.now()
     )
+    # Tracks which import job created this transaction (for revert/undo).
+    # NULL = manually entered or imported before migration 0031.
+    import_job_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+
     # Soft delete — NULL means active; timestamp means deleted.
     # All read queries must filter WHERE deleted_at IS NULL.
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

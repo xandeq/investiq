@@ -2,7 +2,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useImportHistory } from "../hooks/useImportHistory";
-import { reparseImport } from "../api";
+import { reparseImport, revertImport } from "../api";
 import { ImportJob, ImportJobStatus } from "../types";
 
 interface ImportHistoryProps {
@@ -53,6 +53,8 @@ export function ImportHistory({ onReparseStarted }: ImportHistoryProps) {
   const { data: imports, isLoading } = useImportHistory();
   const queryClient = useQueryClient();
   const [reparsing, setReparsing] = useState<string | null>(null);
+  const [reverting, setReverting] = useState<string | null>(null);
+  const [revertConfirm, setRevertConfirm] = useState<string | null>(null);
 
   async function handleReparse(jobId: string) {
     setReparsing(jobId);
@@ -64,6 +66,26 @@ export function ImportHistory({ onReparseStarted }: ImportHistoryProps) {
       console.error("Reparse failed:", err);
     } finally {
       setReparsing(null);
+    }
+  }
+
+  async function handleRevert(jobId: string) {
+    if (revertConfirm !== jobId) {
+      setRevertConfirm(jobId);
+      return;
+    }
+    setReverting(jobId);
+    setRevertConfirm(null);
+    try {
+      const result = await revertImport(jobId);
+      queryClient.invalidateQueries({ queryKey: ["imports", "history"] });
+      queryClient.invalidateQueries({ queryKey: ["portfolio"] });
+      alert(result.message);
+    } catch (err) {
+      console.error("Revert failed:", err);
+      alert("Erro ao desfazer import.");
+    } finally {
+      setReverting(null);
     }
   }
 
@@ -131,7 +153,34 @@ export function ImportHistory({ onReparseStarted }: ImportHistoryProps) {
                   </td>
                   <td className="px-3 py-2">
                     {job.status === "confirmed" ? (
-                      <span className="text-muted-foreground">—</span>
+                      <div className="flex items-center gap-2">
+                        {revertConfirm === job.id ? (
+                          <>
+                            <span className="text-xs text-destructive">Confirma?</span>
+                            <button
+                              onClick={() => handleRevert(job.id)}
+                              disabled={reverting === job.id}
+                              className="text-xs text-destructive hover:underline font-medium disabled:opacity-50"
+                            >
+                              {reverting === job.id ? "Desfazendo..." : "Sim, desfazer"}
+                            </button>
+                            <button
+                              onClick={() => setRevertConfirm(null)}
+                              className="text-xs text-muted-foreground hover:underline"
+                            >
+                              Cancelar
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => handleRevert(job.id)}
+                            disabled={reverting === job.id}
+                            className="text-xs text-muted-foreground hover:text-destructive hover:underline disabled:opacity-50"
+                          >
+                            Desfazer
+                          </button>
+                        )}
+                      </div>
                     ) : (
                       <button
                         onClick={() => handleReparse(job.id)}

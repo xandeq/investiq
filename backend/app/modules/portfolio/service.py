@@ -14,10 +14,13 @@ offline use without a running Redis.
 """
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+logger = logging.getLogger(__name__)
 
 from app.modules.portfolio.models import Transaction, CorporateAction
 from app.modules.portfolio.schemas import (
@@ -359,6 +362,57 @@ class PortfolioService:
             .values(deleted_at=datetime.now(tz=timezone.utc))
         )
         await db.commit()
+        return result.rowcount
+
+    async def clear_all_transactions(
+        self,
+        db: AsyncSession,
+        tenant_id: str,
+    ) -> int:
+        """Soft-delete ALL active transactions for the tenant.
+
+        Returns the count of transactions deleted. Used for the
+        'Limpar carteira' (clear portfolio) feature.
+        """
+        from sqlalchemy import update
+        result = await db.execute(
+            update(Transaction)
+            .where(
+                Transaction.tenant_id == tenant_id,
+                Transaction.deleted_at.is_(None),
+            )
+            .values(deleted_at=datetime.now(tz=timezone.utc))
+        )
+        await db.commit()
+        logger.info("clear_all_transactions: deleted %d rows for tenant %s", result.rowcount, tenant_id)
+        return result.rowcount
+
+    async def revert_import(
+        self,
+        db: AsyncSession,
+        tenant_id: str,
+        import_job_id: str,
+    ) -> int:
+        """Soft-delete all transactions created by a specific import job.
+
+        Returns the count of transactions deleted. Used for the
+        'Desfazer import' (undo import) feature.
+        """
+        from sqlalchemy import update
+        result = await db.execute(
+            update(Transaction)
+            .where(
+                Transaction.tenant_id == tenant_id,
+                Transaction.import_job_id == import_job_id,
+                Transaction.deleted_at.is_(None),
+            )
+            .values(deleted_at=datetime.now(tz=timezone.utc))
+        )
+        await db.commit()
+        logger.info(
+            "revert_import: deleted %d rows for job %s tenant %s",
+            result.rowcount, import_job_id, tenant_id,
+        )
         return result.rowcount
 
     async def get_dividends(

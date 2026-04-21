@@ -112,3 +112,24 @@ export async function uploadXlsx(file: File): Promise<ImportJob> {
 export function getCsvTemplateUrl(): string {
   return "/api/imports/template.csv";
 }
+
+/**
+ * Clear all transactions for the current user (Limpar carteira).
+ * Returns count of soft-deleted transactions.
+ */
+export async function clearAllTransactions(): Promise<{ deleted: number; message: string }> {
+  return apiClient<{ deleted: number; message: string }>("/portfolio/transactions", {
+    method: "DELETE",
+  });
+}
+
+/**
+ * Revert (undo) all transactions created by a specific import job.
+ * Returns count of soft-deleted transactions.
+ */
+export async function revertImport(importJobId: string): Promise<{ deleted: number; message: string }> {
+  return apiClient<{ deleted: number; message: string }>(
+    `/portfolio/transactions/revert-import/${encodeURIComponent(importJobId)}`,
+    { method: "POST" }
+  );
+}

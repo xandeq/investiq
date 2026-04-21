@@ -214,6 +214,38 @@ async def delete_transaction(
     return Response(status_code=204)
 
 
+@router.delete("/transactions", status_code=200)
+async def clear_all_transactions(
+    db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+    service: PortfolioService = Depends(_get_service),
+) -> dict:
+    """Soft-delete ALL active transactions for the authenticated tenant.
+
+    This is the 'Limpar carteira' (clear portfolio) action. All transactions
+    are soft-deleted (deleted_at set), preserving IR audit history.
+    Returns the count of deleted transactions.
+    """
+    count = await service.clear_all_transactions(db, tenant_id)
+    return {"deleted": count, "message": f"Carteira limpa: {count} transação(ões) removida(s)"}
+
+
+@router.post("/transactions/revert-import/{import_job_id}", status_code=200)
+async def revert_import(
+    import_job_id: str,
+    db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+    service: PortfolioService = Depends(_get_service),
+) -> dict:
+    """Soft-delete all transactions created by a specific import job.
+
+    Allows the user to undo a specific import without losing other data.
+    Returns the count of deleted transactions.
+    """
+    count = await service.revert_import(db, tenant_id, import_job_id)
+    return {"deleted": count, "message": f"Import revertido: {count} transação(ões) removida(s)"}
+
+
 @router.get("/dividends", response_model=list[DividendResponse])
 async def get_dividends(
     db: AsyncSession = Depends(get_authed_db),
