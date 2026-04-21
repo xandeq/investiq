@@ -42,11 +42,11 @@ echo "  InvestIQ Backend Deploy"
 echo "=================================================="
 echo ""
 
-# ── Upload app/ directory ──────────────────────────────
-info "Step 1/3: Uploading backend/app to VPS..."
+# ── Upload app/ + alembic/versions/ directories ───────
+info "Step 1/3: Uploading backend/app and alembic/versions to VPS..."
 cd "$PROJECT_DIR/backend"
 
-(tar czf - app/) | \
+(tar czf - app/ alembic/) | \
   "$PLINK" -batch -pw "$VPS_PASSWORD" "${VPS_USER}@${VPS_HOST}" \
   "mkdir -p /tmp/be-deploy && tar xzf - -C /tmp/be-deploy"
 
@@ -56,9 +56,9 @@ success "Upload complete."
 info "Step 2/3: Applying to containers (backend, worker, beat)..."
 vps "
 set -e
-cd /tmp/be-deploy && tar czf /tmp/backend-app.tar.gz app/
+cd /tmp/be-deploy && tar czf /tmp/backend-app.tar.gz app/ alembic/
 
-# FastAPI backend
+# FastAPI backend (app + alembic)
 docker cp /tmp/backend-app.tar.gz ${CONTAINER}:/tmp/
 docker exec ${CONTAINER} sh -c 'cd /app && tar -xzf /tmp/backend-app.tar.gz'
 echo 'backend-1: updated'
