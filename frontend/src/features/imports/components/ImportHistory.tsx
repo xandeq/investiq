@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useImportHistory } from "../hooks/useImportHistory";
 import { reparseImport, revertImport } from "../api";
 import { ImportJob, ImportJobStatus } from "../types";
+import { useSortedData } from "@/hooks/useSort";
+import { SortableHeader } from "@/components/ui/SortableHeader";
 
 interface ImportHistoryProps {
   onReparseStarted: (newJob: ImportJob) => void;
@@ -49,9 +51,12 @@ function SkeletonRow() {
   );
 }
 
+const TH = "px-3 py-2 text-xs font-medium text-muted-foreground";
+
 export function ImportHistory({ onReparseStarted }: ImportHistoryProps) {
   const { data: imports, isLoading } = useImportHistory();
   const queryClient = useQueryClient();
+  const { sorted, col, dir, toggle } = useSortedData(imports ?? [], "created_at", "desc");
   const [reparsing, setReparsing] = useState<string | null>(null);
   const [reverting, setReverting] = useState<string | null>(null);
   const [revertConfirm, setRevertConfirm] = useState<string | null>(null);
@@ -129,15 +134,15 @@ export function ImportHistory({ onReparseStarted }: ImportHistoryProps) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/30">
-                <th className="px-3 py-2 text-xs font-medium text-muted-foreground text-left">Data</th>
-                <th className="px-3 py-2 text-xs font-medium text-muted-foreground text-left">Tipo</th>
-                <th className="px-3 py-2 text-xs font-medium text-muted-foreground text-left">Status</th>
-                <th className="px-3 py-2 text-xs font-medium text-muted-foreground text-left">Transacoes</th>
-                <th className="px-3 py-2 text-xs font-medium text-muted-foreground text-left">Acao</th>
+                <SortableHeader col="created_at" label="Data" activeCol={col} dir={dir} onSort={toggle} className={`${TH} text-left`} />
+                <SortableHeader col="file_type" label="Tipo" activeCol={col} dir={dir} onSort={toggle} className={`${TH} text-left`} />
+                <SortableHeader col="status" label="Status" activeCol={col} dir={dir} onSort={toggle} className={`${TH} text-left`} />
+                <SortableHeader col="confirmed_count" label="Transacoes" activeCol={col} dir={dir} onSort={toggle} className={`${TH} text-left`} />
+                <th className={`${TH} text-left`}>Acao</th>
               </tr>
             </thead>
             <tbody>
-              {imports.map((job) => (
+              {sorted.map((job) => (
                 <tr key={job.id} className="border-b last:border-0 hover:bg-muted/20">
                   <td className="px-3 py-2 text-muted-foreground">{formatDate(job.created_at)}</td>
                   <td className="px-3 py-2 uppercase text-xs font-medium">{job.file_type}</td>

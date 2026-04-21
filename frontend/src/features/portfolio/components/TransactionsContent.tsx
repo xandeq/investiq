@@ -1,5 +1,7 @@
 "use client";
 import { useState } from "react";
+import { useSortedData } from "@/hooks/useSort";
+import { SortableHeader } from "@/components/ui/SortableHeader";
 import {
   useTransactions,
   useCreateTransaction,
@@ -252,6 +254,11 @@ export function TransactionsContent() {
     transaction_type: filterType || undefined,
     asset_class: filterClass || undefined,
   });
+  const { sorted: sortedTxs, col: sortCol, dir: sortDir, toggle: sortToggle } = useSortedData(
+    transactions as Record<string, unknown>[],
+    "transaction_date",
+    "desc"
+  );
 
   const createMut = useCreateTransaction();
   const updateMut = useUpdateTransaction();
@@ -412,13 +419,13 @@ export function TransactionsContent() {
                     title="Selecionar tudo"
                   />
                 </th>
-                <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Data</th>
-                <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Ticker</th>
-                <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Tipo</th>
-                <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Classe</th>
-                <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Qtd</th>
-                <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Preço Unit.</th>
-                <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Total</th>
+                <SortableHeader col="transaction_date" label="Data" activeCol={sortCol} dir={sortDir} onSort={sortToggle} className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground" />
+                <SortableHeader col="ticker" label="Ticker" activeCol={sortCol} dir={sortDir} onSort={sortToggle} className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground" />
+                <SortableHeader col="transaction_type" label="Tipo" activeCol={sortCol} dir={sortDir} onSort={sortToggle} className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground" />
+                <SortableHeader col="asset_class" label="Classe" activeCol={sortCol} dir={sortDir} onSort={sortToggle} className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground" />
+                <SortableHeader col="quantity" label="Qtd" activeCol={sortCol} dir={sortDir} onSort={sortToggle} className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground" align="right" />
+                <SortableHeader col="unit_price" label="Preço Unit." activeCol={sortCol} dir={sortDir} onSort={sortToggle} className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground" align="right" />
+                <SortableHeader col="total_value" label="Total" activeCol={sortCol} dir={sortDir} onSort={sortToggle} className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground" align="right" />
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
@@ -436,7 +443,7 @@ export function TransactionsContent() {
                   </td>
                 </tr>
               )}
-              {transactions.map((tx) => (
+              {sortedTxs.map((tx_) => { const tx = tx_ as TransactionResponse; return (
                 <tr key={tx.id} className={`hover:bg-gray-50/50 transition-colors ${selectedIds.has(tx.id) ? "bg-blue-50/40" : ""}`}>
                   <td className="px-4 py-3">
                     <input
@@ -468,7 +475,7 @@ export function TransactionsContent() {
                     </div>
                   </td>
                 </tr>
-              ))}
+              ); })}
             </tbody>
           </table>
         </div>

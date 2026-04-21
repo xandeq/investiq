@@ -1,10 +1,14 @@
 "use client";
 import { usePnl } from "@/features/portfolio/hooks/usePnl";
 import { formatBRL, formatPct } from "@/lib/formatters";
+import { useSortedData } from "@/hooks/useSort";
+import { SortableHeader } from "@/components/ui/SortableHeader";
 
 const ASSET_CLASS_LABELS: Record<string, string> = {
   acao: "Ação", fii: "FII", renda_fixa: "Renda Fixa", bdr: "BDR", etf: "ETF",
 };
+
+const TH = "text-xs font-bold uppercase tracking-wider text-muted-foreground px-3 py-2.5";
 
 function PnlCell({ value, pct }: { value: string | null; pct: string | null }) {
   if (value === null) return <span className="text-muted-foreground text-xs">—</span>;
@@ -19,6 +23,11 @@ function PnlCell({ value, pct }: { value: string | null; pct: string | null }) {
 
 export function PnlTable() {
   const { data: pnl, isLoading } = usePnl();
+  const { sorted, col, dir, toggle } = useSortedData(
+    pnl?.positions ?? [],
+    "ticker",
+    "asc"
+  );
 
   if (isLoading) return <div className="h-48 w-full rounded-lg bg-gray-100 animate-pulse" />;
   if (!pnl || pnl.positions.length === 0) {
@@ -38,36 +47,36 @@ export function PnlTable() {
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-100">
-              <th className="text-left px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-muted-foreground rounded-l-md">Ativo</th>
-              <th className="text-left px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Classe</th>
-              <th className="text-right px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Qtd</th>
-              <th className="text-right px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Preço Médio</th>
-              <th className="text-right px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Custo Total</th>
-              <th className="text-right px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Preço Atual</th>
-              <th className="text-right px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-muted-foreground rounded-r-md">P&L Não Realiz.</th>
+              <SortableHeader col="ticker" label="Ativo" activeCol={col} dir={dir} onSort={toggle} className={`${TH} rounded-l-md`} />
+              <SortableHeader col="asset_class" label="Classe" activeCol={col} dir={dir} onSort={toggle} className={TH} />
+              <SortableHeader col="quantity" label="Qtd" activeCol={col} dir={dir} onSort={toggle} className={`${TH} text-right`} align="right" />
+              <SortableHeader col="cmp" label="Preço Médio" activeCol={col} dir={dir} onSort={toggle} className={`${TH} text-right`} align="right" />
+              <SortableHeader col="total_cost" label="Custo Total" activeCol={col} dir={dir} onSort={toggle} className={`${TH} text-right`} align="right" />
+              <SortableHeader col="current_price" label="Preço Atual" activeCol={col} dir={dir} onSort={toggle} className={`${TH} text-right`} align="right" />
+              <SortableHeader col="unrealized_pnl" label="P&L Não Realiz." activeCol={col} dir={dir} onSort={toggle} className={`${TH} text-right rounded-r-md`} align="right" />
             </tr>
           </thead>
           <tbody>
-            {pnl.positions.map((pos) => (
-              <tr key={pos.ticker} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
-                <td className="py-2.5 px-3 font-semibold">{pos.ticker}</td>
+            {sorted.map((pos) => (
+              <tr key={pos.ticker as string} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
+                <td className="py-2.5 px-3 font-semibold">{pos.ticker as string}</td>
                 <td className="py-2.5 px-3 text-muted-foreground text-xs">
-                  {ASSET_CLASS_LABELS[pos.asset_class] ?? pos.asset_class}
+                  {ASSET_CLASS_LABELS[pos.asset_class as string] ?? (pos.asset_class as string)}
                 </td>
                 <td className="py-2.5 px-3 text-right tabular-nums font-medium">
-                  {parseFloat(pos.quantity).toLocaleString("pt-BR")}
+                  {parseFloat(pos.quantity as string).toLocaleString("pt-BR")}
                 </td>
-                <td className="py-2.5 px-3 text-right tabular-nums font-medium">{formatBRL(pos.cmp)}</td>
-                <td className="py-2.5 px-3 text-right tabular-nums font-medium">{formatBRL(pos.total_cost)}</td>
+                <td className="py-2.5 px-3 text-right tabular-nums font-medium">{formatBRL(pos.cmp as string)}</td>
+                <td className="py-2.5 px-3 text-right tabular-nums font-medium">{formatBRL(pos.total_cost as string)}</td>
                 <td className="py-2.5 px-3 text-right tabular-nums font-medium">
                   {pos.current_price_stale ? (
                     <span className="text-xs text-amber-500">—</span>
                   ) : (
-                    formatBRL(pos.current_price ?? "0")
+                    formatBRL((pos.current_price ?? "0") as string)
                   )}
                 </td>
                 <td className="py-2.5 px-3 text-right">
-                  <PnlCell value={pos.unrealized_pnl} pct={pos.unrealized_pnl_pct} />
+                  <PnlCell value={pos.unrealized_pnl as string | null} pct={pos.unrealized_pnl_pct as string | null} />
                 </td>
               </tr>
             ))}

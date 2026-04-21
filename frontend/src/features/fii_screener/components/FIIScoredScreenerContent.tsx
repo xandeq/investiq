@@ -3,6 +3,8 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useFIIScoredScreener } from "../hooks/useFIIScreener";
 import type { FIIScoredRow } from "../types";
+import { useSortedData } from "@/hooks/useSort";
+import { SortableHeader } from "@/components/ui/SortableHeader";
 
 const SEGMENTOS = [
   "Logistica",
@@ -96,6 +98,8 @@ function FIIScoredTableRow({
   );
 }
 
+const TH = "text-left py-3 px-4 text-xs font-semibold text-gray-600";
+
 export function FIIScoredScreenerContent() {
   const { data, isLoading, error } = useFIIScoredScreener();
   const [segmentoFilter, setSegmentoFilter] = useState<string>("");
@@ -114,6 +118,12 @@ export function FIIScoredScreenerContent() {
       return true;
     });
   }, [data, segmentoFilter, minDyFilter]);
+
+  const { sorted: sortedFiis, col, dir, toggle } = useSortedData(
+    filtered as Record<string, unknown>[],
+    "score",
+    "desc"
+  );
 
   function clearFilters() {
     setSegmentoFilter("");
@@ -199,13 +209,13 @@ export function FIIScoredScreenerContent() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600">#</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600">Ticker</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600">Segmento</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600">DY 12m</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600">P/VP</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600">Liquidez</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600">Score</th>
+                  <th className={TH}>#</th>
+                  <SortableHeader col="ticker" label="Ticker" activeCol={col} dir={dir} onSort={toggle} className={TH} />
+                  <SortableHeader col="segmento" label="Segmento" activeCol={col} dir={dir} onSort={toggle} className={TH} />
+                  <SortableHeader col="dy_12m" label="DY 12m" activeCol={col} dir={dir} onSort={toggle} className={TH} />
+                  <SortableHeader col="pvp" label="P/VP" activeCol={col} dir={dir} onSort={toggle} className={TH} />
+                  <SortableHeader col="daily_liquidity" label="Liquidez" activeCol={col} dir={dir} onSort={toggle} className={TH} />
+                  <SortableHeader col="score" label="Score" activeCol={col} dir={dir} onSort={toggle} className={TH} />
                 </tr>
               </thead>
               <tbody>
@@ -219,8 +229,8 @@ export function FIIScoredScreenerContent() {
                         ))}
                       </tr>
                     ))
-                  : filtered.map((row, idx) => (
-                      <FIIScoredTableRow key={row.ticker} row={row} rank={idx + 1} />
+                  : sortedFiis.map((row, idx) => (
+                      <FIIScoredTableRow key={(row as FIIScoredRow).ticker} row={row as FIIScoredRow} rank={idx + 1} />
                     ))}
                 {!isLoading && data && filtered.length === 0 && (
                   <tr>

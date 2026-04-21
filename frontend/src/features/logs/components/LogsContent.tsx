@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { getLogs, deleteLog, clearAllLogs, LogEntry } from "@/features/logs/api";
+import { useSortedData } from "@/hooks/useSort";
+import { SortableHeader } from "@/components/ui/SortableHeader";
 
 const LEVEL_BADGE: Record<string, string> = {
   ERROR: "bg-red-100 text-red-700 border border-red-200",
@@ -210,6 +212,12 @@ export function LogsContent() {
     }
   };
 
+  const { sorted: sortedLogs, col, dir, toggle } = useSortedData(
+    logs as Record<string, unknown>[],
+    "created_at",
+    "desc"
+  );
+
   const errorCount = logs.filter((l) => l.level === "ERROR").length;
   const warnCount = logs.filter((l) => l.level === "WARNING").length;
 
@@ -278,25 +286,18 @@ export function LogsContent() {
           <table className="w-full text-sm">
             <thead className="bg-muted/50 border-b border-border">
               <tr>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide w-24">
-                  Nível
-                </th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Título
-                </th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Módulo
-                </th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">
-                  Horário
-                </th>
+                <SortableHeader col="level" label="Nível" activeCol={col} dir={dir} onSort={toggle} className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide w-24" />
+                <SortableHeader col="title" label="Título" activeCol={col} dir={dir} onSort={toggle} className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide" />
+                <SortableHeader col="module" label="Módulo" activeCol={col} dir={dir} onSort={toggle} className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide" />
+                <SortableHeader col="created_at" label="Horário" activeCol={col} dir={dir} onSort={toggle} className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap" />
                 <th className="w-8" />
               </tr>
             </thead>
             <tbody>
-              {logs.map((log) => (
-                <LogRow key={log.id} log={log} onDelete={handleDelete} />
-              ))}
+              {sortedLogs.map((log_) => {
+                const log = log_ as LogEntry;
+                return <LogRow key={log.id} log={log} onDelete={handleDelete} />;
+              })}
             </tbody>
           </table>
         </div>

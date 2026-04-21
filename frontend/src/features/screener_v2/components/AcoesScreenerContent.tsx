@@ -2,6 +2,8 @@
 import { useState } from "react";
 import { useAcoesScreener } from "../hooks/useAcoesScreener";
 import type { AcaoRow, AcaoScreenerParams } from "../types";
+import { useSortedData } from "@/hooks/useSort";
+import { SortableHeader } from "@/components/ui/SortableHeader";
 
 const SECTORS = [
   "Financeiro", "Energia", "Tecnologia", "Consumo", "Saúde",
@@ -61,6 +63,9 @@ export function AcoesScreenerContent() {
 
   const params: AcaoScreenerParams = { ...applied, limit: PAGE_SIZE, offset, exclude_portfolio: excludePortfolio };
   const { data, isLoading, isFetching, error } = useAcoesScreener(params);
+  const { sorted: sortedAcoes, col, dir, toggle } = useSortedData(
+    (data?.results ?? []) as Record<string, unknown>[],
+  );
 
   function applyFilters() {
     setOffset(0);
@@ -201,15 +206,15 @@ export function AcoesScreenerContent() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600">Ativo</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600">Setor</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600">Preço</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600">Var.</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600">DY</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600">P/L</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600">P/VP</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600">EV/EBITDA</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600">Market Cap</th>
+                  <SortableHeader col="ticker" label="Ativo" activeCol={col} dir={dir} onSort={toggle} className="text-left py-3 px-4 text-xs font-semibold text-gray-600" />
+                  <SortableHeader col="sector" label="Setor" activeCol={col} dir={dir} onSort={toggle} className="text-left py-3 px-4 text-xs font-semibold text-gray-600" />
+                  <SortableHeader col="price" label="Preço" activeCol={col} dir={dir} onSort={toggle} className="text-left py-3 px-4 text-xs font-semibold text-gray-600" />
+                  <SortableHeader col="change_pct" label="Var." activeCol={col} dir={dir} onSort={toggle} className="text-left py-3 px-4 text-xs font-semibold text-gray-600" />
+                  <SortableHeader col="dy" label="DY" activeCol={col} dir={dir} onSort={toggle} className="text-left py-3 px-4 text-xs font-semibold text-gray-600" />
+                  <SortableHeader col="pl" label="P/L" activeCol={col} dir={dir} onSort={toggle} className="text-left py-3 px-4 text-xs font-semibold text-gray-600" />
+                  <SortableHeader col="pvp" label="P/VP" activeCol={col} dir={dir} onSort={toggle} className="text-left py-3 px-4 text-xs font-semibold text-gray-600" />
+                  <SortableHeader col="ev_ebitda" label="EV/EBITDA" activeCol={col} dir={dir} onSort={toggle} className="text-left py-3 px-4 text-xs font-semibold text-gray-600" />
+                  <SortableHeader col="market_cap" label="Market Cap" activeCol={col} dir={dir} onSort={toggle} className="text-left py-3 px-4 text-xs font-semibold text-gray-600" />
                 </tr>
               </thead>
               <tbody>
@@ -223,8 +228,8 @@ export function AcoesScreenerContent() {
                         ))}
                       </tr>
                     ))
-                  : data?.results.map((row) => (
-                      <AcaoTableRow key={`${row.ticker}-${row.snapshot_date}`} row={row} />
+                  : sortedAcoes.map((row) => (
+                      <AcaoTableRow key={`${(row as AcaoRow).ticker}-${(row as AcaoRow).snapshot_date}`} row={row as AcaoRow} />
                     ))}
                 {!isLoading && data?.results.length === 0 && (
                   <tr>

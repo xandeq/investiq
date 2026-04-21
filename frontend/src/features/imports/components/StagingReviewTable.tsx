@@ -3,6 +3,8 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useImportJob } from "../hooks/useImportJob";
 import { confirmImport, cancelImport } from "../api";
+import { useSortedData } from "@/hooks/useSort";
+import { SortableHeader } from "@/components/ui/SortableHeader";
 
 interface StagingReviewTableProps {
   jobId: string;
@@ -14,6 +16,12 @@ export function StagingReviewTable({ jobId, onConfirmed, onCancelled }: StagingR
   const { data: job, isLoading } = useImportJob(jobId);
   const queryClient = useQueryClient();
   const [confirming, setConfirming] = useState(false);
+  // Hook must be called unconditionally — data is empty array until job is ready
+  const { sorted: sortedRows, col, dir, toggle } = useSortedData(
+    (job?.staged_rows ?? []) as Record<string, unknown>[],
+    "transaction_date",
+    "asc"
+  );
 
   async function handleConfirm() {
     setConfirming(true);
@@ -113,19 +121,19 @@ export function StagingReviewTable({ jobId, onConfirmed, onCancelled }: StagingR
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/30 text-left">
-              <th className="px-3 py-2 text-xs font-medium text-muted-foreground">Ticker</th>
-              <th className="px-3 py-2 text-xs font-medium text-muted-foreground">Tipo</th>
-              <th className="px-3 py-2 text-xs font-medium text-muted-foreground">Data</th>
-              <th className="px-3 py-2 text-xs font-medium text-muted-foreground">Qtde</th>
-              <th className="px-3 py-2 text-xs font-medium text-muted-foreground">Preco Unit.</th>
-              <th className="px-3 py-2 text-xs font-medium text-muted-foreground">Total</th>
-              <th className="px-3 py-2 text-xs font-medium text-muted-foreground">Classe</th>
+              <SortableHeader col="ticker" label="Ticker" activeCol={col} dir={dir} onSort={toggle} className="px-3 py-2 text-xs font-medium text-muted-foreground" />
+              <SortableHeader col="transaction_type" label="Tipo" activeCol={col} dir={dir} onSort={toggle} className="px-3 py-2 text-xs font-medium text-muted-foreground" />
+              <SortableHeader col="transaction_date" label="Data" activeCol={col} dir={dir} onSort={toggle} className="px-3 py-2 text-xs font-medium text-muted-foreground" />
+              <SortableHeader col="quantity" label="Qtde" activeCol={col} dir={dir} onSort={toggle} className="px-3 py-2 text-xs font-medium text-muted-foreground" />
+              <SortableHeader col="unit_price" label="Preco Unit." activeCol={col} dir={dir} onSort={toggle} className="px-3 py-2 text-xs font-medium text-muted-foreground" />
+              <SortableHeader col="total_value" label="Total" activeCol={col} dir={dir} onSort={toggle} className="px-3 py-2 text-xs font-medium text-muted-foreground" />
+              <SortableHeader col="asset_class" label="Classe" activeCol={col} dir={dir} onSort={toggle} className="px-3 py-2 text-xs font-medium text-muted-foreground" />
               <th className="px-3 py-2 text-xs font-medium text-muted-foreground">Fonte</th>
               <th className="px-3 py-2 text-xs font-medium text-muted-foreground">Status</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {sortedRows.map((row_) => { const row = row_ as typeof rows[0]; return (
               <tr key={row.id} className="border-b last:border-0 hover:bg-muted/20">
                 <td className="px-3 py-2 font-medium">{row.ticker}</td>
                 <td className="px-3 py-2 text-muted-foreground">{row.transaction_type}</td>
@@ -147,7 +155,7 @@ export function StagingReviewTable({ jobId, onConfirmed, onCancelled }: StagingR
                   )}
                 </td>
               </tr>
-            ))}
+            ); })}
           </tbody>
         </table>
       </div>
