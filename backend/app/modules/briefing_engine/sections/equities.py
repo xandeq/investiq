@@ -12,11 +12,48 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-# Curated dividend + quality stocks universe for recommendations
-_DIVIDEND_UNIVERSE = [
+# Base curated dividend + quality stocks universe (full expanded list)
+_DIVIDEND_UNIVERSE_DEFAULT = [
     "BBSE3", "ITUB4", "BBDC4", "ABEV3", "EGIE3",
     "TAEE11", "CMIG4", "VIVT3", "KLBN11", "WEGE3",
+    "BBAS3", "SANB11", "JBSS3", "BEEF3", "PETR4",
+    "VALE3", "PRIO3", "ENEV3", "SUZB3", "RDOR3",
 ]
+
+
+async def _get_dynamic_equity_universe(redis_client, fallback: list[str]) -> list[str]:
+    """Return equities ranked by DY (highest first) using Redis fundamentals cache.
+
+    Filters out stocks with ROE < 0 (quality filter). Falls back to curated list.
+    """
+    if redis_client is None:
+        return fallback
+
+    dy_scores: list[tuple[str, float]] = []
+    for ticker in fallback:
+        try:
+            raw = await redis_client.get(f"market:fundamentals:{ticker}")
+            if raw:
+                if isinstance(raw, bytes):
+                    raw = raw.decode()
+                fund = json.loads(raw)
+                roe = fund.get("roe")
+                # Skip negative ROE (quality filter)
+                if roe is not None and roe < 0:
+                    continue
+                dy = fund.get("dy")
+                dy_pct = (dy * 100 if dy and abs(dy) < 1 else (dy or 0.0))
+                dy_scores.append((ticker, dy_pct))
+            else:
+                dy_scores.append((ticker, 0.0))
+        except Exception:
+            dy_scores.append((ticker, 0.0))
+
+    if not dy_scores:
+        return fallback
+
+    dy_scores.sort(key=lambda x: x[1], reverse=True)
+    return [t for t, _ in dy_scores]
 
 _SYSTEM_EQUITIES = """Você é um analista de ações brasileiro sênior.
 Dado dados técnicos de ações (regime, RSI, confluências, setup), gere uma tabela de recomendações.
@@ -25,8 +62,15 @@ Seja direto. Sem disclaimer. Máximo 5 ações. Retorne APENAS JSON array."""
 
 
 async def fetch_equities_data(redis_client=None) -> dict[str, Any]:
-    """Fetch technical analysis for dividend universe."""
+    """Fetch technical analysis for dividend universe.
+
+    Universe is dynamically ranked by real DY from Redis cache (BRAPI Startup),
+    filtered for positive ROE. Falls back to curated list.
+    """
     brapi_token = os.environ.get("BRAPI_TOKEN", "")
+
+    # Dynamic universe ranked by DY
+    universe = await _get_dynamic_equity_universe(redis_client, _DIVIDEND_UNIVERSE_DEFAULT)
 
     sem = asyncio.Semaphore(3)  # limit concurrent BRAPI calls to avoid 429
 
@@ -39,11 +83,11 @@ async def fetch_equities_data(redis_client=None) -> dict[str, Any]:
             except Exception:
                 return None
 
-    tasks = [_analyze(t) for t in _DIVIDEND_UNIVERSE]
+    tasks = [_analyze(t) for t in universe]
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     analyzed = []
-    for ticker, result in zip(_DIVIDEND_UNIVERSE, results):
+    for ticker, result in zip(universe, results):
         if isinstance(result, dict) and not result.get("error"):
             analyzed.append({"ticker": ticker, "analysis": result})
 

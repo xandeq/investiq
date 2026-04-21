@@ -24,8 +24,16 @@ from app.modules.analysis.data import (
 logger = logging.getLogger(__name__)
 
 
+_FII_DETAIL_TTL = 21600  # 6h — matches fundamentals refresh cadence
+
+
 def fetch_fii_data(ticker: str) -> dict:
-    """Fetch FII detail data from BRAPI with 24h Redis cache.
+    """Fetch FII detail data from BRAPI with Redis caching.
+
+    Cache strategy (two layers):
+      1. brapi:fii_detail:{ticker}  — full parsed result, TTL 6h
+      2. market:fundamentals:{ticker} — populated by Celery refresh_quotes task;
+         used to pre-fill P/VP + DY when full detail cache is cold
 
     Returns dict with keys:
       current_price, pvp, dy_12m, dividends_monthly, portfolio,
@@ -34,7 +42,7 @@ def fetch_fii_data(ticker: str) -> dict:
     ticker_upper = ticker.upper()
     cache_key = f"brapi:fii_detail:{ticker_upper}"
 
-    # Redis cache check
+    # Layer 1: full detail cache
     try:
         r = _get_sync_redis()
         cached = r.get(cache_key)
@@ -43,7 +51,23 @@ def fetch_fii_data(ticker: str) -> dict:
     except Exception as exc:
         logger.warning("Redis cache miss for FII %s: %s", ticker_upper, exc)
 
-    # Fetch from BRAPI
+    # Layer 2: fast pre-fill from market:fundamentals (Celery-populated)
+    prefill: dict = {}
+    try:
+        r = _get_sync_redis()
+        raw_fund = r.get(f"market:fundamentals:{ticker_upper}")
+        if raw_fund:
+            fund = json.loads(raw_fund)
+            if fund.get("pvp"):
+                prefill["pvp"] = fund["pvp"]
+            if fund.get("dy"):
+                dy_raw = fund["dy"]
+                # BRAPI returns DY as ratio (0.08) or percentage (8.0) depending on source
+                prefill["dy_12m"] = dy_raw if dy_raw > 1 else dy_raw * 100
+    except Exception:
+        pass
+
+    # Fetch from BRAPI with dividendsData module (available on Startup plan)
     token = _resolve_brapi_token()
     params: dict = {"modules": "dividendsData,summaryProfile"}
     if token:
@@ -52,36 +76,23 @@ def fetch_fii_data(ticker: str) -> dict:
     try:
         url = f"{_BRAPI_BASE_URL}/quote/{ticker_upper}"
         resp = requests.get(url, params=params, timeout=15)
-
-        # Handle MODULES_NOT_AVAILABLE (400 from BRAPI for some tickers)
-        if resp.status_code == 400:
-            try:
-                err_body = resp.json()
-                if "MODULES_NOT_AVAILABLE" in str(err_body):
-                    # Fallback: fetch base quote only (no modules)
-                    base_params: dict = {}
-                    if token:
-                        base_params["token"] = token
-                    resp2 = requests.get(
-                        f"{_BRAPI_BASE_URL}/quote/{ticker_upper}",
-                        params=base_params,
-                        timeout=15,
-                    )
-                    resp2.raise_for_status()
-                    data = resp2.json()
-                else:
-                    raise DataFetchError(ticker_upper, "BRAPI", f"HTTP 400: {err_body}")
-            except DataFetchError:
-                raise
-            except Exception as exc:
-                raise DataFetchError(ticker_upper, "BRAPI", f"HTTP 400 parse error: {exc}")
-        else:
-            resp.raise_for_status()
-            data = resp.json()
-
-    except DataFetchError:
-        raise
+        resp.raise_for_status()
+        data = resp.json()
     except Exception as exc:
+        # If BRAPI unavailable but we have prefill data, return partial result
+        if prefill:
+            logger.warning("BRAPI unavailable for FII %s, using prefill data: %s", ticker_upper, exc)
+            return {
+                "current_price": None,
+                "pvp": prefill.get("pvp"),
+                "dy_12m": prefill.get("dy_12m"),
+                "dividends_monthly": [],
+                "portfolio": {},
+                "last_dividend": None,
+                "daily_liquidity": None,
+                "book_value": None,
+                "source": "cache_prefill",
+            }
         raise DataFetchError(ticker_upper, "BRAPI", str(exc))
 
     results = data.get("results", [])
@@ -129,10 +140,10 @@ def fetch_fii_data(ticker: str) -> dict:
         "book_value": book_value,
     }
 
-    # Cache in Redis (24h TTL)
+    # Cache in Redis (6h TTL — matches fundamentals refresh cadence)
     try:
         r = _get_sync_redis()
-        r.setex(cache_key, _CACHE_TTL_SECONDS, json.dumps(result))
+        r.setex(cache_key, _FII_DETAIL_TTL, json.dumps(result))
     except Exception as exc:
         logger.warning("Redis cache write failed for FII %s: %s", ticker_upper, exc)
 

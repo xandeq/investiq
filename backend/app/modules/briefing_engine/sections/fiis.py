@@ -2,16 +2,58 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 from typing import Any
 
 logger = logging.getLogger(__name__)
 
-_FII_UNIVERSE = [
+# Curated FII universe — all major liquid FIIs across segments
+_FII_UNIVERSE_DEFAULT = [
     "KNCR11", "HGLG11", "XPML11", "MXRF11", "KNRI11",
     "IRDM11", "BCFF11", "XPCA11", "BTLG11", "VISC11",
+    "HCTR11", "BRCO11", "XPLG11", "LVBI11", "RZTR11",
+    "HGRE11", "RBRP11", "BRCR11", "HFOF11", "RBRF11",
+    "HSML11", "MALL11", "VISC11", "GGRC11",
 ]
+
+
+async def _get_dynamic_fii_universe(redis_client, fallback: list[str]) -> list[str]:
+    """Return FIIs ranked by DY (highest first) using Redis fundamentals cache.
+
+    Falls back to the default curated list if Redis is unavailable or empty.
+    This ensures the briefing recommends FIIs that are actually paying well today.
+    """
+    if redis_client is None:
+        return fallback
+
+    dy_scores: list[tuple[str, float]] = []
+    for ticker in fallback:
+        try:
+            raw = await redis_client.get(f"market:fundamentals:{ticker}")
+            if raw:
+                if isinstance(raw, bytes):
+                    raw = raw.decode()
+                fund = json.loads(raw)
+                dy = fund.get("dy")
+                if dy is not None:
+                    # Normalise: BRAPI may return 0.08 (ratio) or 8.0 (percentage)
+                    dy_pct = dy * 100 if abs(dy) < 1 else dy
+                    dy_scores.append((ticker, dy_pct))
+                else:
+                    dy_scores.append((ticker, 0.0))
+        except Exception:
+            dy_scores.append((ticker, 0.0))
+
+    if not dy_scores:
+        return fallback
+
+    # Sort descending by DY; tickers without data go last
+    dy_scores.sort(key=lambda x: x[1], reverse=True)
+    ranked = [t for t, _ in dy_scores]
+    logger.debug("FII briefing universe ranked by DY: %s", ranked[:5])
+    return ranked
 
 _SYSTEM_FIIS = """Você é um especialista em FIIs (Fundos de Investimento Imobiliário) brasileiro.
 Dado dados técnicos de FIIs, gere recomendações.
@@ -20,10 +62,17 @@ Seja direto. Máximo 5 FIIs. Retorne APENAS JSON array."""
 
 
 async def fetch_fiis_data(redis_client=None) -> dict[str, Any]:
-    """Fetch technical + basic data for FII universe."""
+    """Fetch technical + fundamental data for FII universe.
+
+    Universe is ranked by real DY from Redis fundamentals cache (Startup plan),
+    so the briefing always covers the highest-yielding FIIs first.
+    """
     brapi_token = os.environ.get("BRAPI_TOKEN", "")
 
-    sem = asyncio.Semaphore(3)  # limit concurrent BRAPI calls to avoid 429
+    # Dynamic universe: top FIIs by DY from Redis, fallback to curated list
+    universe = await _get_dynamic_fii_universe(redis_client, _FII_UNIVERSE_DEFAULT)
+
+    sem = asyncio.Semaphore(3)  # limit concurrent BRAPI calls
 
     async def _analyze(ticker: str):
         async with sem:
@@ -34,13 +83,28 @@ async def fetch_fiis_data(redis_client=None) -> dict[str, Any]:
             except Exception:
                 return None
 
-    tasks = [_analyze(t) for t in _FII_UNIVERSE]
+    tasks = [_analyze(t) for t in universe]
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     analyzed = []
-    for ticker, result in zip(_FII_UNIVERSE, results):
+    for ticker, result in zip(universe, results):
         if isinstance(result, dict) and not result.get("error"):
-            analyzed.append({"ticker": ticker, "analysis": result})
+            item = {"ticker": ticker, "analysis": result}
+            # Enrich with DY/P/VP from Redis
+            if redis_client is not None:
+                try:
+                    raw = await redis_client.get(f"market:fundamentals:{ticker}")
+                    if raw:
+                        if isinstance(raw, bytes):
+                            raw = raw.decode()
+                        fund = json.loads(raw)
+                        dy = fund.get("dy")
+                        item["dy_pct"] = (dy * 100 if dy and abs(dy) < 1 else dy) if dy else None
+                        item["pvp"] = fund.get("pvp")
+                except Exception:
+                    item["dy_pct"] = None
+                    item["pvp"] = None
+            analyzed.append(item)
 
     return {"analyzed": analyzed}
 
@@ -56,10 +120,19 @@ async def generate_fii_recommendations(data: dict[str, Any]) -> list[dict[str, A
         t = item["ticker"]
         a = item["analysis"]
         ind = a.get("indicators", {})
-        summaries.append(
+        line = (
             f"- {t}: regime={ind.get('regime','?')}, RSI={ind.get('rsi_14','?')}, "
             f"EMA20={ind.get('ema20','?')}, confluências={len(a.get('confluences',[]))}"
         )
+        # Add real DY and P/VP if available
+        fund_parts = []
+        if item.get("dy_pct"):
+            fund_parts.append(f"DY={item['dy_pct']:.1f}%")
+        if item.get("pvp"):
+            fund_parts.append(f"P/VP={item['pvp']:.2f}")
+        if fund_parts:
+            line += " | " + " ".join(fund_parts)
+        summaries.append(line)
 
     prompt = "Analise os seguintes FIIs e recomende os 3-5 melhores para carteira agora:\n\n" + "\n".join(summaries)
 

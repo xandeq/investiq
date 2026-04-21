@@ -312,9 +312,22 @@ def get_selic_rate() -> tuple[float, str, bool]:
         return (rate_decimal, date_str, False)
 
     except Exception as exc:
-        logger.warning(
-            "BCB SELIC API failed, using fallback rate %.4f: %s",
-            _SELIC_FALLBACK_RATE,
-            exc,
-        )
+        logger.warning("BCB SELIC API failed (%s) — checking Redis macro cache", exc)
+
+        # Fallback 1: Redis market:macro:selic (written by Celery refresh_macro task)
+        try:
+            r = _get_sync_redis()
+            raw = r.get("market:macro:selic")
+            if raw:
+                selic_val = float(raw.decode() if isinstance(raw, bytes) else raw)
+                # Stored as annual decimal (e.g. 0.1475); treat > 1 as percentage
+                if selic_val > 1:
+                    selic_val = selic_val / 100.0
+                logger.info("SELIC from Redis macro cache: %.4f", selic_val)
+                return (selic_val, "redis-cache", False)
+        except Exception as redis_exc:
+            logger.warning("Redis macro:selic read failed: %s", redis_exc)
+
+        # Fallback 2: hardcoded last-known rate
+        logger.warning("Using hardcoded SELIC fallback %.4f", _SELIC_FALLBACK_RATE)
         return (_SELIC_FALLBACK_RATE, _SELIC_FALLBACK_DATE, True)
