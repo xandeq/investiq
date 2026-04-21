@@ -171,13 +171,52 @@ def _get_brapi_token() -> str:
 # Ações radar
 # ---------------------------------------------------------------------------
 
-def _fetch_brapi_quote_simple(ticker: str, token: str) -> Optional[dict]:
+_INVALID_KEY = "chart_analyzer:invalid_tickers"  # shared with chart_analyzer
+_INVALID_TTL = 7 * 24 * 3600
+
+
+def _is_ticker_invalid_sync(ticker: str, r: sync_redis.Redis) -> bool:
+    """Check the 404 blacklist synchronously (Celery context)."""
+    try:
+        return bool(r.sismember(_INVALID_KEY, ticker.upper()))
+    except Exception:
+        return False
+
+
+def _mark_ticker_invalid_sync(ticker: str, r: sync_redis.Redis) -> None:
+    """Add ticker to 404 blacklist (sync) and log a warning."""
+    try:
+        t = ticker.upper()
+        r.sadd(_INVALID_KEY, t)
+        r.expire(_INVALID_KEY, _INVALID_TTL)
+        logger.warning(
+            "radar: ticker %s blacklisted for 7 days (BRAPI 404). "
+            "Remove via: redis-cli SREM %s %s",
+            t, _INVALID_KEY, t,
+        )
+    except Exception as exc:
+        logger.debug("_mark_ticker_invalid_sync failed for %s: %s", ticker, exc)
+
+
+def _fetch_brapi_quote_simple(ticker: str, token: str, r: Optional[sync_redis.Redis] = None) -> Optional[dict]:
+    """Fetch a single quote from BRAPI. Returns None on any error.
+
+    If BRAPI returns 404 and a Redis client is provided, the ticker is
+    added to the 7-day blacklist so future scans skip it automatically.
+    """
+    if r is not None and _is_ticker_invalid_sync(ticker, r):
+        logger.debug("radar: skipping blacklisted ticker %s", ticker)
+        return None
     try:
         resp = requests.get(
             f"https://brapi.dev/api/quote/{ticker}",
             params={"token": token},
             timeout=8,
         )
+        if resp.status_code == 404:
+            if r is not None:
+                _mark_ticker_invalid_sync(ticker, r)
+            return None
         resp.raise_for_status()
         results = resp.json().get("results", [])
         return results[0] if results else None
@@ -195,7 +234,7 @@ def _build_acoes_radar(token: str, r: Optional[sync_redis.Redis] = None) -> list
             continue
         seen_tickers.add(ticker)
 
-        quote = _fetch_brapi_quote_simple(ticker, token)
+        quote = _fetch_brapi_quote_simple(ticker, token, r)
         if not quote:
             continue
 
@@ -285,7 +324,7 @@ def _build_fiis_radar(token: str, r: Optional[sync_redis.Redis] = None) -> list[
     items = []
     for asset in RADAR_FIIS:
         ticker = asset["ticker"]
-        quote = _fetch_brapi_quote_simple(ticker, token)
+        quote = _fetch_brapi_quote_simple(ticker, token, r)
         if not quote:
             continue
 

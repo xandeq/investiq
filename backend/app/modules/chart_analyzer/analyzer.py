@@ -23,11 +23,40 @@ from app.modules.chart_analyzer.regime import detect_regime
 
 logger = logging.getLogger(__name__)
 
-_REDIS_TTL = 4 * 3600  # 4 hours — daily OHLCV doesn't change intraday
+_REDIS_TTL = 4 * 3600          # 4 hours — daily OHLCV doesn't change intraday
+_INVALID_TTL = 7 * 24 * 3600   # 7 days — retry invalid tickers after a week
+_INVALID_KEY = "chart_analyzer:invalid_tickers"  # Redis Set of known-404 tickers
 
 
 def _redis_key(ticker: str) -> str:
     return f"chart_analyzer:{ticker.upper()}"
+
+
+async def is_ticker_invalid(ticker: str, redis_client: Any) -> bool:
+    """Return True if ticker is in the 7-day 404 blacklist."""
+    if redis_client is None:
+        return False
+    try:
+        return bool(await redis_client.sismember(_INVALID_KEY, ticker.upper()))
+    except Exception:
+        return False
+
+
+async def mark_ticker_invalid(ticker: str, redis_client: Any) -> None:
+    """Add ticker to the 404 blacklist (Redis Set, TTL refreshed on each write)."""
+    if redis_client is None:
+        return
+    try:
+        t = ticker.upper()
+        await redis_client.sadd(_INVALID_KEY, t)
+        await redis_client.expire(_INVALID_KEY, _INVALID_TTL)
+        logger.warning(
+            "chart_analyzer: ticker %s blacklisted for %d days (BRAPI 404). "
+            "Remove manually via: redis-cli SREM %s %s",
+            t, _INVALID_TTL // 86400, _INVALID_KEY, t,
+        )
+    except Exception as exc:
+        logger.debug("mark_ticker_invalid failed for %s: %s", ticker, exc)
 
 
 def _fetch_ohlcv(ticker: str, brapi_token: str | None) -> pd.DataFrame:
@@ -205,6 +234,19 @@ async def analyze(
         except Exception as exc:
             logger.warning("Redis cache read failed for %s: %s", ticker, exc)
 
+    # Skip tickers previously blacklisted due to BRAPI 404
+    if await is_ticker_invalid(ticker, redis_client):
+        logger.debug("chart_analyzer: skipping blacklisted ticker %s", ticker)
+        return {
+            "ticker": ticker,
+            "has_setup": False,
+            "setup": None,
+            "indicators": {},
+            "confluences": [],
+            "levels": {"support": [], "resistance": []},
+            "error": "ticker_not_found",
+        }
+
     token = brapi_token or os.environ.get("BRAPI_TOKEN", "")
 
     try:
@@ -259,16 +301,32 @@ async def analyze(
         }
 
     except Exception as exc:
-        logger.error("chart_analyzer.analyze failed for %s: %s", ticker, exc)
-        result = {
-            "ticker": ticker,
-            "has_setup": False,
-            "setup": None,
-            "indicators": {},
-            "confluences": [],
-            "levels": {"support": [], "resistance": []},
-            "error": str(exc),
-        }
+        err_str = str(exc)
+
+        # 404 = ticker não existe no BRAPI — blacklist automática por 7 dias
+        if "404" in err_str and "Not Found" in err_str:
+            await mark_ticker_invalid(ticker, redis_client)
+            result = {
+                "ticker": ticker,
+                "has_setup": False,
+                "setup": None,
+                "indicators": {},
+                "confluences": [],
+                "levels": {"support": [], "resistance": []},
+                "error": "ticker_not_found",
+            }
+        else:
+            # Outros erros (rede, dados insuficientes): loga ERROR normalmente
+            logger.error("chart_analyzer.analyze failed for %s: %s", ticker, exc)
+            result = {
+                "ticker": ticker,
+                "has_setup": False,
+                "setup": None,
+                "indicators": {},
+                "confluences": [],
+                "levels": {"support": [], "resistance": []},
+                "error": err_str,
+            }
 
     # Write to cache
     if redis_client is not None and result.get("error") is None:
