@@ -123,16 +123,18 @@ class MarketDataService:
                 data_stale=True,
             )
 
-        def _to_decimal(raw: bytes | None) -> Decimal:
+        def _to_decimal(raw: bytes | str | None) -> Decimal:
             if raw is None:
                 return Decimal("0")
-            return Decimal(raw.decode())
+            s = raw.decode() if isinstance(raw, bytes) else raw
+            return Decimal(s)
 
         fetched_at_raw = values["fetched_at"]
         fetched_at: datetime
         if fetched_at_raw:
             try:
-                fetched_at = datetime.fromisoformat(fetched_at_raw.decode())
+                s = fetched_at_raw.decode() if isinstance(fetched_at_raw, bytes) else fetched_at_raw
+                fetched_at = datetime.fromisoformat(s)
             except ValueError:
                 fetched_at = _EPOCH_MIN
         else:

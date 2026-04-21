@@ -28,12 +28,16 @@ async def fetch_equities_data(redis_client=None) -> dict[str, Any]:
     """Fetch technical analysis for dividend universe."""
     brapi_token = os.environ.get("BRAPI_TOKEN", "")
 
+    sem = asyncio.Semaphore(3)  # limit concurrent BRAPI calls to avoid 429
+
     async def _analyze(ticker: str):
-        try:
-            from app.modules.chart_analyzer.analyzer import analyze
-            return await analyze(ticker, brapi_token=brapi_token, redis_client=redis_client)
-        except Exception:
-            return None
+        async with sem:
+            try:
+                await asyncio.sleep(0.3)  # small stagger
+                from app.modules.chart_analyzer.analyzer import analyze
+                return await analyze(ticker, brapi_token=brapi_token, redis_client=redis_client)
+            except Exception:
+                return None
 
     tasks = [_analyze(t) for t in _DIVIDEND_UNIVERSE]
     results = await asyncio.gather(*tasks, return_exceptions=True)

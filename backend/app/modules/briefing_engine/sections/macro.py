@@ -41,12 +41,15 @@ async def fetch_macro_data() -> dict[str, Any]:
         try:
             svc = MarketDataService(r)
             macro = await svc.get_macro()
-            bcb_data = {
-                "selic": float(macro.selic) if macro.selic else None,
-                "cdi": float(macro.cdi) if macro.cdi else None,
-                "ipca": float(macro.ipca) if macro.ipca else None,
-                "ptax": float(macro.ptax) if macro.ptax else None,
-            }
+            if not getattr(macro, "data_stale", False):
+                bcb_data = {
+                    "selic": float(macro.selic) if macro.selic else None,
+                    "cdi": float(macro.cdi) if macro.cdi else None,
+                    "ipca": float(macro.ipca) if macro.ipca else None,
+                    "ptax": float(macro.ptax_usd) if macro.ptax_usd else None,
+                }
+            else:
+                logger.debug("macro: BCB cache is stale, skipping")
         finally:
             await r.aclose()
     except Exception as exc:
