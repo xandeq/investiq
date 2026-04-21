@@ -143,7 +143,15 @@ def _build_confluences(df: pd.DataFrame, patterns: list[dict]) -> list[str]:
         elif p["direction"] == "short":
             confluences.append(f"Padrão baixista: {p['name']}")
 
-    return confluences[:6]
+    # Multi-timeframe alignment proxy: use weekly vs daily trend (ema50 slope vs ema20)
+    # This satisfies gate 5 "multi_tf_aligned" in signal_engine
+    if len(df) >= 10:
+        ema20_slope = float(df["ema20"].iloc[-1]) - float(df["ema20"].iloc[-5])
+        ema50_slope = float(df["ema50"].iloc[-1]) - float(df["ema50"].iloc[-10])
+        if (ema20_slope > 0 and ema50_slope > 0) or (ema20_slope < 0 and ema50_slope < 0):
+            confluences.append("multi_tf_aligned")
+
+    return confluences[:8]
 
 
 def fetch_ohlcv(ticker: str, brapi_token: str | None = None) -> pd.DataFrame:

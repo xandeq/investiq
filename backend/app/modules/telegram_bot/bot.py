@@ -145,14 +145,18 @@ async def cmd_carteira(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         from sqlalchemy import text
         from app.core.db import async_session_factory
 
+        chat_id_str = str(update.effective_chat.id)
         async with async_session_factory() as db:
+            # Set tenant_id to the Telegram chat_id (single-user system)
+            await db.execute(text("SET LOCAL rls.tenant_id = :tid"), {"tid": chat_id_str})
             result = await db.execute(
                 text(
                     "SELECT ticker, entry_price, target_price, quantity "
                     "FROM swing_trade_operations "
-                    "WHERE status = 'open' AND deleted_at IS NULL "
+                    "WHERE status = 'open' AND tenant_id = :tid "
                     "ORDER BY ticker"
-                )
+                ),
+                {"tid": chat_id_str},
             )
             ops = result.fetchall()
 

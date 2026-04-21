@@ -13,7 +13,8 @@ from datetime import date
 from decimal import Decimal
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import status as http_status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -69,7 +70,7 @@ def _serialize(obj: Any) -> dict:
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=http_status.HTTP_201_CREATED)
 @limiter.limit("30/minute")
 async def create_outcome_endpoint(
     request: Request,
@@ -98,12 +99,12 @@ async def get_expectancy(
 @limiter.limit("30/minute")
 async def list_outcomes_endpoint(
     request: Request,
-    status: str | None = Query(default=None, pattern="^(open|closed|stopped)$"),
+    filter_status: str | None = Query(default=None, alias="status", pattern="^(open|closed|stopped)$"),
     tenant_id: str = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_authed_db),
 ) -> dict:
     """List signal outcomes, optionally filtered by status."""
-    outcomes = await list_outcomes(db, tenant_id, status)
+    outcomes = await list_outcomes(db, tenant_id, filter_status)
     return {"outcomes": [_serialize(o) for o in outcomes], "count": len(outcomes)}
 
 
@@ -125,5 +126,5 @@ async def close_outcome_endpoint(
         status=body.status,
     )
     if outcome is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Outcome not found")
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Outcome not found")
     return _serialize(outcome)

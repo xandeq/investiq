@@ -66,11 +66,13 @@ def send_evening_summary() -> dict:
 
     async def _run() -> str:
         from app.modules.telegram_bot.briefings import build_evening_summary
+        from app.core.db import async_session_factory
 
         redis_url = os.environ.get("REDIS_URL", "redis://redis:6379/0")
         redis_client = aioredis.from_url(redis_url, decode_responses=True)
         try:
-            return await build_evening_summary(redis_client)
+            async with async_session_factory() as db:
+                return await build_evening_summary(redis_client, db_session=db)
         finally:
             try:
                 await redis_client.aclose()

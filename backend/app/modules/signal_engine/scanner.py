@@ -86,13 +86,15 @@ async def scan_universe(
     brapi_token: str,
     redis_client: Any = None,
     max_signals: int = 4,
+    db=None,
 ) -> list[dict]:
-    """Scan all tickers in UNIVERSE concurrently.
+    """Scan all tickers in dynamic universe concurrently.
 
     Returns up to max_signals A+ signals ordered by score (descending).
     Returns empty list if none qualify.
     """
-    tasks = [_analyze_ticker(t, brapi_token, redis_client) for t in UNIVERSE]
+    universe = await get_dynamic_universe(db)
+    tasks = [_analyze_ticker(t, brapi_token, redis_client) for t in universe]
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     signals: list[dict] = []

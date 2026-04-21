@@ -110,9 +110,9 @@ def scan_and_store_signals() -> dict:
         return {"status": "error", "error": str(exc)}
 
 
-async def _run_check_stop_loss() -> list[str]:
-    """Async implementation of check_stop_loss. Returns list of tickers that hit stop."""
-    from sqlalchemy import select, text as sa_text
+def _run_check_stop_loss() -> list[str]:
+    """Sync implementation of check_stop_loss. Returns list of tickers that hit stop."""
+    from sqlalchemy import text as sa_text
 
     # Import the sync session helper for Celery (following project pattern)
     from app.core.db_sync import get_superuser_sync_db_session  # type: ignore[import]
@@ -252,7 +252,7 @@ def check_stop_loss() -> dict:
     - If price <= stop_price: sends Telegram alert (deduplicated per ticker/day)
     """
     try:
-        triggered = asyncio.run(_run_check_stop_loss())
+        triggered = _run_check_stop_loss()
         logger.info("check_stop_loss: %d stop(s) triggered", len(triggered))
         return {"status": "ok", "triggered": triggered}
     except Exception as exc:
