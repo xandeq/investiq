@@ -5,6 +5,8 @@ Endpoints:
   POST /profile                  — create or update investor profile (upsert)
   GET  /profile/email-prefs      — get email notification preferences
   PATCH /profile/email-prefs     — update email notification preferences
+  GET  /profile/ai-mode          — get AI quality mode ("standard" | "ultra")
+  PATCH /profile/ai-mode         — toggle AI quality mode (pro users only)
 """
 from __future__ import annotations
 
@@ -126,3 +128,66 @@ async def update_email_prefs(
     )
     await db.flush()
     return EmailPrefsResponse(email_digest_enabled=data.email_digest_enabled)
+
+
+# ── AI Mode preferences ────────────────────────────────────────────────────────
+
+class AIModeResponse(BaseModel):
+    ai_mode: str  # "standard" | "ultra"
+    plan: str
+
+
+class AIModeUpdate(BaseModel):
+    ai_mode: str  # "standard" | "ultra"
+
+
+@router.get("/ai-mode", response_model=AIModeResponse)
+async def get_ai_mode(
+    db: AsyncSession = Depends(get_authed_db),
+    current_user: dict = Depends(get_current_user),
+) -> AIModeResponse:
+    """Return the current AI quality mode for the authenticated user."""
+    result = await db.execute(select(User).where(User.id == current_user["sub"]))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+    return AIModeResponse(
+        ai_mode=getattr(user, "ai_mode", "standard") or "standard",
+        plan=user.plan,
+    )
+
+
+@router.patch("/ai-mode", response_model=AIModeResponse)
+async def update_ai_mode(
+    data: AIModeUpdate,
+    db: AsyncSession = Depends(get_authed_db),
+    current_user: dict = Depends(get_current_user),
+) -> AIModeResponse:
+    """Toggle AI quality mode.
+
+    - "standard": uses gpt-4o-mini / deepseek-chat (faster, lower cost)
+    - "ultra": uses Claude Sonnet / GPT-4o / Perplexity / DeepSeek-R1 (best quality)
+
+    Ultra mode is only available for pro plan users.
+    """
+    if data.ai_mode not in ("standard", "ultra"):
+        raise HTTPException(status_code=400, detail="ai_mode deve ser 'standard' ou 'ultra'.")
+
+    result = await db.execute(select(User).where(User.id == current_user["sub"]))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+
+    if data.ai_mode == "ultra" and user.plan != "pro":
+        raise HTTPException(
+            status_code=403,
+            detail="Modo Ultra requer plano Pro. Faça upgrade para acessar modelos premium.",
+        )
+
+    await db.execute(
+        update(User)
+        .where(User.id == current_user["sub"])
+        .values(ai_mode=data.ai_mode)
+    )
+    await db.flush()
+    return AIModeResponse(ai_mode=data.ai_mode, plan=user.plan)

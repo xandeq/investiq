@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useProfile, useUpsertProfile } from "@/features/profile/hooks/useProfile";
 import type { InvestorProfileUpsert } from "@/features/profile/types";
 import { EmailPrefsCard } from "./EmailPrefsCard";
+import { AIModeCard } from "./AIModeCard";
 
 const OBJETIVO_LABELS: Record<string, string> = {
   aposentadoria: "Aposentadoria",
@@ -205,6 +206,7 @@ export function ProfileContent() {
           <p className="text-sm text-muted-foreground mt-1">Contexto usado pela IA para personalizar análises</p>
         </div>
         <ProfileSummary profile={profile} onEdit={handleStartEdit} />
+        <AIModeCard />
         <EmailPrefsCard />
       </div>
     );

@@ -1,17 +1,25 @@
 """AI provider client with AWS Secrets Manager + auto-fallback.
 
-Three tiers:
+Four tiers:
 
 FREE tier  — trial/free-plan users:
   Pool of free models rotated randomly. No paid fallback.
   On failure or timeout, the next model in the shuffled list is tried.
   Raises AIProviderError only if every model in the pool fails.
 
-PAID tier  — paying (pro/enterprise) users:
+PAID tier  — paying (pro/enterprise) users, standard AI mode:
   1. OpenAI (gpt-4o-mini)
   2. OpenRouter (deepseek/deepseek-chat)
   3. Groq (llama-3.3-70b-versatile)
   If all paid providers fail → falls back to free pool as last resort.
+
+ULTRA tier — pro users with ai_mode="ultra":
+  1. Anthropic (claude-sonnet-4-6) — best reasoning + instruction following
+  2. OpenAI (gpt-4o) — strong JSON output, reliable
+  3. OpenRouter (perplexity/sonar-pro) — adds real-time market context
+  4. OpenRouter (deepseek/deepseek-r1) — excellent quantitative reasoning
+  5. Gemini (gemini-2.5-pro) — strong analytical fallback
+  If all ultra providers fail → falls back to paid chain.
 
 ADMIN tier — internal/admin accounts:
   Free pool first (same as FREE tier).
@@ -52,6 +60,8 @@ _openrouter_key: Optional[str] = None
 _groq_key: Optional[str] = None
 _cerebras_key: Optional[str] = None
 _gemini_key: Optional[str] = None
+_anthropic_key: Optional[str] = None
+_perplexity_key: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
@@ -172,6 +182,20 @@ def _get_gemini_key() -> Optional[str]:
     if _gemini_key is None:
         _gemini_key = _fetch_secret("tools/gemini", "GEMINI_API_KEY")
     return _gemini_key
+
+
+def _get_anthropic_key() -> Optional[str]:
+    global _anthropic_key
+    if _anthropic_key is None:
+        _anthropic_key = _fetch_secret("tools/anthropic", "ANTHROPIC_API_KEY")
+    return _anthropic_key
+
+
+def _get_perplexity_key() -> Optional[str]:
+    global _perplexity_key
+    if _perplexity_key is None:
+        _perplexity_key = _fetch_secret("tools/perplexity", "PERPLEXITY_API_KEY")
+    return _perplexity_key
 
 
 def _is_quota_error(status_code: int, body: str) -> bool:
@@ -333,6 +357,185 @@ async def _call_free_pool(messages: list, max_tokens: int = 1500, label: str = "
     )
 
 
+async def _call_anthropic(api_key: str, model: str, messages: list, max_tokens: int = 2000) -> str:
+    """Call Anthropic Messages API (claude-* models)."""
+    system_text = ""
+    user_messages = []
+    for m in messages:
+        if m["role"] == "system":
+            system_text = m["content"]
+        else:
+            user_messages.append({"role": m["role"], "content": m["content"]})
+
+    payload: dict = {
+        "model": model,
+        "max_tokens": max_tokens,
+        "messages": user_messages,
+    }
+    if system_text:
+        payload["system"] = system_text
+
+    async with httpx.AsyncClient(timeout=90.0) as client:
+        resp = await client.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+                "Content-Type": "application/json",
+            },
+            json=payload,
+        )
+        body = resp.text
+        if resp.status_code == 200:
+            return resp.json()["content"][0]["text"]
+        raise httpx.HTTPStatusError(
+            f"HTTP {resp.status_code}: {body[:200]}", request=resp.request, response=resp
+        )
+
+
+async def _call_ultra_chain(messages: list, max_tokens: int = 2000, label: str = "ultra") -> str:
+    """Try premium providers in quality order: Anthropic → GPT-4o → Perplexity → DeepSeek-R1 → Gemini-2.5-Pro.
+
+    Each failure logs usage and moves to the next provider.
+    Raises AIProviderError if all ultra providers fail (caller falls back to paid chain).
+    """
+    # 1. Anthropic claude-sonnet-4-6
+    anthropic_key = _get_anthropic_key()
+    if anthropic_key:
+        _t0 = time.time()
+        try:
+            content = await _call_anthropic(anthropic_key, "claude-sonnet-4-6", messages, max_tokens=max_tokens)
+            logger.info("AI call completed via Anthropic (claude-sonnet-4-6) [%s]", label)
+            _log_usage("anthropic", "claude-sonnet-4-6", int((time.time() - _t0) * 1000), True)
+            return content
+        except httpx.TimeoutException as exc:
+            logger.warning("Anthropic timed out — falling back: %s", exc)
+            _log_usage("anthropic", "claude-sonnet-4-6", int((time.time() - _t0) * 1000), False, f"timeout: {exc}")
+        except httpx.HTTPStatusError as exc:
+            code = exc.response.status_code if exc.response else 0
+            if _is_quota_error(code, str(exc)):
+                logger.warning("[QUOTA_ALERT] Anthropic quota/credits exhausted — falling back to GPT-4o")
+            else:
+                logger.error("Anthropic error — falling back to GPT-4o: %s", exc)
+            _log_usage("anthropic", "claude-sonnet-4-6", int((time.time() - _t0) * 1000), False, f"HTTP {code}" + (" [QUOTA]" if _is_quota_error(code, str(exc)) else ""))
+        except Exception as exc:
+            logger.warning("Anthropic exception — falling back to GPT-4o: %s", exc)
+            _log_usage("anthropic", "claude-sonnet-4-6", int((time.time() - _t0) * 1000), False, str(exc)[:300])
+    else:
+        logger.warning("Anthropic key not available — skipping to GPT-4o")
+
+    # 2. OpenAI gpt-4o (full, not mini)
+    openai_key = _get_openai_key()
+    if openai_key:
+        _t0 = time.time()
+        try:
+            content = await _call_openai_compat(
+                "https://api.openai.com/v1/chat/completions",
+                openai_key, "gpt-4o", messages, max_tokens=max_tokens,
+            )
+            logger.info("AI call completed via OpenAI (gpt-4o) [%s]", label)
+            _log_usage("openai", "gpt-4o", int((time.time() - _t0) * 1000), True)
+            return content
+        except httpx.TimeoutException as exc:
+            logger.warning("OpenAI gpt-4o timed out — falling back: %s", exc)
+            _log_usage("openai", "gpt-4o", int((time.time() - _t0) * 1000), False, f"timeout: {exc}")
+        except httpx.HTTPStatusError as exc:
+            code = exc.response.status_code if exc.response else 0
+            is_quota = _is_quota_error(code, str(exc))
+            if is_quota:
+                logger.warning("[QUOTA_ALERT] OpenAI (gpt-4o) quota/credits exhausted — falling back to Perplexity")
+            else:
+                logger.error("OpenAI gpt-4o error — falling back: %s", exc)
+            _log_usage("openai", "gpt-4o", int((time.time() - _t0) * 1000), False, f"HTTP {code}" + (" [QUOTA]" if is_quota else ""))
+        except Exception as exc:
+            logger.warning("OpenAI gpt-4o exception — falling back: %s", exc)
+            _log_usage("openai", "gpt-4o", int((time.time() - _t0) * 1000), False, str(exc)[:300])
+    else:
+        logger.warning("OpenAI key not available — skipping to Perplexity")
+
+    # 3. OpenRouter perplexity/sonar-pro (real-time market context)
+    openrouter_key = _get_openrouter_key()
+    if openrouter_key:
+        _t0 = time.time()
+        try:
+            content = await _call_openai_compat(
+                "https://openrouter.ai/api/v1/chat/completions",
+                openrouter_key,
+                "perplexity/sonar-pro",
+                messages,
+                extra_headers={
+                    "HTTP-Referer": "https://investiq.com.br",
+                    "X-Title": "InvestIQ Ultra Analysis",
+                },
+                max_tokens=max_tokens,
+            )
+            logger.info("AI call completed via OpenRouter (perplexity/sonar-pro) [%s]", label)
+            _log_usage("openrouter", "perplexity/sonar-pro", int((time.time() - _t0) * 1000), True)
+            return content
+        except httpx.HTTPStatusError as exc:
+            code = exc.response.status_code if exc.response else 0
+            is_quota = _is_quota_error(code, str(exc))
+            if is_quota:
+                logger.warning("[QUOTA_ALERT] Perplexity/sonar-pro quota exhausted — falling back to DeepSeek-R1")
+            else:
+                logger.warning("Perplexity/sonar-pro failed (HTTP %s) — falling back to DeepSeek-R1", code)
+            _log_usage("openrouter", "perplexity/sonar-pro", int((time.time() - _t0) * 1000), False, f"HTTP {code}" + (" [QUOTA]" if is_quota else ""))
+        except Exception as exc:
+            logger.warning("Perplexity/sonar-pro exception — falling back to DeepSeek-R1: %s", exc)
+            _log_usage("openrouter", "perplexity/sonar-pro", int((time.time() - _t0) * 1000), False, str(exc)[:300])
+
+    # 4. OpenRouter deepseek/deepseek-r1 (quantitative reasoning)
+    if openrouter_key:
+        _t0 = time.time()
+        try:
+            content = await _call_openai_compat(
+                "https://openrouter.ai/api/v1/chat/completions",
+                openrouter_key,
+                "deepseek/deepseek-r1",
+                messages,
+                extra_headers={
+                    "HTTP-Referer": "https://investiq.com.br",
+                    "X-Title": "InvestIQ Ultra Analysis",
+                },
+                max_tokens=max_tokens,
+            )
+            logger.info("AI call completed via OpenRouter (deepseek/deepseek-r1) [%s]", label)
+            _log_usage("openrouter", "deepseek/deepseek-r1", int((time.time() - _t0) * 1000), True)
+            return content
+        except httpx.HTTPStatusError as exc:
+            code = exc.response.status_code if exc.response else 0
+            is_quota = _is_quota_error(code, str(exc))
+            if is_quota:
+                logger.warning("[QUOTA_ALERT] DeepSeek-R1 quota exhausted — falling back to Gemini 2.5 Pro")
+            else:
+                logger.warning("DeepSeek-R1 failed (HTTP %s) — falling back to Gemini 2.5 Pro", code)
+            _log_usage("openrouter", "deepseek/deepseek-r1", int((time.time() - _t0) * 1000), False, f"HTTP {code}" + (" [QUOTA]" if is_quota else ""))
+        except Exception as exc:
+            logger.warning("DeepSeek-R1 exception — falling back to Gemini 2.5 Pro: %s", exc)
+            _log_usage("openrouter", "deepseek/deepseek-r1", int((time.time() - _t0) * 1000), False, str(exc)[:300])
+    else:
+        logger.warning("OpenRouter key not available — skipping to Gemini 2.5 Pro")
+
+    # 5. Gemini 2.5 Pro
+    gemini_key = _get_gemini_key()
+    if gemini_key:
+        _t0 = time.time()
+        try:
+            content = await _call_gemini(gemini_key, "gemini-2.5-pro", messages)
+            logger.info("AI call completed via Gemini (gemini-2.5-pro) [%s]", label)
+            _log_usage("gemini", "gemini-2.5-pro", int((time.time() - _t0) * 1000), True)
+            return content
+        except Exception as exc:
+            logger.error("Gemini 2.5 Pro failed: %s", exc)
+            _log_usage("gemini", "gemini-2.5-pro", int((time.time() - _t0) * 1000), False, str(exc)[:300])
+    else:
+        logger.warning("Gemini key not available")
+
+    raise AIProviderError(
+        f"All ultra providers failed [{label}]. Check Anthropic/OpenAI/OpenRouter/Gemini keys."
+    )
+
+
 async def _call_paid_chain(messages: list, model: str, max_tokens: int = 1500, label: str = "paid") -> str:
     """Try paid providers: OpenAI → OpenRouter → Groq.
 
@@ -459,6 +662,8 @@ async def call_llm(
         tier: Routing tier — one of:
             "free"  → free model pool only (trial/free-plan users).
             "paid"  → paid chain first (OpenAI→OpenRouter→Groq), then free pool as fallback.
+            "ultra" → premium chain (Anthropic→GPT-4o→Perplexity→DeepSeek-R1→Gemini-2.5-Pro),
+                      then paid chain, then free pool as last resort.
             "admin" → free pool first, paid chain as last resort.
         max_tokens: Maximum tokens in the response.
 
@@ -476,6 +681,18 @@ async def call_llm(
     if tier == "free":
         # Free/trial users: free pool only, no paid fallback
         return await _call_free_pool(messages, max_tokens=max_tokens, label="free")
+
+    if tier == "ultra":
+        # Ultra users: premium chain → paid chain → free pool (never fail)
+        try:
+            return await _call_ultra_chain(messages, max_tokens=max(max_tokens, 2000), label="ultra")
+        except AIProviderError:
+            logger.warning("All ultra providers failed — falling back to paid chain")
+        try:
+            return await _call_paid_chain(messages, model=model, max_tokens=max_tokens, label="ultra-paid-fallback")
+        except AIProviderError:
+            logger.warning("All paid providers failed for ultra user — falling back to free pool")
+            return await _call_free_pool(messages, max_tokens=max_tokens, label="ultra-free-fallback")
 
     if tier == "paid":
         # Paying users: paid chain first, free pool as ultimate fallback

@@ -62,6 +62,9 @@ class User(Base):
     # Email notification preferences — LGPD opt-out
     email_digest_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, server_default="true")
 
+    # AI quality mode — "standard" uses gpt-4o-mini/deepseek, "ultra" uses Claude/GPT-4o chain
+    ai_mode: Mapped[str] = mapped_column(String(10), default="standard", nullable=False, server_default="standard")
+
     # Stripe billing columns — set by webhooks, never from checkout redirect
     stripe_customer_id: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
     stripe_subscription_id: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)

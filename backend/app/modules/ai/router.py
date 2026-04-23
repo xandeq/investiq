@@ -72,7 +72,8 @@ async def _get_tier(
     """Dependency: return the LLM routing tier for the current user.
 
     "admin" — admin emails: free pool first, paid as last resort.
-    "paid"  — paying pro users: paid chain first, free as fallback.
+    "ultra" — pro users with ai_mode="ultra": premium model chain.
+    "paid"  — pro users with ai_mode="standard": paid chain first, free as fallback.
     "free"  — free-plan / trial users: free pool only.
     """
     from app.core.config import settings
@@ -84,7 +85,8 @@ async def _get_tier(
     if user.email in settings.ADMIN_EMAILS:
         return "admin"
     if user.plan == "pro":
-        return "paid"
+        ai_mode = getattr(user, "ai_mode", "standard") or "standard"
+        return "ultra" if ai_mode == "ultra" else "paid"
     return "free"  # free plan or active trial
 
 
