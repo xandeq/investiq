@@ -103,7 +103,7 @@ async def get_email_prefs(
 ) -> EmailPrefsResponse:
     """Return the current email notification preferences for the authenticated user."""
     result = await db.execute(
-        select(User).where(User.id == current_user["sub"])
+        select(User).where(User.id == current_user["user_id"])
     )
     user = result.scalar_one_or_none()
     if user is None:
@@ -123,7 +123,7 @@ async def update_email_prefs(
     """
     await db.execute(
         update(User)
-        .where(User.id == current_user["sub"])
+        .where(User.id == current_user["user_id"])
         .values(email_digest_enabled=data.email_digest_enabled)
     )
     await db.flush()
@@ -147,7 +147,7 @@ async def get_ai_mode(
     current_user: dict = Depends(get_current_user),
 ) -> AIModeResponse:
     """Return the current AI quality mode for the authenticated user."""
-    result = await db.execute(select(User).where(User.id == current_user["sub"]))
+    result = await db.execute(select(User).where(User.id == current_user["user_id"]))
     user = result.scalar_one_or_none()
     if user is None:
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")
@@ -173,7 +173,7 @@ async def update_ai_mode(
     if data.ai_mode not in ("standard", "ultra"):
         raise HTTPException(status_code=400, detail="ai_mode deve ser 'standard' ou 'ultra'.")
 
-    result = await db.execute(select(User).where(User.id == current_user["sub"]))
+    result = await db.execute(select(User).where(User.id == current_user["user_id"]))
     user = result.scalar_one_or_none()
     if user is None:
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")
@@ -186,7 +186,7 @@ async def update_ai_mode(
 
     await db.execute(
         update(User)
-        .where(User.id == current_user["sub"])
+        .where(User.id == current_user["user_id"])
         .values(ai_mode=data.ai_mode)
     )
     await db.flush()
