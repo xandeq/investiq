@@ -17,9 +17,12 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sqlalchemy import select
+
 from app.core.limiter import limiter
 from app.core.middleware import get_authed_db, get_current_tenant_id
 from app.core.security import get_current_user
+from app.modules.auth.models import User
 from app.modules.portfolio.service import PortfolioService
 from app.modules.swing_trade.schemas import (
     CopilotResponse,
@@ -189,13 +192,29 @@ async def get_copilot(
     request: Request,
     tenant_id: str = Depends(get_current_tenant_id),
     redis=Depends(_get_redis),
+    db: AsyncSession = Depends(get_authed_db),
     current_user: dict = Depends(get_current_user),
     force: bool = False,
 ) -> CopilotResponse:
     """Return AI-curated swing trade and dividend picks ready to execute."""
+    from app.core.config import settings
     from app.modules.swing_trade.copilot import build_copilot_picks
 
-    result = await build_copilot_picks(redis_client=redis, force=force)
+    user_id = current_user["user_id"]
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+
+    if user is None:
+        tier = "free"
+    elif user.email in settings.ADMIN_EMAILS:
+        tier = "admin"
+    elif user.plan == "pro":
+        ai_mode = getattr(user, "ai_mode", "standard") or "standard"
+        tier = "ultra" if ai_mode == "ultra" else "paid"
+    else:
+        tier = "free"
+
+    result = await build_copilot_picks(redis_client=redis, force=force, tier=tier)
     return CopilotResponse(**result)
 
 

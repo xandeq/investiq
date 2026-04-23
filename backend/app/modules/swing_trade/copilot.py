@@ -117,12 +117,13 @@ async def _get_fundamentals(ticker: str, redis_client: Any) -> dict:
     return {}
 
 
-async def build_copilot_picks(redis_client=None, force: bool = False) -> dict[str, Any]:
+async def build_copilot_picks(redis_client=None, force: bool = False, tier: str = "paid") -> dict[str, Any]:
     """Main entry point — returns copilot picks with cache."""
+    cache_key = f"{_CACHE_KEY}:{tier}"
     # Try cache first
     if not force and redis_client is not None:
         try:
-            raw = await redis_client.get(_CACHE_KEY)
+            raw = await redis_client.get(cache_key)
             if raw:
                 if isinstance(raw, bytes):
                     raw = raw.decode()
@@ -160,8 +161,8 @@ async def build_copilot_picks(redis_client=None, force: bool = False) -> dict[st
             a["dy"] = a["pl"] = a["pvp"] = a["roe"] = None
             a["margem_liquida"] = a["divida_sobre_ebitda"] = None
 
-    swing_picks = await _generate_swing_picks(analyzed)
-    dividend_plays = await _generate_dividend_plays(analyzed)
+    swing_picks = await _generate_swing_picks(analyzed, tier=tier)
+    dividend_plays = await _generate_dividend_plays(analyzed, tier=tier)
 
     result = {
         "swing_picks": swing_picks,
@@ -173,14 +174,14 @@ async def build_copilot_picks(redis_client=None, force: bool = False) -> dict[st
     # Cache result
     if redis_client is not None:
         try:
-            await redis_client.setex(_CACHE_KEY, _CACHE_TTL, json.dumps(result, default=str))
+            await redis_client.setex(cache_key, _CACHE_TTL, json.dumps(result, default=str))
         except Exception as exc:
             logger.warning("copilot: cache write failed: %s", exc)
 
     return result
 
 
-async def _generate_swing_picks(analyzed: list[dict]) -> list[dict]:
+async def _generate_swing_picks(analyzed: list[dict], tier: str = "paid") -> list[dict]:
     """Generate top 5 swing picks via LLM, with technical fallback."""
     # Quality pre-filter: skip stocks with clearly bad fundamentals
     quality = [
@@ -213,7 +214,7 @@ async def _generate_swing_picks(analyzed: list[dict]) -> list[dict]:
 
     try:
         from app.modules.ai.provider import call_llm
-        raw = await call_llm(prompt, system=_SYSTEM_SWING, tier="paid", max_tokens=1200)
+        raw = await call_llm(prompt, system=_SYSTEM_SWING, tier=tier, max_tokens=1200)
         picks = _extract_json_array(raw)
         if picks and len(picks) >= 3:
             return picks[:5]
@@ -223,7 +224,7 @@ async def _generate_swing_picks(analyzed: list[dict]) -> list[dict]:
     return _fallback_swing_picks(candidates)
 
 
-async def _generate_dividend_plays(analyzed: list[dict]) -> list[dict]:
+async def _generate_dividend_plays(analyzed: list[dict], tier: str = "paid") -> list[dict]:
     """Generate dividend play recommendations via LLM."""
     # Filter: DY > 4% OR known dividend payers; exclude negative ROE / over-leveraged
     KNOWN_DIVIDEND = {"BBSE3", "TAEE11", "EGIE3", "CMIG4", "ITUB4", "BBAS3", "ABEV3", "KLBN11", "SAPR11", "SANB11"}
@@ -259,7 +260,7 @@ async def _generate_dividend_plays(analyzed: list[dict]) -> list[dict]:
 
     try:
         from app.modules.ai.provider import call_llm
-        raw = await call_llm(prompt, system=_SYSTEM_DIVIDENDS, tier="paid", max_tokens=1000)
+        raw = await call_llm(prompt, system=_SYSTEM_DIVIDENDS, tier=tier, max_tokens=1000)
         picks = _extract_json_array(raw)
         if picks and len(picks) >= 2:
             return picks[:5]
