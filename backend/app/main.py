@@ -45,6 +45,7 @@ from app.modules.chart_analyzer.router import router as chart_analyzer_router
 from app.modules.signal_engine.router import router as signal_engine_router
 from app.modules.outcome_tracker.router import router as outcome_tracker_router
 from app.modules.briefing_engine.router import router as briefing_router
+from app.modules.integrations.router import router as integrations_router
 
 
 @asynccontextmanager
@@ -71,7 +72,7 @@ app.add_middleware(
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Idempotency-Key"],
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Idempotency-Key", "X-Integration-Key"],
 )
 
 
@@ -156,6 +157,8 @@ app.include_router(signal_engine_router, prefix="/signals", tags=["Signal Engine
 app.include_router(outcome_tracker_router, prefix="/outcomes", tags=["Outcome Tracker"])
 # Briefing Engine v2 — full 14-section daily report
 app.include_router(briefing_router, prefix="/briefing", tags=["Briefing Engine"])
+# Server-to-server integrations (X-Integration-Key auth, no user JWT)
+app.include_router(integrations_router, prefix="/integrations", tags=["Integrations"])
 
 
 @app.get("/health")

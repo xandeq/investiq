@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     STRIPE_WEBHOOK_SECRET: str = ""    # whsec_... from Stripe Dashboard or CLI
     STRIPE_PREMIUM_PRICE_ID: str = ""  # price_... BRL monthly price ID
     ADMIN_EMAILS: list[str] = []       # hardcoded admin email list for v1
+    # Server-to-server integration key — used by external systems (DIAX CRM) to fetch
+    # portfolio summaries without user JWT. Must be set in production .env.
+    INTEGRATION_KEY: str = ""
+    # Tenant scoped by the integration key (single-tenant for now)
+    INTEGRATION_TENANT_ID: str = ""
 
 
 settings = Settings()
