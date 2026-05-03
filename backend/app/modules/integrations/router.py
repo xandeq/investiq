@@ -35,7 +35,7 @@ def _require_integration_key(x_integration_key: str = Header(...)) -> None:
         )
 
 
-class AllocationItem(BaseModel):
+class IntegrationAllocationItem(BaseModel):
     asset_class: str
     total_value: float
     percentage: float
@@ -49,7 +49,7 @@ class PortfolioSummaryResponse(BaseModel):
     total_return_pct: float | None
     monthly_dividends: float
     position_count: int
-    asset_allocation: list[AllocationItem]
+    asset_allocation: list[IntegrationAllocationItem]
     cached_at: str
 
 
@@ -115,7 +115,7 @@ async def get_portfolio_summary(
             monthly_dividends=float(monthly_dividends),
             position_count=len(pnl.positions),
             asset_allocation=[
-                AllocationItem(
+                IntegrationAllocationItem(
                     asset_class=a.asset_class,
                     total_value=float(a.total_value),
                     percentage=float(a.percentage),

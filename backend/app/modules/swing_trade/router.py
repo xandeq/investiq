@@ -206,13 +206,17 @@ async def get_copilot(
 
     if user is None:
         tier = "free"
-    elif user.email in settings.ADMIN_EMAILS:
-        tier = "admin"
-    elif user.plan == "pro":
-        ai_mode = getattr(user, "ai_mode", "standard") or "standard"
-        tier = "ultra" if ai_mode == "ultra" else "paid"
     else:
-        tier = "free"
+        ai_mode = getattr(user, "ai_mode", "standard") or "standard"
+        is_admin = user.email in settings.ADMIN_EMAILS
+        if ai_mode == "ultra" and (user.plan == "pro" or is_admin):
+            tier = "ultra"
+        elif is_admin:
+            tier = "admin"
+        elif user.plan == "pro":
+            tier = "paid"
+        else:
+            tier = "free"
 
     result = await build_copilot_picks(redis_client=redis, force=force, tier=tier)
     return CopilotResponse(**result)

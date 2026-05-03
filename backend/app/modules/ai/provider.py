@@ -223,6 +223,19 @@ _FREE_MODEL_POOL = [
     ("gemini", "gemini-2.5-flash",                          "gemini"),
 ]
 
+# Ultra tier pool — rotated round-robin across calls (1 provider per call, fallback to next)
+# style: "anthropic" | "openai_compat" | "openrouter" | "gemini"
+_ULTRA_POOL = [
+    ("anthropic",  "claude-sonnet-4-6",  "anthropic"),
+    ("openai",     "gpt-4o",             "openai_compat"),
+    ("perplexity", "sonar-pro",          "perplexity"),
+    ("openrouter", "deepseek/deepseek-r1", "openrouter"),
+    ("gemini",     "gemini-2.5-pro",     "gemini"),
+]
+
+# Module-level rotation counter — advances on each successful ultra call
+_ultra_idx: int = 0
+
 _PROVIDER_URLS = {
     "groq": "https://api.groq.com/openai/v1/chat/completions",
     "cerebras": "https://api.cerebras.ai/v1/chat/completions",
@@ -394,145 +407,102 @@ async def _call_anthropic(api_key: str, model: str, messages: list, max_tokens: 
 
 
 async def _call_ultra_chain(messages: list, max_tokens: int = 2000, label: str = "ultra") -> str:
-    """Try premium providers in quality order: Anthropic → GPT-4o → Perplexity → DeepSeek-R1 → Gemini-2.5-Pro.
+    """Round-robin rotation across all 5 premium providers.
 
-    Each failure logs usage and moves to the next provider.
-    Raises AIProviderError if all ultra providers fail (caller falls back to paid chain).
+    Each call starts from the next provider in _ULTRA_POOL, cycling through all 5.
+    On failure, tries the remaining providers in rotation order.
+    Rotation: Claude → GPT-4o → Perplexity → DeepSeek-R1 → Gemini-2.5-Pro → Claude → ...
     """
-    # 1. Anthropic claude-sonnet-4-6
-    anthropic_key = _get_anthropic_key()
-    if anthropic_key:
+    global _ultra_idx
+
+    start = _ultra_idx % len(_ULTRA_POOL)
+    _ultra_idx += 1
+    ordered = _ULTRA_POOL[start:] + _ULTRA_POOL[:start]
+
+    errors = []
+    for provider, model, style in ordered:
         _t0 = time.time()
         try:
-            content = await _call_anthropic(anthropic_key, "claude-sonnet-4-6", messages, max_tokens=max_tokens)
-            logger.info("AI call completed via Anthropic (claude-sonnet-4-6) [%s]", label)
-            _log_usage("anthropic", "claude-sonnet-4-6", int((time.time() - _t0) * 1000), True)
+            if style == "anthropic":
+                key = _get_anthropic_key()
+                if not key:
+                    errors.append(f"{provider}/{model}: no key")
+                    continue
+                content = await _call_anthropic(key, model, messages, max_tokens=max_tokens)
+
+            elif style == "openai_compat":
+                key = _get_openai_key()
+                if not key:
+                    errors.append(f"{provider}/{model}: no key")
+                    continue
+                content = await _call_openai_compat(
+                    "https://api.openai.com/v1/chat/completions",
+                    key, model, messages, max_tokens=max_tokens,
+                )
+
+            elif style == "perplexity":
+                key = _get_perplexity_key()
+                if not key:
+                    errors.append(f"{provider}/{model}: no key")
+                    continue
+                content = await _call_openai_compat(
+                    "https://api.perplexity.ai/chat/completions",
+                    key, model, messages, max_tokens=max_tokens,
+                )
+
+            elif style == "openrouter":
+                key = _get_openrouter_key()
+                if not key:
+                    errors.append(f"{provider}/{model}: no key")
+                    continue
+                content = await _call_openai_compat(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    key, model, messages,
+                    extra_headers={
+                        "HTTP-Referer": "https://investiq.com.br",
+                        "X-Title": "InvestIQ Ultra Analysis",
+                    },
+                    max_tokens=max_tokens,
+                )
+
+            elif style == "gemini":
+                key = _get_gemini_key()
+                if not key:
+                    errors.append(f"{provider}/{model}: no key")
+                    continue
+                content = await _call_gemini(key, model, messages)
+
+            else:
+                errors.append(f"{provider}/{model}: unknown style {style}")
+                continue
+
+            logger.info(
+                "AI call completed via %s (%s) [%s] (slot %d/%d)",
+                provider, model, label, start + 1, len(_ULTRA_POOL),
+            )
+            _log_usage(provider, model, int((time.time() - _t0) * 1000), True)
             return content
+
         except httpx.TimeoutException as exc:
-            logger.warning("Anthropic timed out — falling back: %s", exc)
-            _log_usage("anthropic", "claude-sonnet-4-6", int((time.time() - _t0) * 1000), False, f"timeout: {exc}")
+            logger.warning("[ULTRA] %s/%s timed out — trying next", provider, model)
+            _log_usage(provider, model, int((time.time() - _t0) * 1000), False, f"timeout: {exc}")
+            errors.append(f"{provider}/{model}: timeout")
         except httpx.HTTPStatusError as exc:
             code = exc.response.status_code if exc.response else 0
             if _is_quota_error(code, str(exc)):
-                logger.warning("[QUOTA_ALERT] Anthropic quota/credits exhausted — falling back to GPT-4o")
+                logger.warning("[QUOTA_ALERT][ULTRA] %s/%s quota exhausted — trying next", provider, model)
             else:
-                logger.error("Anthropic error — falling back to GPT-4o: %s", exc)
-            _log_usage("anthropic", "claude-sonnet-4-6", int((time.time() - _t0) * 1000), False, f"HTTP {code}" + (" [QUOTA]" if _is_quota_error(code, str(exc)) else ""))
+                logger.warning("[ULTRA] %s/%s HTTP %s — trying next", provider, model, code)
+            _log_usage(provider, model, int((time.time() - _t0) * 1000), False,
+                       f"HTTP {code}" + (" [QUOTA]" if _is_quota_error(code, str(exc)) else ""))
+            errors.append(f"{provider}/{model}: HTTP {code}")
         except Exception as exc:
-            logger.warning("Anthropic exception — falling back to GPT-4o: %s", exc)
-            _log_usage("anthropic", "claude-sonnet-4-6", int((time.time() - _t0) * 1000), False, str(exc)[:300])
-    else:
-        logger.warning("Anthropic key not available — skipping to GPT-4o")
-
-    # 2. OpenAI gpt-4o (full, not mini)
-    openai_key = _get_openai_key()
-    if openai_key:
-        _t0 = time.time()
-        try:
-            content = await _call_openai_compat(
-                "https://api.openai.com/v1/chat/completions",
-                openai_key, "gpt-4o", messages, max_tokens=max_tokens,
-            )
-            logger.info("AI call completed via OpenAI (gpt-4o) [%s]", label)
-            _log_usage("openai", "gpt-4o", int((time.time() - _t0) * 1000), True)
-            return content
-        except httpx.TimeoutException as exc:
-            logger.warning("OpenAI gpt-4o timed out — falling back: %s", exc)
-            _log_usage("openai", "gpt-4o", int((time.time() - _t0) * 1000), False, f"timeout: {exc}")
-        except httpx.HTTPStatusError as exc:
-            code = exc.response.status_code if exc.response else 0
-            is_quota = _is_quota_error(code, str(exc))
-            if is_quota:
-                logger.warning("[QUOTA_ALERT] OpenAI (gpt-4o) quota/credits exhausted — falling back to Perplexity")
-            else:
-                logger.error("OpenAI gpt-4o error — falling back: %s", exc)
-            _log_usage("openai", "gpt-4o", int((time.time() - _t0) * 1000), False, f"HTTP {code}" + (" [QUOTA]" if is_quota else ""))
-        except Exception as exc:
-            logger.warning("OpenAI gpt-4o exception — falling back: %s", exc)
-            _log_usage("openai", "gpt-4o", int((time.time() - _t0) * 1000), False, str(exc)[:300])
-    else:
-        logger.warning("OpenAI key not available — skipping to Perplexity")
-
-    # 3. OpenRouter perplexity/sonar-pro (real-time market context)
-    openrouter_key = _get_openrouter_key()
-    if openrouter_key:
-        _t0 = time.time()
-        try:
-            content = await _call_openai_compat(
-                "https://openrouter.ai/api/v1/chat/completions",
-                openrouter_key,
-                "perplexity/sonar-pro",
-                messages,
-                extra_headers={
-                    "HTTP-Referer": "https://investiq.com.br",
-                    "X-Title": "InvestIQ Ultra Analysis",
-                },
-                max_tokens=max_tokens,
-            )
-            logger.info("AI call completed via OpenRouter (perplexity/sonar-pro) [%s]", label)
-            _log_usage("openrouter", "perplexity/sonar-pro", int((time.time() - _t0) * 1000), True)
-            return content
-        except httpx.HTTPStatusError as exc:
-            code = exc.response.status_code if exc.response else 0
-            is_quota = _is_quota_error(code, str(exc))
-            if is_quota:
-                logger.warning("[QUOTA_ALERT] Perplexity/sonar-pro quota exhausted — falling back to DeepSeek-R1")
-            else:
-                logger.warning("Perplexity/sonar-pro failed (HTTP %s) — falling back to DeepSeek-R1", code)
-            _log_usage("openrouter", "perplexity/sonar-pro", int((time.time() - _t0) * 1000), False, f"HTTP {code}" + (" [QUOTA]" if is_quota else ""))
-        except Exception as exc:
-            logger.warning("Perplexity/sonar-pro exception — falling back to DeepSeek-R1: %s", exc)
-            _log_usage("openrouter", "perplexity/sonar-pro", int((time.time() - _t0) * 1000), False, str(exc)[:300])
-
-    # 4. OpenRouter deepseek/deepseek-r1 (quantitative reasoning)
-    if openrouter_key:
-        _t0 = time.time()
-        try:
-            content = await _call_openai_compat(
-                "https://openrouter.ai/api/v1/chat/completions",
-                openrouter_key,
-                "deepseek/deepseek-r1",
-                messages,
-                extra_headers={
-                    "HTTP-Referer": "https://investiq.com.br",
-                    "X-Title": "InvestIQ Ultra Analysis",
-                },
-                max_tokens=max_tokens,
-            )
-            logger.info("AI call completed via OpenRouter (deepseek/deepseek-r1) [%s]", label)
-            _log_usage("openrouter", "deepseek/deepseek-r1", int((time.time() - _t0) * 1000), True)
-            return content
-        except httpx.HTTPStatusError as exc:
-            code = exc.response.status_code if exc.response else 0
-            is_quota = _is_quota_error(code, str(exc))
-            if is_quota:
-                logger.warning("[QUOTA_ALERT] DeepSeek-R1 quota exhausted — falling back to Gemini 2.5 Pro")
-            else:
-                logger.warning("DeepSeek-R1 failed (HTTP %s) — falling back to Gemini 2.5 Pro", code)
-            _log_usage("openrouter", "deepseek/deepseek-r1", int((time.time() - _t0) * 1000), False, f"HTTP {code}" + (" [QUOTA]" if is_quota else ""))
-        except Exception as exc:
-            logger.warning("DeepSeek-R1 exception — falling back to Gemini 2.5 Pro: %s", exc)
-            _log_usage("openrouter", "deepseek/deepseek-r1", int((time.time() - _t0) * 1000), False, str(exc)[:300])
-    else:
-        logger.warning("OpenRouter key not available — skipping to Gemini 2.5 Pro")
-
-    # 5. Gemini 2.5 Pro
-    gemini_key = _get_gemini_key()
-    if gemini_key:
-        _t0 = time.time()
-        try:
-            content = await _call_gemini(gemini_key, "gemini-2.5-pro", messages)
-            logger.info("AI call completed via Gemini (gemini-2.5-pro) [%s]", label)
-            _log_usage("gemini", "gemini-2.5-pro", int((time.time() - _t0) * 1000), True)
-            return content
-        except Exception as exc:
-            logger.error("Gemini 2.5 Pro failed: %s", exc)
-            _log_usage("gemini", "gemini-2.5-pro", int((time.time() - _t0) * 1000), False, str(exc)[:300])
-    else:
-        logger.warning("Gemini key not available")
+            logger.warning("[ULTRA] %s/%s exception — trying next: %s", provider, model, exc)
+            _log_usage(provider, model, int((time.time() - _t0) * 1000), False, str(exc)[:300])
+            errors.append(f"{provider}/{model}: {exc}")
 
     raise AIProviderError(
-        f"All ultra providers failed [{label}]. Check Anthropic/OpenAI/OpenRouter/Gemini keys."
+        f"All ultra providers failed [{label}]. Errors: {'; '.join(errors)}"
     )
 
 
