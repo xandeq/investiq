@@ -51,6 +51,7 @@ def create_celery_app() -> Celery:
             "app.modules.billing.tasks",
             "app.modules.signal_engine.tasks",
             "app.modules.telegram_bot.tasks",
+            "app.modules.news.tasks",
         ],
     )
 
@@ -224,6 +225,12 @@ def create_celery_app() -> Celery:
                 "task": "signal_engine.recalibrate_patterns",
                 "schedule": crontab(minute=0, hour=20, day_of_week="0"),
                 "options": {"queue": "celery"},
+            },
+            # Wave E Phase 29: Sentiment ingestion — every 30min during pregão
+            "ingest-sentiment-snapshots": {
+                "task": "news.ingest_sentiment_snapshots",
+                "schedule": crontab(minute="*/30", hour="9-18", day_of_week="1-5"),
+                "options": {"queue": "celery", "expires": 28 * 60},
             },
         },
     )
