@@ -59,6 +59,70 @@ def _write_snapshot(ticker: str, source: str, result: dict) -> None:
         logger.error("news.tasks: DB write failed for %s/%s: %s", ticker, source, exc)
 
 
+@celery_app.task(name="news.ingest_news_events")
+def ingest_news_events() -> dict:
+    """Fetch CVM + GNews, tag B3 tickers, persist to news_events + cache in Redis.
+
+    Runs every 2h. Uses keyword matching for ticker extraction — no LLM needed.
+    After DB insert, caches a ticker→headlines index in Redis (TTL 3h) so that
+    GET /signals/active can include news_context without extra DB round-trips.
+    """
+    import json
+    import redis as sync_redis
+    from app.modules.news.adapters.cvm_rss import get_cvm_news
+    from app.modules.news.adapters.gnews_adapter import get_financial_news
+    from app.modules.news.ingestion import ingest_news_batch, extract_tickers
+
+    all_items: list[dict] = []
+    inserted = 0
+    errors = 0
+
+    try:
+        cvm_items = get_cvm_news(hours_back=6)
+        all_items.extend(cvm_items)
+        n = ingest_news_batch(cvm_items)
+        inserted += n
+        logger.info("news.ingest_news_events: CVM +%d", n)
+    except Exception as exc:
+        logger.warning("news.ingest_news_events: CVM failed: %s", exc)
+        errors += 1
+
+    try:
+        gnews_items = get_financial_news(hours_back=6)
+        all_items.extend(gnews_items)
+        n = ingest_news_batch(gnews_items)
+        inserted += n
+        logger.info("news.ingest_news_events: GNews +%d", n)
+    except Exception as exc:
+        logger.warning("news.ingest_news_events: GNews failed: %s", exc)
+        errors += 1
+
+    # Build ticker → headlines index and cache in Redis for fast signal enrichment
+    ticker_headlines: dict[str, list[str]] = {}
+    for item in all_items:
+        headline = item.get("headline", "").strip()
+        if not headline:
+            continue
+        tickers = extract_tickers(headline + " " + item.get("summary", ""))
+        for ticker in tickers:
+            if ticker not in ticker_headlines:
+                ticker_headlines[ticker] = []
+            if len(ticker_headlines[ticker]) < 3:
+                ticker_headlines[ticker].append(headline[:120])
+
+    if ticker_headlines:
+        try:
+            r = sync_redis.from_url(os.environ.get("REDIS_URL", "redis://redis:6379/0"), decode_responses=True)
+            for ticker, headlines in ticker_headlines.items():
+                r.setex(f"news:ticker:{ticker}:recent", 3 * 3600, json.dumps(headlines))
+            r.close()
+            logger.info("news.ingest_news_events: cached news for %d tickers", len(ticker_headlines))
+        except Exception as exc:
+            logger.warning("news.ingest_news_events: Redis cache failed: %s", exc)
+
+    return {"status": "ok", "inserted": inserted, "errors": errors, "tickers_tagged": len(ticker_headlines)}
+
+
 @celery_app.task(name="news.ingest_sentiment_snapshots")
 def ingest_sentiment_snapshots() -> dict:
     """Fetch Reddit + StockTwits sentiment for top B3 tickers.

@@ -232,6 +232,12 @@ def create_celery_app() -> Celery:
                 "schedule": crontab(minute="*/30", hour="9-18", day_of_week="1-5"),
                 "options": {"queue": "celery", "expires": 28 * 60},
             },
+            # Wave E Phase 30: News ticker tagging — every 2h
+            "ingest-news-events": {
+                "task": "news.ingest_news_events",
+                "schedule": crontab(minute=0, hour="*/2"),
+                "options": {"queue": "celery", "expires": 110 * 60},
+            },
         },
     )
 

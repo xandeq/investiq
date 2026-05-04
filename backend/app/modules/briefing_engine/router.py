@@ -180,3 +180,77 @@ async def get_sentiment(
         "sources": sources,
         "last_updated": latest_ts.isoformat() if latest_ts else None,
     }
+
+
+@router.get("/news-feed")
+@limiter.limit("30/minute")
+async def get_news_feed(
+    request: Request,
+    ticker: str = Query(None, description="Filter by B3 ticker, e.g. PETR4"),
+    hours: int = Query(6, ge=1, le=48, description="Look-back window in hours"),
+    current_user=Depends(get_current_user),
+) -> dict:
+    """Return recent market news, optionally filtered by ticker.
+
+    Uses news_events table populated by the ingest-news-events Celery task (every 2h).
+    Returns up to 20 most recent headlines.
+    """
+    import os
+    import psycopg2
+
+    db_url = os.environ.get("DATABASE_URL", "")
+    if not db_url:
+        raise HTTPException(status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE, detail="DB not configured")
+    db_url = db_url.replace("postgresql+asyncpg://", "postgresql://").replace("asyncpg://", "postgresql://")
+
+    try:
+        conn = psycopg2.connect(db_url)
+        with conn.cursor() as cur:
+            if ticker:
+                ticker = ticker.upper().strip()
+                cur.execute(
+                    """
+                    SELECT headline, url, source, tickers, sentiment, published_at
+                    FROM news_events
+                    WHERE %s = ANY(tickers)
+                      AND published_at >= NOW() - make_interval(hours => %s)
+                    ORDER BY published_at DESC
+                    LIMIT 20
+                    """,
+                    (ticker, hours),
+                )
+            else:
+                cur.execute(
+                    """
+                    SELECT headline, url, source, tickers, sentiment, published_at
+                    FROM news_events
+                    WHERE published_at >= NOW() - make_interval(hours => %s)
+                    ORDER BY published_at DESC
+                    LIMIT 20
+                    """,
+                    (hours,),
+                )
+            rows = cur.fetchall()
+        conn.close()
+    except Exception as exc:
+        logger.error("briefing/news-feed DB error: %s", exc)
+        raise HTTPException(status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE, detail="DB error")
+
+    items = [
+        {
+            "headline": r[0],
+            "url": r[1],
+            "source": r[2],
+            "tickers": r[3] or [],
+            "sentiment": float(r[4]) if r[4] is not None else None,
+            "published_at": r[5].isoformat() if r[5] else None,
+        }
+        for r in rows
+    ]
+
+    return {
+        "ticker_filter": ticker if ticker else None,
+        "hours": hours,
+        "count": len(items),
+        "items": items,
+    }

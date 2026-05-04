@@ -33,13 +33,29 @@ def _get_async_redis():
         return None
 
 
+async def _get_news_context(redis_client, tickers: list[str]) -> dict[str, list[str]]:
+    """Read cached news headlines per ticker from Redis (set by ingest_news_events task)."""
+    if redis_client is None or not tickers:
+        return {}
+    news: dict[str, list[str]] = {}
+    import json as _json
+    for ticker in tickers:
+        try:
+            raw = await redis_client.get(f"news:ticker:{ticker}:recent")
+            if raw:
+                news[ticker] = _json.loads(raw)
+        except Exception:
+            pass
+    return news
+
+
 @router.get("/active")
 @limiter.limit("30/minute")
 async def list_active_signals(
     request: Request,
     current_user: dict = Depends(get_current_user),
 ):
-    """Return current A+ signals cached in Redis.
+    """Return current A+ signals cached in Redis, enriched with recent news context.
 
     Returns an empty list if no signals are available (scanner hasn't run yet
     or market is closed).
@@ -47,6 +63,11 @@ async def list_active_signals(
     redis_client = _get_async_redis()
     try:
         signals = await get_active_signals(redis_client)
+        if signals:
+            tickers = [s["ticker"] for s in signals]
+            news_ctx = await _get_news_context(redis_client, tickers)
+            for signal in signals:
+                signal["news_context"] = news_ctx.get(signal["ticker"], [])
     finally:
         if redis_client is not None:
             try:
