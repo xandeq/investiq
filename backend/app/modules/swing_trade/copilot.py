@@ -191,6 +191,42 @@ async def _fetch_news_context(hours_back: int = 24) -> dict[str, Any]:
     return {"ticker_news": ticker_news, "market_headlines": market_headlines}
 
 
+async def _fetch_sentiment_context(tickers: list[str], redis_client=None) -> dict[str, dict]:
+    """Fetch sentiment scores for a batch of tickers from context_assembler.
+
+    Returns {ticker: {"sentiment_score": float|None, "reddit_mentions": int}}.
+    Never raises.
+    """
+    try:
+        from app.modules.briefing_engine.context_assembler import get_context_batch
+        batch = await get_context_batch(tickers, hours=24, redis_client=redis_client)
+        return {
+            ticker: {
+                "sentiment_score": ctx.get("sentiment_score"),
+                "reddit_mentions": ctx.get("reddit_mentions", 0),
+            }
+            for ticker, ctx in batch.items()
+        }
+    except Exception as exc:
+        logger.debug("copilot: sentiment context fetch failed: %s", exc)
+        return {}
+
+
+def _build_sentiment_block(tickers: list[str], sentiment_context: dict[str, dict]) -> str:
+    """Build compact sentiment summary for tickers that have data."""
+    lines: list[str] = []
+    for ticker in tickers:
+        sc = sentiment_context.get(ticker, {})
+        score = sc.get("sentiment_score")
+        mentions = sc.get("reddit_mentions", 0)
+        if score is not None or mentions > 0:
+            score_str = f"score={score:+.2f}" if score is not None else "score=N/D"
+            lines.append(f"  {ticker}: {score_str} reddit_mentions={mentions}")
+    if not lines:
+        return ""
+    return "\n\n=== SENTIMENTO SOCIAL (últimas 24h) ===\n" + "\n".join(lines)
+
+
 def _build_news_block(tickers: list[str], news_context: dict[str, Any]) -> str:
     """Build compact news context string for a subset of tickers."""
     ticker_news = news_context.get("ticker_news", {})
@@ -292,11 +328,18 @@ async def build_copilot_picks(redis_client=None, force: bool = False, tier: str 
             a["dy"] = a["pl"] = a["pvp"] = a["roe"] = None
             a["margem_liquida"] = a["divida_sobre_ebitda"] = None
 
-    # Fetch news context concurrently — never blocks if news fails
+    # Fetch news context + sentiment context concurrently — never blocks if either fails
     news_context = await _fetch_news_context()
+    sentiment_context = await _fetch_sentiment_context(
+        [a["ticker"] for a in analyzed], redis_client=redis_client
+    )
 
-    swing_picks = await _generate_swing_picks(analyzed, tier=tier, news_context=news_context)
-    dividend_plays = await _generate_dividend_plays(analyzed, tier=tier, news_context=news_context)
+    swing_picks = await _generate_swing_picks(
+        analyzed, tier=tier, news_context=news_context, sentiment_context=sentiment_context
+    )
+    dividend_plays = await _generate_dividend_plays(
+        analyzed, tier=tier, news_context=news_context, sentiment_context=sentiment_context
+    )
 
     result = {
         "swing_picks": swing_picks,
@@ -319,6 +362,7 @@ async def _generate_swing_picks(
     analyzed: list[dict],
     tier: str = "paid",
     news_context: dict[str, Any] | None = None,
+    sentiment_context: dict[str, dict] | None = None,
 ) -> list[dict]:
     """Generate top 5 swing picks via LLM, with technical fallback."""
     # Quality pre-filter: skip stocks with clearly bad fundamentals
@@ -333,12 +377,14 @@ async def _generate_swing_picks(
     if not quality:
         quality = analyzed  # fallback: use all if filter removes everything
 
-    # Sort candidates: prefer trending_up, high confluences, RSI 35-65
+    # Boost candidates with positive sentiment
+    sc = sentiment_context or {}
     candidates = sorted(
         quality,
         key=lambda a: (
             1 if "up" in str(a.get("indicators", {}).get("regime", "")).lower() else 0,
             len(a.get("confluences", [])),
+            (sc.get(a["ticker"], {}).get("sentiment_score") or 0) * 0.5,
             -abs(a.get("indicators", {}).get("rsi_14", 50) - 50),
         ),
         reverse=True,
@@ -346,10 +392,12 @@ async def _generate_swing_picks(
 
     summaries = _build_summaries(candidates)
     context_block = _build_news_block([a["ticker"] for a in candidates], news_context or {})
+    sentiment_block = _build_sentiment_block([a["ticker"] for a in candidates], sc)
     prompt = (
         "Dados técnicos das ações abaixo. Selecione os 5 melhores setups para swing trade agora:\n\n"
         + summaries
         + context_block
+        + sentiment_block
     )
 
     try:
@@ -357,6 +405,14 @@ async def _generate_swing_picks(
         raw = await call_llm(prompt, system=_SYSTEM_SWING, tier=tier, max_tokens=1200)
         picks = _extract_json_array(raw)
         if picks and len(picks) >= 3:
+            # Enrich each pick with context metadata
+            for pick in picks[:5]:
+                t = pick.get("ticker", "")
+                pick["context"] = {
+                    "sentiment_score": sc.get(t, {}).get("sentiment_score"),
+                    "reddit_mentions": sc.get(t, {}).get("reddit_mentions", 0),
+                    "news_headlines": (news_context or {}).get("ticker_news", {}).get(t, []),
+                }
             return picks[:5]
     except Exception as exc:
         logger.warning("copilot: swing LLM failed: %s", exc)
@@ -368,9 +424,9 @@ async def _generate_dividend_plays(
     analyzed: list[dict],
     tier: str = "paid",
     news_context: dict[str, Any] | None = None,
+    sentiment_context: dict[str, dict] | None = None,
 ) -> list[dict]:
     """Generate dividend play recommendations via LLM."""
-    # Filter: DY > 4% OR known dividend payers; exclude negative ROE / over-leveraged
     KNOWN_DIVIDEND = {"BBSE3", "TAEE11", "EGIE3", "CMIG4", "ITUB4", "BBAS3", "ABEV3", "KLBN11", "SAPR11", "SANB11"}
     candidates = [
         a for a in analyzed
@@ -386,7 +442,7 @@ async def _generate_dividend_plays(
     if not candidates:
         candidates = analyzed[:10]
 
-    # Prefer oversold (RSI < 50) and not in downtrend
+    sc = sentiment_context or {}
     candidates = sorted(
         candidates,
         key=lambda a: (
@@ -398,10 +454,12 @@ async def _generate_dividend_plays(
 
     summaries = _build_summaries(candidates, include_dy=True)
     context_block = _build_news_block([a["ticker"] for a in candidates], news_context or {})
+    sentiment_block = _build_sentiment_block([a["ticker"] for a in candidates], sc)
     prompt = (
         "Dados técnicos e de dividendos das ações abaixo. Selecione as 3-5 melhores para comprar agora e segurar semanas/meses:\n\n"
         + summaries
         + context_block
+        + sentiment_block
     )
 
     try:
@@ -409,6 +467,13 @@ async def _generate_dividend_plays(
         raw = await call_llm(prompt, system=_SYSTEM_DIVIDENDS, tier=tier, max_tokens=1000)
         picks = _extract_json_array(raw)
         if picks and len(picks) >= 2:
+            for pick in picks[:5]:
+                t = pick.get("ticker", "")
+                pick["context"] = {
+                    "sentiment_score": sc.get(t, {}).get("sentiment_score"),
+                    "reddit_mentions": sc.get(t, {}).get("reddit_mentions", 0),
+                    "news_headlines": (news_context or {}).get("ticker_news", {}).get(t, []),
+                }
             return picks[:5]
     except Exception as exc:
         logger.warning("copilot: dividend LLM failed: %s", exc)

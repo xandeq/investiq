@@ -52,6 +52,7 @@ def create_celery_app() -> Celery:
             "app.modules.signal_engine.tasks",
             "app.modules.telegram_bot.tasks",
             "app.modules.news.tasks",
+            "app.modules.outcome_tracker.tasks",
         ],
     )
 
@@ -237,6 +238,12 @@ def create_celery_app() -> Celery:
                 "task": "news.ingest_news_events",
                 "schedule": crontab(minute=0, hour="*/2"),
                 "options": {"queue": "celery", "expires": 110 * 60},
+            },
+            # Wave E Phase 32: Auto-close open outcomes at market close
+            "auto-close-outcomes": {
+                "task": "outcome_tracker.auto_close_outcomes",
+                "schedule": crontab(minute=30, hour=18, day_of_week="1-5"),
+                "options": {"queue": "celery", "expires": 23 * 3600},
             },
         },
     )

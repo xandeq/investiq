@@ -1,10 +1,11 @@
-"""FastAPI router for /outcomes endpoints (Sprint 3).
+"""FastAPI router for /outcomes endpoints (Sprint 3 + Wave E Phase 32).
 
 Endpoints:
   POST   /outcomes              — register a new signal entry
   GET    /outcomes              — list outcomes (filter ?status=open|closed|stopped)
   PATCH  /outcomes/{id}/close   — close with exit_price and exit_date, computes R
   GET    /outcomes/expectancy   — expectancy by pattern (n >= 3 closed trades)
+  GET    /outcomes/stats        — aggregate stats: winrate, avg-R, grade_breakdown
 """
 
 import logging
@@ -23,6 +24,7 @@ from app.modules.outcome_tracker.service import (
     close_outcome,
     create_outcome,
     get_expectancy_by_pattern,
+    get_stats,
     list_outcomes,
 )
 
@@ -105,6 +107,22 @@ async def list_outcomes_endpoint(
     """List signal outcomes, optionally filtered by status."""
     outcomes = await list_outcomes(db, tenant_id, filter_status)
     return {"outcomes": [_serialize(o) for o in outcomes], "count": len(outcomes)}
+
+
+@router.get("/stats")
+@limiter.limit("20/minute")
+async def get_outcome_stats(
+    request: Request,
+    tenant_id: str = Depends(get_current_tenant_id),
+    db: AsyncSession = Depends(get_authed_db),
+) -> dict:
+    """Aggregate outcome stats: winrate, avg-R, grade_breakdown.
+
+    Only includes closed and stopped outcomes. Open trades are excluded.
+    Requires at least 1 closed trade to return meaningful data.
+    """
+    stats = await get_stats(db, tenant_id)
+    return stats
 
 
 @router.patch("/{outcome_id}/close")

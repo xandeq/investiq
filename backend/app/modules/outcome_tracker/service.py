@@ -95,6 +95,60 @@ async def list_outcomes(
     return list(result.scalars().all())
 
 
+async def get_stats(db: AsyncSession, tenant_id: str) -> dict[str, Any]:
+    """Aggregate outcome stats: winrate, avg-R, grade_breakdown.
+
+    Returns {} structure even with no data (zeros/null), so frontend always gets a valid response.
+    """
+    stmt = select(SignalOutcome).where(
+        SignalOutcome.tenant_id == tenant_id,
+        SignalOutcome.status.in_(["closed", "stopped"]),
+        SignalOutcome.r_multiple.isnot(None),
+    )
+    result = await db.execute(stmt)
+    outcomes = list(result.scalars().all())
+
+    if not outcomes:
+        return {
+            "total_closed": 0,
+            "winrate": None,
+            "avg_r": None,
+            "expectancy": None,
+            "grade_breakdown": {},
+        }
+
+    r_multiples = [float(o.r_multiple) for o in outcomes]
+    wins = [r for r in r_multiples if r > 0]
+    winrate = round(len(wins) / len(r_multiples), 4)
+    avg_r = round(sum(r_multiples) / len(r_multiples), 4)
+    expectancy = round(sum(r_multiples) / len(r_multiples), 4)
+
+    # Grade breakdown
+    grade_map: dict[str, list[float]] = {}
+    for o in outcomes:
+        grade = o.signal_grade or "unknown"
+        if grade not in grade_map:
+            grade_map[grade] = []
+        grade_map[grade].append(float(o.r_multiple))
+
+    grade_breakdown = {
+        grade: {
+            "n": len(rs),
+            "winrate": round(sum(1 for r in rs if r > 0) / len(rs), 4),
+            "avg_r": round(sum(rs) / len(rs), 4),
+        }
+        for grade, rs in grade_map.items()
+    }
+
+    return {
+        "total_closed": len(outcomes),
+        "winrate": winrate,
+        "avg_r": avg_r,
+        "expectancy": expectancy,
+        "grade_breakdown": grade_breakdown,
+    }
+
+
 async def get_expectancy_by_pattern(
     db: AsyncSession, tenant_id: str
 ) -> dict[str, Any]:
