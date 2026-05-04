@@ -7,7 +7,6 @@ Produces two sets of picks:
 Each pick includes everything needed to open the operation with one click.
 Results are cached in Redis (TTL 4h) to avoid hammering BRAPI.
 """
-from __future__ import annotations
 
 import asyncio
 import json
@@ -49,6 +48,55 @@ COPILOT_UNIVERSE = [
     "VIVT3", "TIMS3",
 ]
 
+# Company name keywords for matching news headlines to tickers
+_TICKER_KEYWORDS: dict[str, list[str]] = {
+    "PETR4": ["petrobras"],
+    "PRIO3": ["petrorio", "prio3"],
+    "RECV3": ["recôncavo", "reconcavo"],
+    "VBBR3": ["vibra"],
+    "VALE3": ["vale"],
+    "GGBR4": ["gerdau"],
+    "CSNA3": ["csn", "siderúrgica nacional"],
+    "ITUB4": ["itaú", "itau", "itaubanco"],
+    "BBDC4": ["bradesco"],
+    "BBAS3": ["banco do brasil", "banco brasil"],
+    "SANB11": ["santander"],
+    "B3SA3": [" b3 "],
+    "BBSE3": ["bb seguridade"],
+    "IRBR3": ["irb"],
+    "EGIE3": ["engie"],
+    "TAEE11": ["taesa"],
+    "CMIG4": ["cemig"],
+    "ELET3": ["eletrobras"],
+    "ENEV3": ["eneva"],
+    "CPFE3": ["cpfl"],
+    "AURE3": ["auren"],
+    "SBSP3": ["sabesp"],
+    "CSAN3": ["cosan"],
+    "ABEV3": ["ambev"],
+    "JBSS3": ["jbs"],
+    "SMTO3": ["são martinho", "sao martinho"],
+    "BEEF3": ["minerva foods"],
+    "LREN3": ["renner"],
+    "RENT3": ["localiza"],
+    "MOVI3": ["movida"],
+    "SUZB3": ["suzano"],
+    "KLBN11": ["klabin"],
+    "WEGE3": ["weg"],
+    "EMBR3": ["embraer"],
+    "TOTS3": ["totvs"],
+    "LWSA3": ["locaweb"],
+    "RDOR3": ["rede d'or", "rdor"],
+    "HAPV3": ["hapvida"],
+    "RADL3": ["raia drogasil", "drogasil"],
+    "FLRY3": ["fleury"],
+    "CYRE3": ["cyrela"],
+    "MRVE3": ["mrv"],
+    "EZTC3": ["eztec"],
+    "VIVT3": ["vivo", "telefônica", "telefonica"],
+    "TIMS3": ["tim brasil", "tim s.a"],
+}
+
 _SYSTEM_SWING = """Você é um trader de swing trade brasileiro experiente.
 Analise os dados técnicos das ações e selecione os 5 melhores setups para swing trade agora.
 Para cada ação retorne JSON com:
@@ -63,6 +111,7 @@ Para cada ação retorne JSON com:
 - motivo (str: 1 linha — gatilho principal que justifica a entrada hoje)
 
 Critérios prioritários: RSI não sobrecomprado, tendência de alta ou recuperação, volume acima da média, suporte técnico próximo.
+Se houver notícias relevantes para uma ação, incorpore na tese e no motivo.
 Retorne APENAS JSON array com exatamente 5 itens."""
 
 _SYSTEM_DIVIDENDS = """Você é um especialista em ações de dividendos brasileiro.
@@ -78,7 +127,89 @@ Para cada ação retorne JSON com:
 - motivo_desconto (str: 1 linha — por que está mais barata que o normal)
 
 Foco: ações com DY > 6%, RSI < 50 (não sobrecomprada), bons fundamentos.
+Se houver notícias ou eventos recentes relevantes, incorpore na tese.
 Retorne APENAS JSON array com 3-5 itens."""
+
+
+async def _fetch_news_context(hours_back: int = 24) -> dict[str, Any]:
+    """Fetch CVM + GNews and match headlines to COPILOT_UNIVERSE tickers.
+
+    Runs both adapters concurrently. Never raises — returns empty dict on failure.
+    Returns:
+        {
+            "ticker_news": {"PETR4": ["headline…", …], …},
+            "market_headlines": ["macro headline…", …],
+        }
+    """
+    loop = asyncio.get_event_loop()
+    gnews_items: list[dict] = []
+    cvm_items: list[dict] = []
+
+    try:
+        from app.modules.news.adapters.gnews_adapter import get_financial_news
+        from app.modules.news.adapters.cvm_rss import get_cvm_news
+
+        results = await asyncio.gather(
+            loop.run_in_executor(None, lambda: get_financial_news(hours_back)),
+            loop.run_in_executor(None, lambda: get_cvm_news(hours_back)),
+            return_exceptions=True,
+        )
+        if isinstance(results[0], list):
+            gnews_items = results[0]
+        if isinstance(results[1], list):
+            cvm_items = results[1]
+    except Exception as exc:
+        logger.debug("copilot: news fetch failed: %s", exc)
+        return {"ticker_news": {}, "market_headlines": []}
+
+    ticker_news: dict[str, list[str]] = {}
+    market_headlines: list[str] = []
+
+    for item in gnews_items + cvm_items:
+        headline = item.get("headline", "").strip()
+        if not headline:
+            continue
+        hl_lower = headline.lower()
+
+        matched = False
+        for ticker, keywords in _TICKER_KEYWORDS.items():
+            if any(kw in hl_lower for kw in keywords):
+                if ticker not in ticker_news:
+                    ticker_news[ticker] = []
+                if len(ticker_news[ticker]) < 3:
+                    ticker_news[ticker].append(headline[:120])
+                matched = True
+
+        if not matched and len(market_headlines) < 6:
+            market_headlines.append(headline[:120])
+
+    logger.info(
+        "copilot: news context — %d tickers with news, %d market headlines",
+        len(ticker_news),
+        len(market_headlines),
+    )
+    return {"ticker_news": ticker_news, "market_headlines": market_headlines}
+
+
+def _build_news_block(tickers: list[str], news_context: dict[str, Any]) -> str:
+    """Build compact news context string for a subset of tickers."""
+    ticker_news = news_context.get("ticker_news", {})
+    market_headlines = news_context.get("market_headlines", [])
+
+    lines: list[str] = []
+    for ticker in tickers:
+        headlines = ticker_news.get(ticker, [])
+        if headlines:
+            joined = " | ".join(headlines)
+            lines.append(f"  {ticker}: {joined}")
+
+    block = ""
+    if lines:
+        block += "\n\n=== NOTÍCIAS POR AÇÃO (últimas 24h) ===\n" + "\n".join(lines)
+    if market_headlines:
+        block += "\n=== MACRO / MERCADO ===\n" + "\n".join(f"  • {h}" for h in market_headlines)
+
+    return block
 
 
 async def _analyze_with_semaphore(sem: asyncio.Semaphore, ticker: str, brapi_token: str, redis_client: Any) -> dict | None:
@@ -161,8 +292,11 @@ async def build_copilot_picks(redis_client=None, force: bool = False, tier: str 
             a["dy"] = a["pl"] = a["pvp"] = a["roe"] = None
             a["margem_liquida"] = a["divida_sobre_ebitda"] = None
 
-    swing_picks = await _generate_swing_picks(analyzed, tier=tier)
-    dividend_plays = await _generate_dividend_plays(analyzed, tier=tier)
+    # Fetch news context concurrently — never blocks if news fails
+    news_context = await _fetch_news_context()
+
+    swing_picks = await _generate_swing_picks(analyzed, tier=tier, news_context=news_context)
+    dividend_plays = await _generate_dividend_plays(analyzed, tier=tier, news_context=news_context)
 
     result = {
         "swing_picks": swing_picks,
@@ -181,7 +315,11 @@ async def build_copilot_picks(redis_client=None, force: bool = False, tier: str 
     return result
 
 
-async def _generate_swing_picks(analyzed: list[dict], tier: str = "paid") -> list[dict]:
+async def _generate_swing_picks(
+    analyzed: list[dict],
+    tier: str = "paid",
+    news_context: dict[str, Any] | None = None,
+) -> list[dict]:
     """Generate top 5 swing picks via LLM, with technical fallback."""
     # Quality pre-filter: skip stocks with clearly bad fundamentals
     quality = [
@@ -207,9 +345,11 @@ async def _generate_swing_picks(analyzed: list[dict], tier: str = "paid") -> lis
     )[:15]
 
     summaries = _build_summaries(candidates)
+    context_block = _build_news_block([a["ticker"] for a in candidates], news_context or {})
     prompt = (
         "Dados técnicos das ações abaixo. Selecione os 5 melhores setups para swing trade agora:\n\n"
         + summaries
+        + context_block
     )
 
     try:
@@ -224,7 +364,11 @@ async def _generate_swing_picks(analyzed: list[dict], tier: str = "paid") -> lis
     return _fallback_swing_picks(candidates)
 
 
-async def _generate_dividend_plays(analyzed: list[dict], tier: str = "paid") -> list[dict]:
+async def _generate_dividend_plays(
+    analyzed: list[dict],
+    tier: str = "paid",
+    news_context: dict[str, Any] | None = None,
+) -> list[dict]:
     """Generate dividend play recommendations via LLM."""
     # Filter: DY > 4% OR known dividend payers; exclude negative ROE / over-leveraged
     KNOWN_DIVIDEND = {"BBSE3", "TAEE11", "EGIE3", "CMIG4", "ITUB4", "BBAS3", "ABEV3", "KLBN11", "SAPR11", "SANB11"}
@@ -253,9 +397,11 @@ async def _generate_dividend_plays(analyzed: list[dict], tier: str = "paid") -> 
     )[:10]
 
     summaries = _build_summaries(candidates, include_dy=True)
+    context_block = _build_news_block([a["ticker"] for a in candidates], news_context or {})
     prompt = (
         "Dados técnicos e de dividendos das ações abaixo. Selecione as 3-5 melhores para comprar agora e segurar semanas/meses:\n\n"
         + summaries
+        + context_block
     )
 
     try:
