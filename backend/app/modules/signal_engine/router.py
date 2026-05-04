@@ -4,8 +4,6 @@ GET  /signals/active            — list active A+ signals from Redis (auth requ
 GET  /signals/{ticker}/evaluate — on-demand evaluation for a specific ticker
 POST /signals/sizing            — calculate Kelly fractional position size
 """
-from __future__ import annotations
-
 import logging
 import os
 
