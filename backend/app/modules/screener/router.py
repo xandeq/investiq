@@ -9,7 +9,6 @@ Pro/Enterprise only — free users are blocked (plan == "free").
 Trial users are elevated to "pro" via plan_gate.get_user_plan.
 Rate limit: 3 screenings per hour.
 """
-from __future__ import annotations
 
 import json
 import logging

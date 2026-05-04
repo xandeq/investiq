@@ -8,7 +8,6 @@ Endpoints:
   GET  /profile/ai-mode          — get AI quality mode ("standard" | "ultra")
   PATCH /profile/ai-mode         — toggle AI quality mode (pro users only)
 """
-from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel

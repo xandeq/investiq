@@ -6,7 +6,6 @@ Endpoints:
   PATCH  /outcomes/{id}/close   — close with exit_price and exit_date, computes R
   GET    /outcomes/expectancy   — expectancy by pattern (n >= 3 closed trades)
 """
-from __future__ import annotations
 
 import logging
 from datetime import date

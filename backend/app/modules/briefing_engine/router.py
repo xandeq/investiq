@@ -3,7 +3,6 @@
 GET  /briefing/daily   — returns the latest cached daily report (or generates)
 POST /briefing/generate — force-generate a new report (admin)
 """
-from __future__ import annotations
 
 import json
 import logging

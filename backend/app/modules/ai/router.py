@@ -16,7 +16,6 @@ Design notes:
 - Macro analysis fetches the authenticated user's portfolio allocation from
   PortfolioService so the LLM receives real context.
 """
-from __future__ import annotations
 
 import json
 import logging

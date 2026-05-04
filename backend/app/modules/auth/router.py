@@ -4,7 +4,6 @@ Register in app/main.py:
     from app.modules.auth.router import router as auth_router
     app.include_router(auth_router, prefix="/auth", tags=["auth"])
 """
-from __future__ import annotations
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession

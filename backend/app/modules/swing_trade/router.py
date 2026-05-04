@@ -10,7 +10,6 @@ Endpoints:
 All endpoints are tenant-scoped through get_authed_db + get_current_tenant_id.
 Signals reads Redis only — no external market data calls per request.
 """
-from __future__ import annotations
 
 import logging
 

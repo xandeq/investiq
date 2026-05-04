@@ -6,7 +6,6 @@ POST /opportunity-detector/scan           — trigger alert scanners
 POST /opportunity-detector/radar/refresh  — force-refresh radar report
 PATCH /opportunity-detector/{id}/follow   — toggle followed flag
 """
-from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta, timezone

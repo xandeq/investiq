@@ -18,7 +18,6 @@ Cache miss behavior:
   delayed" warning rather than an error. This avoids cascading failures
   if the Celery worker is temporarily down.
 """
-from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 

@@ -3,7 +3,6 @@
 POST /analysis/dcf  — create DCF analysis job, return job_id (202)
 GET  /analysis/{job_id} — get analysis result with CVM disclaimer
 """
-from __future__ import annotations
 
 import json
 import logging

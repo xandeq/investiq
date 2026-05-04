@@ -8,7 +8,6 @@ Score formula (nightly Celery task):
 
 FIIs with NULL scores (missing data) appear at the bottom (NULLS LAST).
 """
-from __future__ import annotations
 
 import logging
 

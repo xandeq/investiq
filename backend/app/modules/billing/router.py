@@ -5,7 +5,6 @@ CRITICAL patterns:
 - /webhook reads raw bytes via await request.body() BEFORE any JSON parsing
 - /checkout and /portal use get_authed_db() (authenticated users only)
 """
-from __future__ import annotations
 
 import logging
 

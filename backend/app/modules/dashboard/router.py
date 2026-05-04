@@ -7,7 +7,6 @@ Endpoints:
 Uses get_authed_db (RLS-scoped session) — same pattern as portfolio router.
 _get_redis is a separate dependency so tests can override it independently.
 """
-from __future__ import annotations
 
 from datetime import date, timedelta
 

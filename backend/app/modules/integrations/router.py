@@ -6,7 +6,6 @@ Currently supports one tenant per key (configured via INTEGRATION_TENANT_ID).
 Endpoint:
   GET /integrations/portfolio-summary — aggregated portfolio snapshot for DIAX CRM
 """
-from __future__ import annotations
 
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal

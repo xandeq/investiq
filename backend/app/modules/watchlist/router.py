@@ -7,7 +7,6 @@ Endpoints:
   PATCH  /watchlist/{ticker}   — update notes or price alert
   GET    /watchlist/quotes     — get live quotes for watchlist items
 """
-from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response

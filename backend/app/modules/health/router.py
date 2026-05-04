@@ -10,7 +10,6 @@ Returns last-run timestamps and staleness flags for the 3 main data domains:
 Consumed by: UptimeRobot/Better Stack monitors, frontend staleness banner,
 admin dashboard. Returns 200 always — staleness is informational, not a 5xx.
 """
-from __future__ import annotations
 
 import logging
 import os

@@ -15,7 +15,6 @@ via app.dependency_overrides[_get_redis]. Never import redis at module level —
 import lazily inside the factory to avoid startup errors when Redis is not
 configured (e.g., test environments with fakeredis).
 """
-from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import Response

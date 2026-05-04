@@ -1,5 +1,4 @@
 """User Insights router."""
-from __future__ import annotations
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import Response
 from sqlalchemy import select, update

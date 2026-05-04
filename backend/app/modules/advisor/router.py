@@ -13,7 +13,6 @@ Job persistence: reuses WizardJob table with perfil="advisor" as discriminator.
 CVM compliance: disclaimer mandatory in all responses that involve AI output.
 Caching: Redis with TTL=3600 per tenant_id.
 """
-from __future__ import annotations
 
 import json
 import logging

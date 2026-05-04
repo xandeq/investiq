@@ -17,7 +17,6 @@ Design notes:
 - _dispatch_pdf_parse / _dispatch_csv_parse are separate functions to allow
   mocking in tests without importing the Celery task module at startup.
 """
-from __future__ import annotations
 
 import logging
 

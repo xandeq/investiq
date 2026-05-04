@@ -5,7 +5,6 @@ Endpoints:
   GET /ir-helper/history                    — Histórico mensal de P&L e DARF
   GET /ir-helper/declaration?year=YYYY      — Posições em 31/12 para DIRPF (Bens e Direitos)
 """
-from __future__ import annotations
 
 from collections import defaultdict
 from datetime import date
