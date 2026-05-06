@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     INTEGRATION_KEY: str = ""
     # Tenant scoped by the integration key (single-tenant for now)
     INTEGRATION_TENANT_ID: str = ""
+    # DIAX CRM pull integration for Cash Parking Advisor.
+    DIAX_BASE_URL: str = ""
+    DIAX_INTEGRATION_KEY: str = ""
 
 
 settings = Settings()

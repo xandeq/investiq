@@ -46,6 +46,7 @@ from app.modules.signal_engine.router import router as signal_engine_router
 from app.modules.outcome_tracker.router import router as outcome_tracker_router
 from app.modules.briefing_engine.router import router as briefing_router
 from app.modules.integrations.router import router as integrations_router
+from app.modules.cash_flow_advisor.router import router as cash_flow_advisor_router
 
 
 @asynccontextmanager
@@ -146,6 +147,7 @@ app.include_router(opportunity_detector_router, prefix="/opportunity-detector", 
 # Phase 20: Swing Trade signals + manual operations
 app.include_router(swing_trade_router, prefix="/swing-trade", tags=["swing-trade"])
 # Phase 23: Portfolio Advisor — health check + AI narrative
+app.include_router(cash_flow_advisor_router, prefix="/advisor", tags=["advisor"])
 app.include_router(advisor_router, prefix="/advisor", tags=["advisor"])
 # System health & data freshness (public, no auth)
 app.include_router(health_router, prefix="/health", tags=["health"])
