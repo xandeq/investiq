@@ -9,6 +9,7 @@ import {
   TrendingUp,
   Bell,
   Lightbulb,
+  WalletCards,
 } from "lucide-react";
 import { useInbox } from "@/features/advisor/hooks/useInbox";
 import type { InboxCard, InboxCardKind, InboxSeverity } from "@/features/advisor/types";
@@ -28,6 +29,7 @@ const KIND_ICON: Record<InboxCardKind, React.ElementType> = {
   insight:               Info,
   watchlist_alert:       Bell,
   swing_signal:          TrendingUp,
+  cash_parking:          WalletCards,
 };
 
 function timeAgo(iso: string): string {
@@ -91,7 +93,7 @@ export function ActionInbox() {
               {data.cards.length}
             </span>
           )}
-          <span className="text-xs text-muted-foreground hidden sm:inline">• 5 fontes agregadas</span>
+          <span className="text-xs text-muted-foreground hidden sm:inline">• 6 fontes agregadas</span>
         </div>
         <button
           onClick={() => refetch()}

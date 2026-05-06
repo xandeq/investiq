@@ -251,6 +251,7 @@ _SOURCE_WEIGHT: dict[str, float] = {
     "concentration_risk": 0.95,
     "watchlist_alert": 0.90,
     "opportunity_detected": 0.80,
+    "cash_parking": 0.72,
     "swing_signal": 0.65,
     "underperformer": 0.60,
     "insight": 0.50,
@@ -510,6 +511,55 @@ async def _signals_to_cards(redis_client, db: AsyncSession, tenant_id: str) -> l
     return cards
 
 
+async def _cash_parking_to_cards(global_db: AsyncSession, redis_client=None) -> list[InboxCard]:
+    """Return one cash parking card when DIAX reports meaningful idle cash."""
+    try:
+        from app.modules.cash_flow_advisor.client import DiaxClient, DiaxNotConfigured
+        from app.modules.cash_flow_advisor.router import _get_cdi_annual, _get_selic_annual
+        from app.modules.cash_flow_advisor.service import CashParkingService
+        from app.modules.market_universe.models import TaxConfig
+
+        async with DiaxClient(redis_client=redis_client) as diax:
+            projection = await diax.get_cash_flow_projection()
+    except DiaxNotConfigured:
+        return []
+
+    if projection.available_to_invest < Decimal("1000.00"):
+        return []
+
+    cdi = _get_cdi_annual()
+    selic = _get_selic_annual()
+    if not cdi or not selic:
+        return []
+
+    tax_rows = (await global_db.execute(select(TaxConfig))).scalars().all()
+    result = await CashParkingService(
+        cdi_annual_pct=cdi,
+        selic_annual_pct=selic,
+        tax_config_rows=tax_rows,
+    ).rank_options(projection)
+
+    if not result.rows:
+        return []
+
+    top = result.rows[0]
+    if "Poupanca" in top.label:
+        return []
+
+    return [_make_card(
+        kind="cash_parking",
+        title=f"R$ {projection.available_to_invest:.0f} parado - aplicar em {top.label}",
+        body=(
+            f"Janela de {result.holding_days} dias. Rendimento liquido estimado: "
+            f"R$ {top.net_value_brl:.2f} ({top.net_pct:.2f}%)."
+        ),
+        severity="info",
+        created_at=datetime.now(tz=timezone.utc),
+        cta=InboxCardCTA(label="Ver opcoes", href="/caixa"),
+        id_parts=("cash_parking", top.label, str(result.holding_days)),
+    )]
+
+
 def _rank(cards: list[InboxCard]) -> list[InboxCard]:
     """Sort cards desc by priority, then by recency. Cap at _INBOX_MAX_CARDS."""
     cards.sort(key=lambda c: (c.priority, c.created_at), reverse=True)
@@ -581,6 +631,14 @@ async def compute_inbox(
         except Exception as exc:
             logger.warning("inbox.swing_failed tenant_id=%s err=%s", tenant_id, exc)
             sources_failed.append("swing_signals")
+
+    # 6. Cash parking (DIAX-driven, deterministic, degrades silently)
+    try:
+        cards.extend(await _cash_parking_to_cards(global_db, redis_client))
+        sources_ok.append("cash_parking")
+    except Exception as exc:
+        logger.warning("inbox.cash_parking_failed tenant_id=%s err=%s", tenant_id, exc)
+        sources_failed.append("cash_parking")
 
     return InboxResponse(
         generated_at=datetime.now(tz=timezone.utc),

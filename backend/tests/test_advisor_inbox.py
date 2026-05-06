@@ -299,3 +299,37 @@ async def test_inbox_degrades_when_one_source_fails(client: AsyncClient, db_sess
     assert "health" in data["meta"]["sources_ok"]
     assert "opportunity_detector" in data["meta"]["sources_ok"]
     assert "watchlist_alerts" in data["meta"]["sources_ok"]
+
+
+@pytest.mark.asyncio
+async def test_inbox_includes_cash_parking_source(client: AsyncClient, db_session, email_stub):
+    """Cash Parking source can add one card and is reported in sources_ok."""
+    await register_verify_and_login(client, email_stub, email="inbox_cash@example.com")
+
+    from app.modules.advisor.router import _get_inbox_redis
+    from app.modules.advisor.schemas import InboxCard, InboxCardCTA
+    from app.main import app as fastapi_app
+
+    now = datetime.now(tz=timezone.utc)
+    card = InboxCard(
+        id="cash_parking:test",
+        kind="cash_parking",
+        priority=0.72,
+        title="R$ 17000 parado - aplicar em CDB DI 110% CDI",
+        body="Janela de 17 dias. Rendimento liquido estimado: R$ 45.00.",
+        severity="info",
+        cta=InboxCardCTA(label="Ver opcoes", href="/caixa"),
+        created_at=now,
+    )
+
+    fastapi_app.dependency_overrides[_get_inbox_redis] = lambda: None
+    with patch("app.modules.advisor.service._cash_parking_to_cards", return_value=[card]):
+        try:
+            resp = await client.get("/advisor/inbox")
+        finally:
+            fastapi_app.dependency_overrides.pop(_get_inbox_redis, None)
+
+    assert resp.status_code == 200, resp.text
+    data = resp.json()
+    assert "cash_parking" in data["meta"]["sources_ok"]
+    assert any(c["kind"] == "cash_parking" and c["cta"]["href"] == "/caixa" for c in data["cards"])

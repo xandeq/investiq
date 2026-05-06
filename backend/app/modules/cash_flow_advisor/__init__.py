@@ -1,0 +1,1 @@
+"""Cash Parking Advisor module."""

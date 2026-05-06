@@ -28,6 +28,7 @@ import {
   Building2,
   PieChart,
   Lightbulb,
+  WalletCards,
 } from "lucide-react";
 
 interface NavItem {
@@ -60,13 +61,14 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Mercado",
     icon: BarChart2,
-    activePrefixes: ["/watchlist", "/screener", "/renda-fixa", "/comparador", "/simulador", "/wizard", "/fii"],
+    activePrefixes: ["/watchlist", "/screener", "/renda-fixa", "/comparador", "/simulador", "/wizard", "/fii", "/caixa"],
     items: [
       { href: "/watchlist", label: "Watchlist", icon: Eye },
       { href: "/screener/acoes", label: "Ações", icon: ScanSearch },
       { href: "/screener/fiis", label: "FIIs", icon: Building2 },
       { href: "/fii/screener", label: "FII Screener", icon: ScanSearch },
       { href: "/renda-fixa", label: "Renda Fixa", icon: Landmark },
+      { href: "/caixa", label: "Caixa", icon: WalletCards },
       { href: "/comparador", label: "Comparador", icon: BarChart2 },
       { href: "/simulador", label: "Simulador", icon: PieChart },
       { href: "/wizard", label: "Onde Investir", icon: Lightbulb },

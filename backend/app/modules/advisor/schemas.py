@@ -86,6 +86,7 @@ InboxCardKind = Literal[
     "insight",
     "watchlist_alert",
     "swing_signal",
+    "cash_parking",
 ]
 InboxSeverity = Literal["info", "warn", "alert"]
 

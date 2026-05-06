@@ -18,7 +18,8 @@ export type InboxCardKind =
   | "opportunity_detected"
   | "insight"
   | "watchlist_alert"
-  | "swing_signal";
+  | "swing_signal"
+  | "cash_parking";
 
 export type InboxSeverity = "info" | "warn" | "alert";
 
