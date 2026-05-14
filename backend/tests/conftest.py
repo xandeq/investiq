@@ -23,6 +23,7 @@ import pytest_asyncio
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import text as _sa_text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 # ---------------------------------------------------------------------------
@@ -98,6 +99,18 @@ async def test_engine():
     )
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # portfolio_daily_value has no ORM model — created via raw DDL
+        await conn.execute(_sa_text("""
+            CREATE TABLE IF NOT EXISTS portfolio_daily_value (
+                id TEXT PRIMARY KEY,
+                tenant_id TEXT NOT NULL,
+                snapshot_date DATE NOT NULL,
+                total_value DECIMAL(18, 2),
+                total_invested DECIMAL(18, 2),
+                created_at TIMESTAMP,
+                UNIQUE(tenant_id, snapshot_date)
+            )
+        """))
     yield engine
     await engine.dispose()
 
@@ -202,6 +215,7 @@ async def client(db_session, email_stub, fake_redis, fake_redis_async) -> AsyncG
     from app.modules.market_data.router import _get_market_service
     from app.modules.dashboard.router import _get_redis as dashboard_get_redis
     from app.modules.ai.router import _get_redis as ai_get_redis
+    from app.modules.watchlist.router import _get_redis as watchlist_get_redis
 
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_authed_db] = override_get_authed_db
@@ -211,6 +225,7 @@ async def client(db_session, email_stub, fake_redis, fake_redis_async) -> AsyncG
     app.dependency_overrides[_get_market_service] = override_get_market_service
     app.dependency_overrides[dashboard_get_redis] = override_get_redis
     app.dependency_overrides[ai_get_redis] = override_get_redis
+    app.dependency_overrides[watchlist_get_redis] = override_get_redis
 
     # Mock wizard Celery dispatch -- tests don't need real Celery
     with patch("app.modules.wizard.router._dispatch") as mock_dispatch:

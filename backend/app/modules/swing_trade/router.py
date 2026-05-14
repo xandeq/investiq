@@ -14,6 +14,7 @@ Signals reads Redis only — no external market data calls per request.
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from sqlalchemy import select
@@ -224,7 +225,7 @@ async def get_copilot(
 @limiter.limit("30/minute")
 @router.delete(
     "/operations/{operation_id}",
-    status_code=status.HTTP_200_OK,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Soft delete a swing trade operation",
 )
 async def delete_operation_endpoint(
@@ -233,8 +234,8 @@ async def delete_operation_endpoint(
     db: AsyncSession = Depends(get_authed_db),
     tenant_id: str = Depends(get_current_tenant_id),
     current_user: dict = Depends(get_current_user),
-) -> dict:
+) -> Response:
     ok = await delete_operation(db=db, tenant_id=tenant_id, op_id=operation_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Operation not found")
-    return {"deleted": True}
+    return Response(status_code=204)

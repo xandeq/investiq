@@ -27,6 +27,11 @@ async def test_universe_requires_auth(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_universe_empty(client: AsyncClient, db_session, email_stub):
     """Empty screener_snapshots returns empty results list."""
+    from sqlalchemy import text as _text
+    # Clean up any rows from other tests (shared in-memory SQLite engine)
+    await db_session.execute(_text("DELETE FROM screener_snapshots"))
+    await db_session.commit()
+
     await register_verify_and_login(
         client, email_stub, email="universe_empty@example.com"
     )
@@ -42,7 +47,11 @@ async def test_universe_empty(client: AsyncClient, db_session, email_stub):
 @pytest.mark.asyncio
 async def test_universe_returns_latest_snapshot(client: AsyncClient, db_session, email_stub):
     """With data, returns rows from the latest snapshot_date only."""
+    from sqlalchemy import text as _text
     from app.modules.market_universe.models import ScreenerSnapshot
+    # Clean up any rows from other tests (shared in-memory SQLite engine)
+    await db_session.execute(_text("DELETE FROM screener_snapshots"))
+    await db_session.commit()
 
     await register_verify_and_login(
         client, email_stub, email="universe_latest@example.com"

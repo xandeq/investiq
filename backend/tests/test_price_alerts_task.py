@@ -213,35 +213,20 @@ def test_insight_saved_on_alert():
 
 def test_email_content_contains_key_info():
     from app.modules.watchlist.tasks import _send_alert_email
-    from unittest.mock import patch, MagicMock
+    from unittest.mock import patch
 
-    emails_posted = []
+    sent = []
 
-    mock_resp = MagicMock()
-    mock_resp.raise_for_status = MagicMock()
-
-    class FakeClient:
-        def __enter__(self): return self
-        def __exit__(self, *a): pass
-        def post(self, url, **kwargs):
-            emails_posted.append(kwargs.get("json", {}))
-            return mock_resp
-
-    with patch("app.modules.watchlist.tasks.httpx.Client", return_value=FakeClient()), \
-         patch("app.modules.watchlist.tasks.settings") as mock_settings:
-        mock_settings.BREVO_API_KEY = "test-key"
-        mock_settings.BREVO_FROM_NAME = "InvestIQ"
-        mock_settings.BREVO_FROM_EMAIL = "noreply@investiq.com.br"
-
+    with patch("app.core.email.send_email", side_effect=lambda to, subject, html: sent.append({"to": to, "subject": subject, "html": html})):
         _send_alert_email("user@example.com", "PETR4", Decimal("38.00"), Decimal("38.10"))
 
-    assert len(emails_posted) == 1
-    payload = emails_posted[0]
-    assert payload["to"][0]["email"] == "user@example.com"
-    assert "PETR4" in payload["subject"]
-    assert "38." in payload["subject"]
-    assert "PETR4" in payload["htmlContent"]
-    assert "38.00" in payload["htmlContent"]
+    assert len(sent) == 1
+    msg = sent[0]
+    assert msg["to"] == "user@example.com"
+    assert "PETR4" in msg["subject"]
+    assert "38." in msg["subject"]
+    assert "PETR4" in msg["html"]
+    assert "38.00" in msg["html"]
 
 
 # ---------------------------------------------------------------------------

@@ -420,10 +420,12 @@ async def test_corporate_action_types(portfolio_session: AsyncSession):
 # ---------------------------------------------------------------------------
 
 def _pg_available() -> bool:
-    """Check if asyncpg is importable and a PG instance is reachable."""
+    """Check if asyncpg is importable AND the configured DB URL is PostgreSQL."""
+    import os
     try:
         import asyncpg  # noqa
-        return True
+        db_url = os.environ.get("DATABASE_URL", "")
+        return "postgresql" in db_url or "postgres" in db_url
     except ImportError:
         return False
 

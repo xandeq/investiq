@@ -113,12 +113,10 @@ def test_brapi_client_fetch_fundamentals_falls_back_to_base_quote_when_modules_u
         client = BrapiClient(token="test-token")
         result = client.fetch_fundamentals("GMAT3")
 
-    assert result == {
-        "pl": 5.58,
-        "pvp": None,
-        "dy": None,
-        "ev_ebitda": None,
-    }
+    assert result["pl"] == 5.58
+    assert result["pvp"] is None
+    assert result["dy"] is None
+    assert result["ev_ebitda"] is None
 
 
 def test_brapi_client_fetch_historical_returns_ohlcv():

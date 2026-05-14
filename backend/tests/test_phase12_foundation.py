@@ -350,9 +350,23 @@ class TestAsyncJobs:
         async def mock_llm(prompt, max_tokens=300):
             return ("LLM narrative", {"provider_used": "openrouter", "model": "gpt-4o-mini", "success": True})
 
+        _mock_fundamentals = {
+            "free_cash_flow": 1_000_000_000,
+            "beta": 1.0,
+            "total_debt": 2_000_000_000,
+            "market_cap": 10_000_000_000,
+            "cashflow_history": [1_000_000_000],
+            "shares_outstanding": 500_000_000,
+            "total_cash": 500_000_000,
+            "current_price": 30.0,
+            "data_completeness": {},
+        }
+
         with (
             patch("app.modules.analysis.tasks._update_job", side_effect=fake_update_job),
             patch("app.modules.analysis.tasks._check_and_increment_quota", side_effect=fake_quota_check),
+            patch("app.modules.analysis.tasks.fetch_fundamentals", return_value=_mock_fundamentals),
+            patch("app.modules.analysis.tasks.get_selic_rate", return_value=(0.1075, "2026-05-10", False)),
             patch("app.modules.analysis.tasks.call_analysis_llm", side_effect=mock_llm),
             patch("app.modules.analysis.tasks.log_analysis_cost") as mock_cost,
         ):
@@ -402,9 +416,23 @@ class TestAsyncJobs:
         async def mock_llm_fail(prompt, max_tokens=300):
             raise AIProviderError("All analysis LLM providers exhausted")
 
+        _mock_fundamentals = {
+            "free_cash_flow": 1_000_000_000,
+            "beta": 1.0,
+            "total_debt": 2_000_000_000,
+            "market_cap": 10_000_000_000,
+            "cashflow_history": [1_000_000_000],
+            "shares_outstanding": 500_000_000,
+            "total_cash": 500_000_000,
+            "current_price": 30.0,
+            "data_completeness": {},
+        }
+
         with (
             patch("app.modules.analysis.tasks._update_job", side_effect=fake_update_job),
             patch("app.modules.analysis.tasks._check_and_increment_quota", side_effect=fake_quota_check),
+            patch("app.modules.analysis.tasks.fetch_fundamentals", return_value=_mock_fundamentals),
+            patch("app.modules.analysis.tasks.get_selic_rate", return_value=(0.1075, "2026-05-10", False)),
             patch("app.modules.analysis.tasks.call_analysis_llm", side_effect=mock_llm_fail),
             patch("app.modules.analysis.tasks._get_cached_analysis_with_outdated_badge", return_value=None),
             patch("app.modules.analysis.tasks.log_analysis_cost") as mock_cost,
@@ -443,7 +471,7 @@ class TestAsyncJobs:
         with (
             patch("app.modules.analysis.tasks._update_job", side_effect=fake_update_job),
             patch("app.modules.analysis.tasks._check_and_increment_quota", side_effect=fake_quota_check),
-            patch("app.modules.analysis.tasks._fetch_fundamentals_stub", side_effect=RuntimeError("DB connection lost")),
+            patch("app.modules.analysis.tasks.fetch_fundamentals", side_effect=RuntimeError("DB connection lost")),
             patch("app.modules.analysis.tasks.log_analysis_cost") as mock_cost,
         ):
             from app.modules.analysis.tasks import run_dcf
@@ -471,9 +499,23 @@ class TestAsyncJobs:
         async def mock_llm(prompt, max_tokens=300):
             return ("Narrative text", {"provider_used": "openrouter", "model": "gpt-4o-mini", "success": True})
 
+        _mock_fundamentals = {
+            "free_cash_flow": 1_000_000_000,
+            "beta": 1.0,
+            "total_debt": 2_000_000_000,
+            "market_cap": 10_000_000_000,
+            "cashflow_history": [1_000_000_000],
+            "shares_outstanding": 500_000_000,
+            "total_cash": 500_000_000,
+            "current_price": 30.0,
+            "data_completeness": {},
+        }
+
         with (
             patch("app.modules.analysis.tasks._update_job"),
             patch("app.modules.analysis.tasks._check_and_increment_quota", return_value=True),
+            patch("app.modules.analysis.tasks.fetch_fundamentals", return_value=_mock_fundamentals),
+            patch("app.modules.analysis.tasks.get_selic_rate", return_value=(0.1075, "2026-05-10", False)),
             patch("app.modules.analysis.tasks.call_analysis_llm", side_effect=mock_llm),
             patch("app.modules.analysis.tasks.log_analysis_cost") as mock_cost,
         ):
@@ -513,9 +555,23 @@ class TestDataVersioning:
         async def mock_llm(prompt, max_tokens=300):
             return ("Narrative", {"provider_used": "openrouter", "model": "gpt-4o-mini", "success": True})
 
+        _mock_fundamentals = {
+            "free_cash_flow": 1_000_000_000,
+            "beta": 1.0,
+            "total_debt": 2_000_000_000,
+            "market_cap": 10_000_000_000,
+            "cashflow_history": [1_000_000_000],
+            "shares_outstanding": 500_000_000,
+            "total_cash": 500_000_000,
+            "current_price": 30.0,
+            "data_completeness": {},
+        }
+
         with (
             patch("app.modules.analysis.tasks._update_job", side_effect=fake_update_job),
             patch("app.modules.analysis.tasks._check_and_increment_quota", return_value=True),
+            patch("app.modules.analysis.tasks.fetch_fundamentals", return_value=_mock_fundamentals),
+            patch("app.modules.analysis.tasks.get_selic_rate", return_value=(0.1075, "2026-05-10", False)),
             patch("app.modules.analysis.tasks.call_analysis_llm", side_effect=mock_llm),
             patch("app.modules.analysis.tasks.log_analysis_cost"),
         ):
@@ -548,9 +604,23 @@ class TestDataVersioning:
         async def mock_llm(prompt, max_tokens=300):
             return ("Narrative", {"provider_used": "groq", "model": "llama", "success": True})
 
+        _mock_fundamentals = {
+            "free_cash_flow": 1_000_000_000,
+            "beta": 1.0,
+            "total_debt": 2_000_000_000,
+            "market_cap": 10_000_000_000,
+            "cashflow_history": [1_000_000_000],
+            "shares_outstanding": 500_000_000,
+            "total_cash": 500_000_000,
+            "current_price": 30.0,
+            "data_completeness": {},
+        }
+
         with (
             patch("app.modules.analysis.tasks._update_job", side_effect=fake_update_job),
             patch("app.modules.analysis.tasks._check_and_increment_quota", return_value=True),
+            patch("app.modules.analysis.tasks.fetch_fundamentals", return_value=_mock_fundamentals),
+            patch("app.modules.analysis.tasks.get_selic_rate", return_value=(0.1075, "2026-05-10", False)),
             patch("app.modules.analysis.tasks.call_analysis_llm", side_effect=mock_llm),
             patch("app.modules.analysis.tasks.log_analysis_cost"),
         ):
@@ -585,9 +655,23 @@ class TestDataVersioning:
         async def mock_llm(prompt, max_tokens=300):
             return ("Narrative", {"provider_used": "openrouter", "model": "m", "success": True})
 
+        _mock_fundamentals = {
+            "free_cash_flow": 1_000_000_000,
+            "beta": 1.0,
+            "total_debt": 2_000_000_000,
+            "market_cap": 10_000_000_000,
+            "cashflow_history": [1_000_000_000],
+            "shares_outstanding": 500_000_000,
+            "total_cash": 500_000_000,
+            "current_price": 30.0,
+            "data_completeness": {},
+        }
+
         with (
             patch("app.modules.analysis.tasks._update_job", side_effect=fake_update_job),
             patch("app.modules.analysis.tasks._check_and_increment_quota", return_value=True),
+            patch("app.modules.analysis.tasks.fetch_fundamentals", return_value=_mock_fundamentals),
+            patch("app.modules.analysis.tasks.get_selic_rate", return_value=(0.1075, "2026-05-10", False)),
             patch("app.modules.analysis.tasks.call_analysis_llm", side_effect=mock_llm),
             patch("app.modules.analysis.tasks.log_analysis_cost"),
         ):
@@ -600,7 +684,7 @@ class TestDataVersioning:
 
             assert "data_sources" in result
             sources = result["data_sources"]
-            assert len(sources) == 2
+            assert len(sources) >= 2  # BRAPI + B3/CVM + BCB (added for SELIC)
             source_names = {s["source"] for s in sources}
             assert "BRAPI" in source_names
             assert "B3/CVM" in source_names
@@ -657,12 +741,12 @@ class TestCacheInvalidation:
                 return_value=mock_redis,
             ),
         ):
-            count = asyncio.run(on_earnings_release("PETR4", filing_date))
+            count = on_earnings_release("PETR4", filing_date)
 
             # Should have executed an UPDATE statement
             assert mock_session.execute.called
-            # Should have deleted Redis cache
-            mock_redis.delete.assert_called_once_with("analysis:cache:PETR4")
+            # Should have deleted Redis cache (key: brapi:fundamentals:{ticker})
+            mock_redis.delete.assert_called_once_with("brapi:fundamentals:PETR4")
             # Return count matches rowcount
             assert count == 1
 
@@ -692,7 +776,7 @@ class TestCacheInvalidation:
             ),
         ):
             filing_date = datetime.now(timezone.utc)
-            count = asyncio.run(on_earnings_release("VALE3", filing_date))
+            count = on_earnings_release("VALE3", filing_date)
             assert count == 3
 
 
@@ -722,109 +806,97 @@ class TestAPIResponse:
 
 
 class TestQuotaEnforcement:
-    def test_quota_enforcement_free_tier_blocks_requests(self, client, email_stub):
+    async def test_quota_enforcement_free_tier_blocks_requests(self, client, email_stub):
         """POST /analysis/dcf as free user -> 403 QUOTA_EXCEEDED."""
+        from tests.conftest import register_verify_and_login
 
-        async def _test():
-            from tests.conftest import register_verify_and_login
+        await register_verify_and_login(
+            client, email_stub,
+            email="free_analysis@test.com",
+            password="SecurePass123!",
+        )
 
-            await register_verify_and_login(
-                client, email_stub,
-                email="free_analysis@test.com",
-                password="SecurePass123!",
-            )
-
-            # Mock rate limit to allow (testing quota, not rate limit)
-            with patch("app.modules.analysis.router.check_analysis_rate_limit", return_value=(True, 0)):
-                # Mock quota check to return blocked (free tier)
-                with patch(
-                    "app.modules.analysis.router.check_analysis_quota",
-                    return_value=(False, 0, 0),
-                ):
-                    resp = await client.post(
-                        "/analysis/dcf",
-                        json={"ticker": "PETR4"},
-                    )
-
-            assert resp.status_code == 403
-            data = resp.json()
-            assert data["detail"]["code"] == "QUOTA_EXCEEDED"
-
-        asyncio.get_event_loop().run_until_complete(_test())
-
-    def test_quota_enforcement_pro_tier_allows_50_per_month(self, client, email_stub):
-        """POST /analysis/dcf as pro user with quota < 50 -> 202."""
-
-        async def _test():
-            from tests.conftest import register_verify_and_login
-
-            await register_verify_and_login(
-                client, email_stub,
-                email="pro_analysis@test.com",
-                password="SecurePass123!",
-            )
-
-            mock_task = MagicMock()
-            mock_task.delay = MagicMock()
-            with patch("app.modules.analysis.router.check_analysis_rate_limit", return_value=(True, 0)):
-                with patch(
-                    "app.modules.analysis.router.check_analysis_quota",
-                    return_value=(True, 49, 50),
-                ):
-                    with patch("app.modules.analysis.router.increment_quota_used"):
-                        with patch("app.modules.analysis.tasks.run_dcf", mock_task):
-                            resp = await client.post(
-                                "/analysis/dcf",
-                                json={"ticker": "PETR4"},
-                            )
-
-            assert resp.status_code == 202
-            data = resp.json()
-            assert "job_id" in data
-            assert data["status"] == "pending"
-
-        asyncio.get_event_loop().run_until_complete(_test())
-
-
-class TestRateLimiting:
-    def test_rate_limiting_middleware_enforced(self, client, email_stub):
-        """POST /analysis/dcf twice rapidly as pro -> second returns 429."""
-
-        async def _test():
-            from tests.conftest import register_verify_and_login
-
-            await register_verify_and_login(
-                client, email_stub,
-                email="rate_limit@test.com",
-                password="SecurePass123!",
-            )
-
-            # First request: rate limit allows
-            mock_task = MagicMock()
-            mock_task.delay = MagicMock()
-            with patch("app.modules.analysis.router.check_analysis_rate_limit", return_value=(True, 0)):
-                with patch("app.modules.analysis.router.check_analysis_quota", return_value=(True, 0, 50)):
-                    with patch("app.modules.analysis.router.increment_quota_used"):
-                        with patch("app.modules.analysis.tasks.run_dcf", mock_task):
-                            resp1 = await client.post(
-                                "/analysis/dcf",
-                                json={"ticker": "PETR4"},
-                            )
-            assert resp1.status_code == 202
-
-            # Second request: rate limit blocks
-            with patch("app.modules.analysis.router.check_analysis_rate_limit", return_value=(False, 55)):
-                resp2 = await client.post(
+        # Mock rate limit to allow (testing quota, not rate limit)
+        with patch("app.modules.analysis.router.check_analysis_rate_limit", return_value=(True, 0)):
+            # Mock quota check to return blocked (free tier)
+            with patch(
+                "app.modules.analysis.router.check_analysis_quota",
+                return_value=(False, 0, 0),
+            ):
+                resp = await client.post(
                     "/analysis/dcf",
                     json={"ticker": "PETR4"},
                 )
 
-            assert resp2.status_code == 429
-            data = resp2.json()
-            assert data["detail"]["code"] == "RATE_LIMITED"
-            assert "retry-after" in {k.lower() for k in resp2.headers.keys()}
+        assert resp.status_code == 403
+        data = resp.json()
+        assert data["detail"]["code"] == "QUOTA_EXCEEDED"
 
-        asyncio.get_event_loop().run_until_complete(_test())
+    async def test_quota_enforcement_pro_tier_allows_50_per_month(self, client, email_stub):
+        """POST /analysis/dcf as pro user with quota < 50 -> 202."""
+        from tests.conftest import register_verify_and_login
+
+        await register_verify_and_login(
+            client, email_stub,
+            email="pro_analysis@test.com",
+            password="SecurePass123!",
+        )
+
+        mock_task = MagicMock()
+        mock_task.delay = MagicMock()
+        with patch("app.modules.analysis.router.check_analysis_rate_limit", return_value=(True, 0)):
+            with patch(
+                "app.modules.analysis.router.check_analysis_quota",
+                return_value=(True, 49, 50),
+            ):
+                with patch("app.modules.analysis.router.increment_quota_used"):
+                    with patch("app.modules.analysis.tasks.run_dcf", mock_task):
+                        resp = await client.post(
+                            "/analysis/dcf",
+                            json={"ticker": "PETR4"},
+                        )
+
+        assert resp.status_code == 202
+        data = resp.json()
+        assert "job_id" in data
+        assert data["status"] == "pending"
+
+
+class TestRateLimiting:
+    async def test_rate_limiting_middleware_enforced(self, client, email_stub):
+        """POST /analysis/dcf twice rapidly as pro -> second returns 429."""
+        from tests.conftest import register_verify_and_login
+
+        await register_verify_and_login(
+            client, email_stub,
+            email="rate_limit@test.com",
+            password="SecurePass123!",
+        )
+
+        # First request: rate limit allows
+        mock_task = MagicMock()
+        mock_task.delay = MagicMock()
+        with patch("app.modules.analysis.router.check_analysis_rate_limit", return_value=(True, 0)):
+            with patch("app.modules.analysis.router.check_analysis_quota", return_value=(True, 0, 50)):
+                with patch("app.modules.analysis.router.increment_quota_used"):
+                    with patch("app.modules.analysis.tasks.run_dcf", mock_task):
+                        resp1 = await client.post(
+                            "/analysis/dcf",
+                            json={"ticker": "PETR4"},
+                        )
+        assert resp1.status_code == 202
+
+        # Second request: rate limit blocks
+        with patch("app.modules.analysis.router.check_analysis_rate_limit", return_value=(False, 55)):
+            resp2 = await client.post(
+                "/analysis/dcf",
+                json={"ticker": "PETR4"},
+            )
+
+        assert resp2.status_code == 429
+        data = resp2.json()
+        assert data["detail"]["code"] == "RATE_LIMITED"
+        assert "retry-after" in {k.lower() for k in resp2.headers.keys()}
 
 
 class TestCostTracking:
@@ -887,40 +959,36 @@ class TestCostTracking:
 class TestDisclaimerEndpoint:
     """Plan 02: GET /analysis/{job_id} returns CVM disclaimer in response."""
 
-    def test_get_analysis_includes_cvm_disclaimer(self, client, email_stub):
+    async def test_get_analysis_includes_cvm_disclaimer(self, client, email_stub):
         """GET /analysis/{job_id} -> response.disclaimer contains 'CVM'."""
+        from tests.conftest import register_verify_and_login
 
-        async def _test():
-            from tests.conftest import register_verify_and_login
+        await register_verify_and_login(
+            client, email_stub,
+            email="disclaimer_ep@test.com",
+            password="SecurePass123!",
+        )
 
-            await register_verify_and_login(
-                client, email_stub,
-                email="disclaimer_ep@test.com",
-                password="SecurePass123!",
-            )
+        # Create a job via endpoint (mock guards + celery dispatch)
+        mock_task = MagicMock()
+        mock_task.delay = MagicMock()
+        with patch("app.modules.analysis.router.check_analysis_rate_limit", return_value=(True, 0)):
+            with patch("app.modules.analysis.router.check_analysis_quota", return_value=(True, 0, 50)):
+                with patch("app.modules.analysis.router.increment_quota_used"):
+                    with patch("app.modules.analysis.tasks.run_dcf", mock_task):
+                        create_resp = await client.post(
+                            "/analysis/dcf",
+                            json={"ticker": "PETR4"},
+                        )
+        assert create_resp.status_code == 202
+        job_id = create_resp.json()["job_id"]
 
-            # Create a job via endpoint (mock guards + celery dispatch)
-            mock_task = MagicMock()
-            mock_task.delay = MagicMock()
-            with patch("app.modules.analysis.router.check_analysis_rate_limit", return_value=(True, 0)):
-                with patch("app.modules.analysis.router.check_analysis_quota", return_value=(True, 0, 50)):
-                    with patch("app.modules.analysis.router.increment_quota_used"):
-                        with patch("app.modules.analysis.tasks.run_dcf", mock_task):
-                            create_resp = await client.post(
-                                "/analysis/dcf",
-                                json={"ticker": "PETR4"},
-                            )
-            assert create_resp.status_code == 202
-            job_id = create_resp.json()["job_id"]
-
-            # Fetch the result
-            get_resp = await client.get(f"/analysis/{job_id}")
-            assert get_resp.status_code == 200
-            data = get_resp.json()
-            assert "disclaimer" in data
-            assert "CVM" in data["disclaimer"]
-
-        asyncio.get_event_loop().run_until_complete(_test())
+        # Fetch the result
+        get_resp = await client.get(f"/analysis/{job_id}")
+        assert get_resp.status_code == 200
+        data = get_resp.json()
+        assert "disclaimer" in data
+        assert "CVM" in data["disclaimer"]
 
 
 class TestDisclaimerUI:
