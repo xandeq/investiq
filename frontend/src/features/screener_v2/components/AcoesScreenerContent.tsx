@@ -64,7 +64,7 @@ export function AcoesScreenerContent() {
   const params: AcaoScreenerParams = { ...applied, limit: PAGE_SIZE, offset, exclude_portfolio: excludePortfolio };
   const { data, isLoading, isFetching, error } = useAcoesScreener(params);
   const { sorted: sortedAcoes, col, dir, toggle } = useSortedData(
-    (data?.results ?? []) as Record<string, unknown>[],
+    data?.results ?? [],
   );
 
   function applyFilters() {
@@ -229,7 +229,7 @@ export function AcoesScreenerContent() {
                       </tr>
                     ))
                   : sortedAcoes.map((row) => (
-                      <AcaoTableRow key={`${(row as AcaoRow).ticker}-${(row as AcaoRow).snapshot_date}`} row={row as AcaoRow} />
+                      <AcaoTableRow key={`${row.ticker}-${row.snapshot_date}`} row={row} />
                     ))}
                 {!isLoading && data?.results.length === 0 && (
                   <tr>

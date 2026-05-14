@@ -120,7 +120,7 @@ export function FIIScoredScreenerContent() {
   }, [data, segmentoFilter, minDyFilter]);
 
   const { sorted: sortedFiis, col, dir, toggle } = useSortedData(
-    filtered as Record<string, unknown>[],
+    filtered,
     "score",
     "desc"
   );
@@ -230,7 +230,7 @@ export function FIIScoredScreenerContent() {
                       </tr>
                     ))
                   : sortedFiis.map((row, idx) => (
-                      <FIIScoredTableRow key={(row as FIIScoredRow).ticker} row={row as FIIScoredRow} rank={idx + 1} />
+                      <FIIScoredTableRow key={row.ticker} row={row} rank={idx + 1} />
                     ))}
                 {!isLoading && data && filtered.length === 0 && (
                   <tr>

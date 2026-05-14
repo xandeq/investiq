@@ -255,7 +255,7 @@ export function TransactionsContent() {
     asset_class: filterClass || undefined,
   });
   const { sorted: sortedTxs, col: sortCol, dir: sortDir, toggle: sortToggle } = useSortedData(
-    transactions as Record<string, unknown>[],
+    transactions,
     "transaction_date",
     "desc"
   );
@@ -443,7 +443,7 @@ export function TransactionsContent() {
                   </td>
                 </tr>
               )}
-              {sortedTxs.map((tx_) => { const tx = tx_ as TransactionResponse; return (
+              {sortedTxs.map((tx) => { return (
                 <tr key={tx.id} className={`hover:bg-gray-50/50 transition-colors ${selectedIds.has(tx.id) ? "bg-blue-50/40" : ""}`}>
                   <td className="px-4 py-3">
                     <input

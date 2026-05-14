@@ -213,7 +213,7 @@ export function LogsContent() {
   };
 
   const { sorted: sortedLogs, col, dir, toggle } = useSortedData(
-    logs as Record<string, unknown>[],
+    logs,
     "created_at",
     "desc"
   );
@@ -294,10 +294,9 @@ export function LogsContent() {
               </tr>
             </thead>
             <tbody>
-              {sortedLogs.map((log_) => {
-                const log = log_ as LogEntry;
-                return <LogRow key={log.id} log={log} onDelete={handleDelete} />;
-              })}
+              {sortedLogs.map((log) => (
+                <LogRow key={log.id} log={log} onDelete={handleDelete} />
+              ))}
             </tbody>
           </table>
         </div>

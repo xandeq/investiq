@@ -9,19 +9,20 @@ export type SortDir = "asc" | "desc";
  * Usage:
  *   const { sorted, col, dir, toggle } = useSortedData(data, "ticker", "asc");
  */
-export function useSortedData<T extends Record<string, unknown>>(
+export function useSortedData<T extends object>(
   data: T[],
   defaultCol?: keyof T & string,
   defaultDir: SortDir = "asc"
-) {
+): { sorted: T[]; col: (keyof T & string) | null; dir: SortDir; toggle: (col: string) => void } {
   const [col, setCol] = useState<(keyof T & string) | null>(defaultCol ?? null);
   const [dir, setDir] = useState<SortDir>(defaultDir);
 
-  function toggle(c: keyof T & string) {
-    if (col === c) {
+  function toggle(c: string) {
+    const key = c as keyof T & string;
+    if (col === key) {
       setDir((d) => (d === "asc" ? "desc" : "asc"));
     } else {
-      setCol(c);
+      setCol(key);
       setDir("asc");
     }
   }

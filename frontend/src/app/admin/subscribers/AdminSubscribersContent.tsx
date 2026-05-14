@@ -42,7 +42,7 @@ export function AdminSubscribersContent() {
   });
 
   const { sorted, col, dir, toggle } = useSortedData(
-    (data ?? []) as Record<string, unknown>[],
+    data ?? [],
     "created_at",
     "desc"
   );
@@ -84,8 +84,7 @@ export function AdminSubscribersContent() {
           </tr>
         </thead>
         <tbody>
-          {sorted.map((s_, i) => {
-            const s = s_ as Subscriber;
+          {sorted.map((s, i) => {
             return (
               <tr
                 key={s.user_id}

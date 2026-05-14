@@ -110,12 +110,115 @@ def scan_and_store_signals() -> dict:
         return {"status": "error", "error": str(exc)}
 
 
-def _run_check_stop_loss() -> list[str]:
-    """Sync implementation of check_stop_loss. Returns list of tickers that hit stop."""
+def _get_user_email_sync(tenant_id: str) -> str | None:
+    """Fetch user email from users table by tenant_id."""
     from sqlalchemy import text as sa_text
+    from app.core.db_sync import get_superuser_sync_db_session
+    try:
+        with get_superuser_sync_db_session() as db:
+            row = db.execute(
+                sa_text("SELECT email FROM users WHERE id = :uid LIMIT 1"),
+                {"uid": tenant_id},
+            ).fetchone()
+            return row[0] if row else None
+    except Exception as exc:
+        logger.error("check_stop_loss: failed to get email for %s: %s", tenant_id, exc)
+        return None
 
-    # Import the sync session helper for Celery (following project pattern)
-    from app.core.db_sync import get_superuser_sync_db_session  # type: ignore[import]
+
+def _save_swing_alert_insight(
+    tenant_id: str, ticker: str, alert_type: str,
+    trigger_price: float, current_price: float,
+) -> None:
+    """Persist stop/target alert as UserInsight."""
+    import uuid as _uuid
+    from datetime import datetime, timezone
+    from sqlalchemy import text as sa_text
+    from app.core.db_sync import get_superuser_sync_db_session
+    try:
+        if alert_type == "stop":
+            title = f"Stop atingido: {ticker}"
+            body = (
+                f"{ticker} caiu para R$ {current_price:.2f}, "
+                f"abaixo do seu stop de R$ {trigger_price:.2f}. Considere encerrar a operacao."
+            )
+            severity = "alert"
+        else:
+            title = f"Alvo atingido: {ticker}"
+            body = (
+                f"{ticker} subiu para R$ {current_price:.2f}, "
+                f"atingindo seu alvo de R$ {trigger_price:.2f}. Considere realizar o lucro."
+            )
+            severity = "info"
+
+        with get_superuser_sync_db_session() as db:
+            db.execute(sa_text(
+                "INSERT INTO user_insights "
+                "(id, tenant_id, type, title, body, severity, ticker, seen, created_at) "
+                "VALUES (:id, :tid, :type, :title, :body, :sev, :ticker, false, :now)"
+            ), {
+                "id": str(_uuid.uuid4()),
+                "tid": tenant_id,
+                "type": f"swing_{alert_type}_alert",
+                "title": title,
+                "body": body,
+                "sev": severity,
+                "ticker": ticker,
+                "now": datetime.now(tz=timezone.utc),
+            })
+    except Exception as exc:
+        logger.error("Failed to save swing alert insight for %s/%s: %s", tenant_id, ticker, exc)
+
+
+def _send_swing_alert_email(
+    tenant_id: str, ticker: str, alert_type: str,
+    trigger_price: float, current_price: float,
+) -> None:
+    """Send stop-loss or target-hit email to user."""
+    from app.core.email import send_email
+    email = _get_user_email_sync(tenant_id)
+    if not email:
+        return
+
+    if alert_type == "stop":
+        subject = f"InvestIQ — Stop atingido: {ticker} a R$ {current_price:.2f}"
+        body_pt = (
+            f"<p>O preco de <strong>{ticker}</strong> caiu para "
+            f"<strong>R$ {current_price:.2f}</strong>, abaixo do seu stop configurado de "
+            f"R$ {trigger_price:.2f}.</p>"
+            f"<p>Considere encerrar a operacao para proteger seu capital.</p>"
+        )
+    else:
+        subject = f"InvestIQ — Alvo atingido: {ticker} a R$ {current_price:.2f}"
+        body_pt = (
+            f"<p>O preco de <strong>{ticker}</strong> subiu para "
+            f"<strong>R$ {current_price:.2f}</strong>, atingindo seu alvo de "
+            f"R$ {trigger_price:.2f}.</p>"
+            f"<p>Considere realizar o lucro.</p>"
+        )
+
+    html = (
+        f"<h2>{subject}</h2>{body_pt}"
+        "<p style='color:#888;font-size:12px'>InvestIQ — Copiloto de Investimentos</p>"
+    )
+    try:
+        send_email(to=email, subject=subject, html=html)
+    except Exception as exc:
+        logger.warning("check_stop_loss: email send failed for %s/%s: %s", tenant_id, ticker, exc)
+
+
+def _run_check_stop_loss() -> list[str]:
+    """Check all open swing trade operations for stop-loss and target-price hits.
+
+    Fixes vs original:
+    - Redis key: market:quote:{TICKER} (was: quote:{ticker} — wrong namespace)
+    - Also checks target_price (not only stop_price)
+    - Sends email to user (not only Telegram)
+    - Saves UserInsight for in-app notification
+    - Joins tenant_id so per-user emails work
+    """
+    from sqlalchemy import text as sa_text
+    from app.core.db_sync import get_superuser_sync_db_session
 
     r_sync = _get_sync_redis()
     today_str = date.today().isoformat()
@@ -127,68 +230,102 @@ def _run_check_stop_loss() -> list[str]:
     with get_superuser_sync_db_session() as db:
         rows = db.execute(
             sa_text(
-                "SELECT id, ticker, entry_price, stop_price "
+                "SELECT id, tenant_id, ticker, stop_price, target_price "
                 "FROM swing_trade_operations "
-                "WHERE status = 'open' AND stop_price IS NOT NULL AND deleted_at IS NULL"
+                "WHERE status = 'open' AND deleted_at IS NULL "
+                "  AND (stop_price IS NOT NULL OR target_price IS NOT NULL)"
             )
         ).fetchall()
 
-    for row in rows:
-        op_id, ticker, entry_price, stop_price = (
-            row[0], row[1], float(row[2]), float(row[3])
-        )
+    if not rows:
+        return []
 
-        # Dedup: one stop alert per ticker per day
-        dedup_key = f"{_STOP_DEDUP_PREFIX}:{ticker}:{today_str}"
-        if r_sync.exists(dedup_key):
+    # Batch-fetch all quotes in one Redis MGET (O(1) round-trips)
+    unique_tickers = list({row[2].upper() for row in rows})
+    keys = [f"market:quote:{t}" for t in unique_tickers]
+    raw_values = r_sync.mget(keys)
+    price_map: dict[str, float | None] = {}
+    for ticker, raw in zip(unique_tickers, raw_values):
+        if not raw:
+            price_map[ticker] = None
             continue
+        try:
+            data = json.loads(raw)
+            p = data.get("regularMarketPrice") or data.get("price") or data.get("close")
+            price_map[ticker] = float(p) if p else None
+        except Exception:
+            price_map[ticker] = None
 
-        # Fetch current price from Redis quotes cache
-        quote_key = f"quote:{ticker}"
-        raw_quote = r_sync.get(quote_key)
-        if not raw_quote:
+    for row in rows:
+        op_id, tenant_id, ticker, stop_price, target_price = (
+            row[0], row[1], row[2], row[3], row[4]
+        )
+        ticker_upper = ticker.upper()
+        current_price = price_map.get(ticker_upper)
+        if not current_price or current_price <= 0:
             logger.debug("check_stop_loss: no cached quote for %s, skipping", ticker)
             continue
 
-        try:
-            quote_data = json.loads(raw_quote)
-            current_price = float(
-                quote_data.get("regularMarketPrice")
-                or quote_data.get("price")
-                or quote_data.get("close")
-                or 0
-            )
-        except Exception as exc:
-            logger.warning("check_stop_loss: failed to parse quote for %s: %s", ticker, exc)
-            continue
+        # Check stop-loss
+        if stop_price is not None and current_price <= float(stop_price):
+            dedup_key = f"{_STOP_DEDUP_PREFIX}:stop:{tenant_id}:{ticker}:{today_str}"
+            if not r_sync.exists(dedup_key):
+                r_sync.setex(dedup_key, _STOP_DEDUP_TTL, "1")
+                triggered.append(f"STOP:{ticker}")
+                _send_swing_alert_email(tenant_id, ticker, "stop", float(stop_price), current_price)
+                _save_swing_alert_insight(tenant_id, ticker, "stop", float(stop_price), current_price)
+                if bot_token and chat_id:
+                    import requests as _req
+                    try:
+                        _req.post(
+                            f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                            json={
+                                "chat_id": chat_id,
+                                "text": (
+                                    f"🔴 STOP HIT: <b>{ticker}</b> — "
+                                    f"R$ {current_price:.2f} ≤ stop R$ {float(stop_price):.2f}"
+                                ),
+                                "parse_mode": "HTML",
+                            },
+                            timeout=10,
+                        )
+                    except Exception as exc:
+                        logger.warning("Telegram stop alert failed for %s: %s", ticker, exc)
+                logger.info("Stop hit: tenant=%s ticker=%s price=%.2f stop=%.2f",
+                            tenant_id, ticker, current_price, float(stop_price))
 
-        if current_price <= 0:
-            continue
+        # Check target-price
+        if target_price is not None and current_price >= float(target_price):
+            dedup_key = f"{_STOP_DEDUP_PREFIX}:target:{tenant_id}:{ticker}:{today_str}"
+            if not r_sync.exists(dedup_key):
+                r_sync.setex(dedup_key, _STOP_DEDUP_TTL, "1")
+                triggered.append(f"TARGET:{ticker}")
+                _send_swing_alert_email(tenant_id, ticker, "target", float(target_price), current_price)
+                _save_swing_alert_insight(tenant_id, ticker, "target", float(target_price), current_price)
+                if bot_token and chat_id:
+                    import requests as _req
+                    try:
+                        _req.post(
+                            f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                            json={
+                                "chat_id": chat_id,
+                                "text": (
+                                    f"🟢 ALVO ATINGIDO: <b>{ticker}</b> — "
+                                    f"R$ {current_price:.2f} ≥ alvo R$ {float(target_price):.2f}"
+                                ),
+                                "parse_mode": "HTML",
+                            },
+                            timeout=10,
+                        )
+                    except Exception as exc:
+                        logger.warning("Telegram target alert failed for %s: %s", ticker, exc)
+                logger.info("Target hit: tenant=%s ticker=%s price=%.2f target=%.2f",
+                            tenant_id, ticker, current_price, float(target_price))
 
-        # Stop hit when current_price <= stop_price
-        if current_price <= stop_price:
-            triggered.append(ticker)
-            # Mark dedup
-            r_sync.setex(dedup_key, _STOP_DEDUP_TTL, "1")
-
-            # Send Telegram alert
-            if bot_token and chat_id:
-                import requests
-                msg = (
-                    f"STOP HIT: {ticker} — "
-                    f"preco {current_price:.2f} atingiu stop {stop_price:.2f}"
-                )
-                url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-                try:
-                    requests.post(
-                        url,
-                        json={"chat_id": chat_id, "text": msg},
-                        timeout=10,
-                    )
-                except Exception as exc:
-                    logger.warning("check_stop_loss: Telegram send failed for %s: %s", ticker, exc)
-
-    r_sync.close()
+    try:
+        r_sync.close()
+    except Exception:
+        pass
     return triggered
 
 

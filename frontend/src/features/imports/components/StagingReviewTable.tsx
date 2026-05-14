@@ -18,7 +18,7 @@ export function StagingReviewTable({ jobId, onConfirmed, onCancelled }: StagingR
   const [confirming, setConfirming] = useState(false);
   // Hook must be called unconditionally — data is empty array until job is ready
   const { sorted: sortedRows, col, dir, toggle } = useSortedData(
-    (job?.staged_rows ?? []) as Record<string, unknown>[],
+    job?.staged_rows ?? [],
     "transaction_date",
     "asc"
   );
@@ -133,7 +133,7 @@ export function StagingReviewTable({ jobId, onConfirmed, onCancelled }: StagingR
             </tr>
           </thead>
           <tbody>
-            {sortedRows.map((row_) => { const row = row_ as typeof rows[0]; return (
+            {sortedRows.map((row) => { return (
               <tr key={row.id} className="border-b last:border-0 hover:bg-muted/20">
                 <td className="px-3 py-2 font-medium">{row.ticker}</td>
                 <td className="px-3 py-2 text-muted-foreground">{row.transaction_type}</td>
