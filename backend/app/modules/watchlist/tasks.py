@@ -31,6 +31,7 @@ from celery import shared_task
 from sqlalchemy import text
 
 from app.core.email import send_price_alert_email
+from app.modules.telegram_bot.tasks import _send_message as _tg
 
 logger = logging.getLogger(__name__)
 
@@ -205,6 +206,14 @@ def check_price_alerts() -> None:
             _send_alert_email(email, ticker, target, current_price)
 
         _save_alert_insight(tenant_id, ticker, target, current_price)
+
+        direction = "subiu para" if current_price >= target else "caiu para"
+        _tg(
+            f"🔔 <b>Alerta de Preço — {ticker}</b>\n\n"
+            f"<b>{ticker}</b> {direction} <b>R$ {current_price:.2f}</b>\n"
+            f"🎯 Seu alerta: R$ {target:.2f}"
+        )
+
         alerted += 1
         logger.info(
             "Price alert fired: tenant=%s ticker=%s target=%.2f current=%.2f",

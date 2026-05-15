@@ -10,10 +10,11 @@ const CHART_COLORS: Record<string, string> = {
   renda_fixa: "hsl(var(--chart-3))",
   bdr: "hsl(var(--chart-4))",
   etf: "hsl(var(--chart-5))",
+  crypto: "#f7931a",  // Bitcoin orange — universally recognized crypto color
 };
 
 const LABELS: Record<string, string> = {
-  acao: "Ações", fii: "FIIs", renda_fixa: "Renda Fixa", bdr: "BDRs", etf: "ETFs",
+  acao: "Ações", fii: "FIIs", renda_fixa: "Renda Fixa", bdr: "BDRs", etf: "ETFs", crypto: "Crypto",
 };
 
 interface Props {

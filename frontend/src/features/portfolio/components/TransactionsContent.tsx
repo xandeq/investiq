@@ -11,7 +11,7 @@ import {
 } from "@/features/portfolio/hooks/useTransactions";
 import type { TransactionResponse, TransactionCreate, TransactionUpdate } from "@/features/portfolio/types";
 
-const ASSET_CLASSES = ["acao", "FII", "renda_fixa", "BDR", "ETF"];
+const ASSET_CLASSES = ["acao", "FII", "renda_fixa", "BDR", "ETF", "crypto"];
 const TX_TYPES = ["buy", "sell", "dividend", "jscp", "amortization"];
 
 const TX_TYPE_LABEL: Record<string, string> = {
@@ -19,7 +19,7 @@ const TX_TYPE_LABEL: Record<string, string> = {
 };
 
 const ASSET_LABEL: Record<string, string> = {
-  acao: "Ação", FII: "FII", renda_fixa: "Renda Fixa", BDR: "BDR", ETF: "ETF",
+  acao: "Ação", FII: "FII", renda_fixa: "Renda Fixa", BDR: "BDR", ETF: "ETF", crypto: "Crypto",
 };
 
 const TX_BADGE: Record<string, string> = {

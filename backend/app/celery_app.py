@@ -36,6 +36,7 @@ def create_celery_app() -> Celery:
         backend=redis_url,
         include=[
             "app.modules.market_data.tasks",
+            "app.modules.market_data.crypto_tasks",
             "app.modules.ai.tasks",
             "app.modules.imports.tasks",
             "app.modules.insights.tasks",
@@ -72,6 +73,13 @@ def create_celery_app() -> Celery:
         result_expires=3600,
         # Beat schedule
         beat_schedule={
+            "refresh-crypto-quotes": {
+                "task": "app.modules.market_data.crypto_tasks.refresh_crypto_quotes",
+                # Every 5 min, 24/7 — crypto trades around the clock
+                "schedule": crontab(minute="*/5"),
+                "args": [],
+                "options": {"expires": 4 * 60},  # discard if worker was busy
+            },
             "refresh-quotes-market-hours": {
                 "task": "app.modules.market_data.tasks.refresh_quotes",
                 # Every 15 min, Mon-Fri, 10h00-17h00 BRT (10-17 in America/Sao_Paulo)
