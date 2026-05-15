@@ -8,6 +8,7 @@ import { RecentTransactions } from "./RecentTransactions";
 import { ActionInbox } from "./ActionInbox";
 import { RiskMetricsCard } from "./RiskMetricsCard";
 import { SectorAllocationChart } from "./SectorAllocationChart";
+import { DividendCalendarCard } from "./DividendCalendarCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { OnboardingBanner } from "@/features/onboarding/OnboardingBanner";
@@ -122,6 +123,9 @@ export function DashboardContent() {
 
       {/* Row 3c: Sector Allocation */}
       <SectorAllocationChart />
+
+      {/* Row 3d: Dividend Calendar */}
+      <DividendCalendarCard />
 
       {/* Row 4: Recent Transactions */}
       {isLoading ? (

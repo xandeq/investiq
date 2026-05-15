@@ -19,6 +19,7 @@ from app.modules.dashboard.schemas import (
     DashboardSummaryResponse,
     RiskMetricsResponse,
     SectorAllocationResponse,
+    DividendCalendarResponse,
 )
 from app.modules.dashboard.service import DashboardService
 
@@ -140,3 +141,16 @@ async def get_sector_allocation(
     No Redis dependency — DB-only query.
     """
     return await service.get_sector_allocation(db, tenant_id)
+
+
+@router.get("/dividend-calendar", response_model=DividendCalendarResponse)
+async def get_dividend_calendar(
+    db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+    service: DashboardService = Depends(_get_service),
+) -> DividendCalendarResponse:
+    """Upcoming dividend payments for the user's portfolio (next 90 days).
+    Fetches dividend data from brapi.dev and merges with user's holdings.
+    Returns empty list gracefully if brapi is unavailable.
+    """
+    return await service.get_dividend_calendar(db, tenant_id)

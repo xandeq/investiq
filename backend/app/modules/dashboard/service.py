@@ -30,6 +30,8 @@ from app.modules.dashboard.schemas import (
     RiskMetricsResponse,
     SectorAllocationItem,
     SectorAllocationResponse,
+    DividendEventItem,
+    DividendCalendarResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -350,3 +352,95 @@ class DashboardService:
             )
 
         return SectorAllocationResponse(sectors=sectors)
+
+    async def get_dividend_calendar(
+        self,
+        db: AsyncSession,
+        tenant_id: str,
+    ) -> DividendCalendarResponse:
+        """Return upcoming dividend payments (next 90 days) for the user's portfolio.
+
+        Fetches dividend data from brapi.dev for each held ticker and merges with
+        the user's actual share quantities to compute estimated income.
+        Returns an empty response gracefully if brapi is unavailable.
+        """
+        import asyncio
+        import os
+        from datetime import date as _date
+        from app.modules.market_data.adapters.brapi import BrapiClient
+
+        # 1. Get current holdings (tickers with net positive shares)
+        sql = text(
+            """
+            SELECT ticker, asset_class,
+                   SUM(CASE WHEN transaction_type = 'buy' THEN quantity ELSE 0 END) -
+                   SUM(CASE WHEN transaction_type = 'sell' THEN quantity ELSE 0 END) AS shares
+            FROM transactions
+            WHERE tenant_id = :tid AND transaction_type IN ('buy', 'sell')
+            GROUP BY ticker, asset_class
+            HAVING SUM(CASE WHEN transaction_type = 'buy' THEN quantity ELSE 0 END) -
+                   SUM(CASE WHEN transaction_type = 'sell' THEN quantity ELSE 0 END) > 0
+            """
+        )
+        result = await db.execute(sql, {"tid": tenant_id})
+        rows = result.fetchall()
+
+        if not rows:
+            return DividendCalendarResponse(events=[], data_available=False)
+
+        # Build holdings map: ticker -> (asset_class, shares)
+        holdings: dict[str, tuple[str, Decimal]] = {}
+        for row in rows:
+            ticker = str(row[0])
+            asset_class = str(row[1]) if row[1] else ""
+            shares = Decimal(str(row[2]))
+            holdings[ticker] = (asset_class, shares)
+
+        # 2. Fetch dividend data from brapi for each ticker
+        brapi = BrapiClient(token=os.environ.get("BRAPI_TOKEN", ""))
+        today = _date.today()
+        cutoff = _date.fromordinal(today.toordinal() + 90)
+
+        events: list[DividendEventItem] = []
+
+        for ticker, (asset_class, shares) in holdings.items():
+            try:
+                dividends = await asyncio.to_thread(brapi.fetch_dividends, ticker)
+            except Exception as exc:
+                logger.warning("get_dividend_calendar: brapi failed for %s — %s", ticker, exc)
+                continue
+
+            for d in dividends:
+                payment_date_str = d.get("paymentDate", "") or ""
+                ex_date_str = d.get("lastDatePrior", "") or ""
+
+                # Filter to next 90 days (keep events with unparseable dates)
+                if payment_date_str:
+                    try:
+                        payment_dt = _date.fromisoformat(payment_date_str)
+                        # Skip past events and events beyond 90-day window
+                        if payment_dt < today or payment_dt > cutoff:
+                            continue
+                    except (ValueError, TypeError):
+                        pass  # Keep events with unparseable dates
+
+                rate_per_share = Decimal(str(d.get("rate", 0) or 0))
+                estimated_income = rate_per_share * shares
+
+                events.append(
+                    DividendEventItem(
+                        ticker=ticker,
+                        asset_class=asset_class,
+                        payment_date=payment_date_str,
+                        ex_date=ex_date_str,
+                        rate_per_share=rate_per_share,
+                        quantity=shares,
+                        estimated_income=estimated_income,
+                        label=d.get("label", "Dividendo") or "Dividendo",
+                    )
+                )
+
+        # 3. Sort by payment_date ascending (empty dates go last)
+        events.sort(key=lambda e: (e.payment_date == "", e.payment_date))
+
+        return DividendCalendarResponse(events=events, data_available=len(events) > 0)

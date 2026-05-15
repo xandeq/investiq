@@ -57,3 +57,19 @@ class SectorAllocationItem(BaseModel):
 
 class SectorAllocationResponse(BaseModel):
     sectors: list[SectorAllocationItem]
+
+
+class DividendEventItem(BaseModel):
+    ticker: str
+    asset_class: str
+    payment_date: str        # "YYYY-MM-DD" or "" if unknown
+    ex_date: str             # "YYYY-MM-DD" or "" if unknown
+    rate_per_share: Decimal  # R$ per share/quota
+    quantity: Decimal        # user holds this many shares
+    estimated_income: Decimal  # rate_per_share × quantity
+    label: str               # e.g. "Dividendo", "JCP", "Rendimento"
+
+
+class DividendCalendarResponse(BaseModel):
+    events: list[DividendEventItem]
+    data_available: bool     # False if brapi returned nothing
