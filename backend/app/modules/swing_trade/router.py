@@ -38,6 +38,7 @@ from app.modules.swing_trade.service import (
     create_operation,
     delete_operation,
     get_operations,
+    get_performance_stats,
 )
 
 logger = logging.getLogger(__name__)
@@ -239,3 +240,24 @@ async def delete_operation_endpoint(
     if not ok:
         raise HTTPException(status_code=404, detail="Operation not found")
     return Response(status_code=204)
+
+
+@router.get("/stats", summary="Performance analytics for closed swing trade operations")
+@limiter.limit("20/minute")
+async def get_stats_endpoint(
+    request: Request,
+    db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+) -> dict:
+    """Return performance analytics computed from all closed/stopped operations.
+
+    Fields (null when no closed data):
+      - winrate: % of trades that were profitable
+      - avg_return_pct: mean return % per trade
+      - profit_factor: gross profit / gross loss
+      - r_sharpe: mean return / stdev(returns) — consistency ratio
+      - max_consecutive_losses / max_consecutive_wins
+      - avg_holding_days
+      - best_trade_pct / worst_trade_pct
+    """
+    return await get_performance_stats(db=db, tenant_id=tenant_id)

@@ -21,9 +21,11 @@ duplicating the list would drift over time.
 from __future__ import annotations
 
 import logging
+import math
+import statistics
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from typing import Iterable
+from typing import Any, Iterable
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -329,3 +331,90 @@ async def delete_operation(
     row.deleted_at = datetime.now(timezone.utc)
     await db.flush()
     return True
+
+
+def _max_streak(flags: list[bool]) -> int:
+    """Return max consecutive True streak."""
+    best = current = 0
+    for f in flags:
+        current = current + 1 if f else 0
+        best = max(best, current)
+    return best
+
+
+async def get_performance_stats(db: AsyncSession, tenant_id: str) -> dict[str, Any]:
+    """Compute performance analytics from closed/stopped swing trade operations.
+
+    Returns zeros/nulls when no closed trades exist (never raises).
+    """
+    stmt = select(SwingTradeOperation).where(
+        SwingTradeOperation.tenant_id == tenant_id,
+        SwingTradeOperation.status.in_(["closed", "stopped"]),
+        SwingTradeOperation.deleted_at.is_(None),
+        SwingTradeOperation.exit_price.isnot(None),
+        SwingTradeOperation.entry_price.isnot(None),
+    ).order_by(SwingTradeOperation.exit_date)
+    result = await db.execute(stmt)
+    ops = list(result.scalars().all())
+
+    if not ops:
+        return {
+            "total_closed": 0,
+            "data_available": False,
+            "winrate": None,
+            "avg_return_pct": None,
+            "profit_factor": None,
+            "r_sharpe": None,
+            "max_consecutive_losses": 0,
+            "max_consecutive_wins": 0,
+            "avg_holding_days": None,
+            "best_trade_pct": None,
+            "worst_trade_pct": None,
+        }
+
+    # Return % per operation: (exit - entry) / entry × 100
+    returns: list[float] = []
+    holding_days: list[int] = []
+    for op in ops:
+        entry = float(op.entry_price)
+        exit_ = float(op.exit_price)
+        ret_pct = (exit_ - entry) / entry * 100 if entry > 0 else 0.0
+        returns.append(ret_pct)
+
+        if op.entry_date and op.exit_date:
+            entry_dt = op.entry_date if hasattr(op.entry_date, "date") else datetime.fromisoformat(str(op.entry_date))
+            exit_dt = op.exit_date if hasattr(op.exit_date, "date") else datetime.fromisoformat(str(op.exit_date))
+            delta = (exit_dt - entry_dt).days if hasattr(exit_dt - entry_dt, "days") else 0
+            if delta >= 0:
+                holding_days.append(delta)
+
+    wins = [r for r in returns if r > 0]
+    losses = [r for r in returns if r <= 0]
+    win_flags = [r > 0 for r in returns]
+
+    winrate = round(len(wins) / len(returns) * 100, 1) if returns else None
+    avg_ret = round(sum(returns) / len(returns), 2) if returns else None
+
+    gross_profit = sum(wins)
+    gross_loss = abs(sum(losses))
+    profit_factor = round(gross_profit / gross_loss, 2) if gross_loss > 0 else None
+
+    r_sharpe: float | None = None
+    if len(returns) >= 3:
+        stdev = statistics.stdev(returns)
+        if stdev > 0 and avg_ret is not None:
+            r_sharpe = round(avg_ret / stdev, 2)
+
+    return {
+        "total_closed": len(ops),
+        "data_available": True,
+        "winrate": winrate,
+        "avg_return_pct": avg_ret,
+        "profit_factor": profit_factor,
+        "r_sharpe": r_sharpe,
+        "max_consecutive_losses": _max_streak([not f for f in win_flags]),
+        "max_consecutive_wins": _max_streak(win_flags),
+        "avg_holding_days": round(sum(holding_days) / len(holding_days), 1) if holding_days else None,
+        "best_trade_pct": round(max(returns), 2) if returns else None,
+        "worst_trade_pct": round(min(returns), 2) if returns else None,
+    }

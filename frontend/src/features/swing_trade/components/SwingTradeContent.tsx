@@ -7,14 +7,16 @@ import { SignalsSection } from "./SignalsSection";
 import { RadarSection } from "./RadarSection";
 import { OperationsSection } from "./OperationsSection";
 import { CopilotSection } from "./CopilotSection";
+import { StatsSection } from "./StatsSection";
 
-type Tab = "copilot" | "signals" | "radar" | "operations";
+type Tab = "copilot" | "signals" | "radar" | "operations" | "stats";
 
 const TABS: { key: Tab; label: string; icon: string }[] = [
   { key: "copilot",     label: "🤖 Copiloto",          icon: "" },
   { key: "signals",    label: "Sinais da Carteira",   icon: "" },
   { key: "radar",      label: "Radar Swing",           icon: "" },
   { key: "operations", label: "Minhas Operações",      icon: "" },
+  { key: "stats",      label: "Estatísticas",          icon: "" },
 ];
 
 function formatGeneratedAt(iso: string | undefined | null): string {
@@ -163,6 +165,8 @@ export function SwingTradeContent() {
           deletePending={operationsQuery.deleteOpPending}
         />
       )}
+
+      {activeTab === "stats" && <StatsSection />}
     </div>
   );
 }
