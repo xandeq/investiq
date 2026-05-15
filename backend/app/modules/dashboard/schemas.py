@@ -39,3 +39,21 @@ class DashboardSummaryResponse(BaseModel):
     asset_allocation: list[AllocationSummary]
     portfolio_timeseries: list[TimeseriesPoint]
     recent_transactions: list[RecentTransaction]
+
+
+class RiskMetricsResponse(BaseModel):
+    volatility_annual_pct: Decimal
+    max_drawdown_pct: Decimal
+    positive_days_pct: Decimal
+    trading_days: int
+    data_available: bool  # False when < 5 days of data
+
+
+class SectorAllocationItem(BaseModel):
+    sector: str
+    value: Decimal
+    pct: Decimal
+
+
+class SectorAllocationResponse(BaseModel):
+    sectors: list[SectorAllocationItem]

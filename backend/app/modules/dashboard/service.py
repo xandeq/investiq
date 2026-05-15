@@ -11,10 +11,12 @@ instead of propagating a 500 to the frontend.
 """
 from __future__ import annotations
 import logging
+import math
+import statistics
 from collections import defaultdict
 from decimal import Decimal
-from datetime import date
-from sqlalchemy import select
+from datetime import date, timedelta
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.portfolio.service import PortfolioService
@@ -25,6 +27,9 @@ from app.modules.dashboard.schemas import (
     AllocationSummary,
     TimeseriesPoint,
     RecentTransaction,
+    RiskMetricsResponse,
+    SectorAllocationItem,
+    SectorAllocationResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -214,3 +219,134 @@ class DashboardService:
             TimeseriesPoint(date=_date.fromisoformat(d), value=v)
             for d, v in sorted(monthly_values.items())
         ]
+
+    async def get_risk_metrics(
+        self,
+        db: AsyncSession,
+        tenant_id: str,
+    ) -> RiskMetricsResponse:
+        """Compute annualised risk metrics from the last 252 trading days of
+        portfolio_daily_value snapshots for the given tenant.
+
+        Returns data_available=False (with zeroed metrics) when fewer than 5
+        data points exist — not enough to produce meaningful statistics.
+        """
+        since = date.today() - timedelta(days=365)  # ~252 trading days in 1 year
+
+        result = await db.execute(
+            text(
+                "SELECT total_value FROM portfolio_daily_value "
+                "WHERE tenant_id = :tid AND snapshot_date >= :since "
+                "ORDER BY snapshot_date ASC "
+                "LIMIT 252"
+            ),
+            {"tid": tenant_id, "since": since},
+        )
+        rows = result.fetchall()
+        values = [float(row[0]) for row in rows]
+
+        _zero = Decimal("0")
+        if len(values) < 5:
+            return RiskMetricsResponse(
+                volatility_annual_pct=_zero,
+                max_drawdown_pct=_zero,
+                positive_days_pct=_zero,
+                trading_days=len(values),
+                data_available=False,
+            )
+
+        # Daily returns: (v[i] / v[i-1]) - 1
+        daily_returns = [
+            (values[i] / values[i - 1]) - 1.0
+            for i in range(1, len(values))
+            if values[i - 1] != 0.0
+        ]
+
+        # Annualised volatility: stdev(daily_returns) * sqrt(252) * 100
+        vol_annual = statistics.stdev(daily_returns) * math.sqrt(252) * 100.0
+
+        # Max drawdown: max((peak - current) / peak) over the full window
+        peak = values[0]
+        max_dd = 0.0
+        for v in values[1:]:
+            if v > peak:
+                peak = v
+            if peak > 0.0:
+                dd = (peak - v) / peak
+                if dd > max_dd:
+                    max_dd = dd
+        max_drawdown = max_dd * 100.0
+
+        # Positive days
+        positive = sum(1 for r in daily_returns if r > 0)
+        pos_pct = (positive / len(daily_returns) * 100.0) if daily_returns else 0.0
+
+        return RiskMetricsResponse(
+            volatility_annual_pct=Decimal(str(round(vol_annual, 2))),
+            max_drawdown_pct=Decimal(str(round(max_drawdown, 2))),
+            positive_days_pct=Decimal(str(round(pos_pct, 2))),
+            trading_days=len(values),
+            data_available=True,
+        )
+
+    async def get_sector_allocation(
+        self,
+        db: AsyncSession,
+        tenant_id: str,
+    ) -> SectorAllocationResponse:
+        """Compute sector allocation by joining current holdings with latest
+        screener snapshot prices and fii_metadata for FII segmento labels.
+
+        Falls back to asset_class when neither screener nor fii_metadata has a
+        sector/segmento for a given ticker.
+        """
+        sql = text(
+            """
+            WITH holdings AS (
+                SELECT ticker, asset_class,
+                       SUM(CASE WHEN transaction_type IN ('buy') THEN quantity ELSE 0 END) -
+                       SUM(CASE WHEN transaction_type IN ('sell') THEN quantity ELSE 0 END) AS shares
+                FROM transactions
+                WHERE tenant_id = :tid
+                  AND transaction_type IN ('buy', 'sell')
+                GROUP BY ticker, asset_class
+            ),
+            latest_snap_date AS (
+                SELECT MAX(snapshot_date) AS dt FROM screener_snapshots
+            ),
+            latest_snap AS (
+                SELECT s.ticker, s.sector, s.regular_market_price
+                FROM screener_snapshots s
+                INNER JOIN latest_snap_date ON s.snapshot_date = latest_snap_date.dt
+            )
+            SELECT
+                COALESCE(ls.sector, fm.segmento, h.asset_class) AS sector,
+                SUM(h.shares * COALESCE(ls.regular_market_price, 0)) AS total_value
+            FROM holdings h
+            LEFT JOIN latest_snap ls ON ls.ticker = h.ticker
+            LEFT JOIN fii_metadata fm ON fm.ticker = h.ticker
+            WHERE h.shares > 0
+            GROUP BY sector
+            ORDER BY total_value DESC
+            """
+        )
+
+        result = await db.execute(sql, {"tid": tenant_id})
+        rows = result.fetchall()
+
+        grand_total = sum(float(row[1]) for row in rows) if rows else 0.0
+
+        sectors: list[SectorAllocationItem] = []
+        for row in rows:
+            sector_label = str(row[0]) if row[0] is not None else "Outros"
+            val = float(row[1])
+            pct = (val / grand_total * 100.0) if grand_total > 0.0 else 0.0
+            sectors.append(
+                SectorAllocationItem(
+                    sector=sector_label,
+                    value=Decimal(str(round(val, 2))),
+                    pct=Decimal(str(round(pct, 2))),
+                )
+            )
+
+        return SectorAllocationResponse(sectors=sectors)

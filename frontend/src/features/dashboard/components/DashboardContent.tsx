@@ -6,6 +6,8 @@ import { PortfolioChart } from "./PortfolioChart";
 import { MacroIndicators } from "./MacroIndicators";
 import { RecentTransactions } from "./RecentTransactions";
 import { ActionInbox } from "./ActionInbox";
+import { RiskMetricsCard } from "./RiskMetricsCard";
+import { SectorAllocationChart } from "./SectorAllocationChart";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { OnboardingBanner } from "@/features/onboarding/OnboardingBanner";
@@ -114,6 +116,12 @@ export function DashboardContent() {
           </>
         ) : null}
       </div>
+
+      {/* Row 3b: Risk Metrics */}
+      <RiskMetricsCard />
+
+      {/* Row 3c: Sector Allocation */}
+      <SectorAllocationChart />
 
       {/* Row 4: Recent Transactions */}
       {isLoading ? (

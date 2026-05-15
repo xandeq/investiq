@@ -15,7 +15,11 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.middleware import get_authed_db, get_current_tenant_id
-from app.modules.dashboard.schemas import DashboardSummaryResponse
+from app.modules.dashboard.schemas import (
+    DashboardSummaryResponse,
+    RiskMetricsResponse,
+    SectorAllocationResponse,
+)
 from app.modules.dashboard.service import DashboardService
 
 router = APIRouter()
@@ -93,3 +97,46 @@ async def get_portfolio_history(
         for r in rows
     ]
     return {"range": range, "points": points}
+
+
+@router.get("/risk-metrics", response_model=RiskMetricsResponse)
+async def get_risk_metrics(
+    db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+    service: DashboardService = Depends(_get_service),
+) -> RiskMetricsResponse:
+    """Return annualised risk metrics computed from the last 252 trading days
+    of portfolio EOD snapshots.
+
+    Fields:
+      - volatility_annual_pct: annualised std dev of daily returns × 100
+      - max_drawdown_pct: maximum peak-to-trough decline × 100
+      - positive_days_pct: proportion of days with positive return × 100
+      - trading_days: number of data points used
+      - data_available: False when fewer than 5 days of history exist
+
+    No Redis dependency — reads directly from portfolio_daily_value.
+    """
+    return await service.get_risk_metrics(db, tenant_id)
+
+
+@router.get("/sector-allocation", response_model=SectorAllocationResponse)
+async def get_sector_allocation(
+    db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+    service: DashboardService = Depends(_get_service),
+) -> SectorAllocationResponse:
+    """Return portfolio value broken down by sector/segmento.
+
+    Sector label priority per ticker:
+      1. screener_snapshots.sector (latest snapshot)
+      2. fii_metadata.segmento
+      3. transactions.asset_class (fallback)
+
+    Price used for valuation: screener_snapshots.regular_market_price
+    (latest available snapshot date). Tickers absent from screener are
+    valued at 0 and excluded from the percentage calculation.
+
+    No Redis dependency — DB-only query.
+    """
+    return await service.get_sector_allocation(db, tenant_id)
