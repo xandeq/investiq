@@ -40,8 +40,8 @@ async def get_tenant_db(tenant_id: str) -> AsyncGenerator[AsyncSession, None]:
     Never use SET (connection-scoped) — leaks across pool reuse.
     """
     async with async_session_factory() as session:
-        UUID(tenant_id)  # validate UUID format before embedding
-        await session.execute(text(f"SET LOCAL rls.tenant_id = '{tenant_id}'"))
+        UUID(tenant_id)  # validate UUID format before using as parameter
+        await session.execute(text("SET LOCAL rls.tenant_id = :tid"), {"tid": tenant_id})
         try:
             yield session
             await session.commit()

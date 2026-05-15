@@ -30,7 +30,7 @@ def _month_key(d: date) -> str:
 
 @router.get("/summary")
 async def ir_summary(
-    month: str = Query(..., regex=r"^\d{4}-\d{2}$", description="Mês no formato YYYY-MM"),
+    month: str = Query(..., pattern=r"^\d{4}-\d{2}$", description="Mês no formato YYYY-MM"),
     db: AsyncSession = Depends(get_authed_db),
     tenant_id: str = Depends(get_current_tenant_id),
 ) -> dict:

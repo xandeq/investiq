@@ -60,7 +60,7 @@ _RANGE_DAYS = {"1m": 30, "3m": 90, "6m": 180, "1y": 365, "all": 0}
 
 @router.get("/portfolio-history")
 async def get_portfolio_history(
-    range: str = Query("3m", regex="^(1m|3m|6m|1y|all)$"),
+    range: str = Query("3m", pattern="^(1m|3m|6m|1y|all)$"),
     db: AsyncSession = Depends(get_authed_db),
     tenant_id: str = Depends(get_current_tenant_id),
 ) -> dict:

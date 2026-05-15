@@ -20,7 +20,7 @@ import os
 from typing import Annotated
 
 import redis as redis_lib
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -280,7 +280,7 @@ async def smart_screener(
     tenant_db: AsyncSession = Depends(get_authed_db),
     global_db: AsyncSession = Depends(get_global_db),
     tenant_id: str = Depends(get_current_tenant_id),
-    limit: int = 100,
+    limit: int = Query(100, ge=1, le=500),
 ) -> list[ComplementaryAssetRow]:
     """Return screener universe filtered to complementary assets.
 
