@@ -150,3 +150,21 @@ class DividendResponse(BaseModel):
     unit_price: Decimal
     total_value: Decimal
     is_exempt: bool
+
+
+class DividendIncomeMonth(BaseModel):
+    month: str           # "2026-04"
+    dividend: Decimal    # JCP and plain dividends (taxable for non-FII)
+    jscp: Decimal        # JCP shown separately (IR withheld at source 15%)
+    amortization: Decimal
+    total: Decimal
+
+
+class DividendIncomeSummary(BaseModel):
+    months: list[DividendIncomeMonth]
+    total_12m: Decimal
+    monthly_avg_12m: Decimal
+    ytd_total: Decimal
+    biggest_month_brl: Decimal
+    biggest_month_label: str   # "Abr/2026"
+    data_available: bool

@@ -10,6 +10,7 @@ import { RiskMetricsCard } from "./RiskMetricsCard";
 import { SectorAllocationChart } from "./SectorAllocationChart";
 import { DividendCalendarCard } from "./DividendCalendarCard";
 import { DividendRankingCard } from "./DividendRankingCard";
+import { DividendIncomeCard } from "./DividendIncomeCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { OnboardingBanner } from "@/features/onboarding/OnboardingBanner";
@@ -130,6 +131,9 @@ export function DashboardContent() {
 
       {/* Row 3e: Dividend Ranking */}
       <DividendRankingCard />
+
+      {/* Row 3f: Dividend Income History */}
+      <DividendIncomeCard />
 
       {/* Row 4: Recent Transactions */}
       {isLoading ? (

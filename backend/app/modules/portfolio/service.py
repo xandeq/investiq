@@ -33,6 +33,8 @@ from app.modules.portfolio.schemas import (
     AllocationItem,
     BenchmarkResponse,
     DividendResponse,
+    DividendIncomeMonth,
+    DividendIncomeSummary,
 )
 from app.modules.portfolio.cmp import build_position_from_history
 
@@ -429,3 +431,94 @@ class PortfolioService:
         )
         txs = result.scalars().all()
         return [DividendResponse.model_validate(tx) for tx in txs]
+
+    async def get_dividend_income(
+        self,
+        db: AsyncSession,
+        tenant_id: str,
+        months: int = 24,
+    ) -> DividendIncomeSummary:
+        """Aggregate received dividends/JSCP/amortization by month.
+
+        Returns monthly buckets for the last `months` calendar months.
+        Also computes 12m total, monthly avg, YTD total, and biggest month.
+        """
+        from sqlalchemy import text
+        from datetime import date
+        from calendar import month_abbr
+
+        sql = text(
+            """
+            SELECT
+                TO_CHAR(transaction_date, 'YYYY-MM')     AS month,
+                transaction_type,
+                SUM(quantity * unit_price)               AS total_brl
+            FROM transactions
+            WHERE tenant_id = :tid
+              AND transaction_type IN ('dividend', 'jscp', 'amortization')
+              AND deleted_at IS NULL
+              AND transaction_date >= (CURRENT_DATE - INTERVAL ':months months')
+            GROUP BY month, transaction_type
+            ORDER BY month ASC
+            """.replace(":months", str(months))
+        )
+        result = await db.execute(sql, {"tid": tenant_id})
+        rows = result.fetchall()
+
+        if not rows:
+            return DividendIncomeSummary(
+                months=[],
+                total_12m=Decimal("0"),
+                monthly_avg_12m=Decimal("0"),
+                ytd_total=Decimal("0"),
+                biggest_month_brl=Decimal("0"),
+                biggest_month_label="—",
+                data_available=False,
+            )
+
+        # Build month buckets
+        buckets: dict[str, dict[str, Decimal]] = {}
+        for month_key, tx_type, total in rows:
+            if month_key not in buckets:
+                buckets[month_key] = {"dividend": Decimal("0"), "jscp": Decimal("0"), "amortization": Decimal("0")}
+            buckets[month_key][str(tx_type)] = Decimal(str(total or 0))
+
+        month_objs: list[DividendIncomeMonth] = []
+        for mk, vals in sorted(buckets.items()):
+            d = vals["dividend"]
+            j = vals["jscp"]
+            a = vals["amortization"]
+            month_objs.append(DividendIncomeMonth(
+                month=mk,
+                dividend=d.quantize(Decimal("0.01")),
+                jscp=j.quantize(Decimal("0.01")),
+                amortization=a.quantize(Decimal("0.01")),
+                total=(d + j + a).quantize(Decimal("0.01")),
+            ))
+
+        today = date.today()
+        yr_ago = f"{today.year - 1}-{today.month:02d}"
+        total_12m = sum(m.total for m in month_objs if m.month > yr_ago)
+        active_12m = [m for m in month_objs if m.month > yr_ago and m.total > Decimal("0")]
+        monthly_avg = (total_12m / Decimal(str(len(active_12m)))) if active_12m else Decimal("0")
+
+        ytd_prefix = str(today.year)
+        ytd_total = sum(m.total for m in month_objs if m.month.startswith(ytd_prefix))
+
+        biggest = max(month_objs, key=lambda m: m.total) if month_objs else None
+        if biggest:
+            yr, mo = biggest.month.split("-")
+            mo_label = month_abbr[int(mo)].capitalize()
+            biggest_label = f"{mo_label}/{yr}"
+        else:
+            biggest_label = "—"
+
+        return DividendIncomeSummary(
+            months=month_objs,
+            total_12m=total_12m.quantize(Decimal("0.01")),
+            monthly_avg_12m=monthly_avg.quantize(Decimal("0.01")),
+            ytd_total=ytd_total.quantize(Decimal("0.01")),
+            biggest_month_brl=(biggest.total if biggest else Decimal("0")).quantize(Decimal("0.01")),
+            biggest_month_label=biggest_label,
+            data_available=True,
+        )

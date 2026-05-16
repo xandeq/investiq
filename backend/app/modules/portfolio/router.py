@@ -33,6 +33,7 @@ from app.modules.portfolio.schemas import (
     PnLResponse,
     BenchmarkResponse,
     DividendResponse,
+    DividendIncomeSummary,
 )
 from app.modules.portfolio.service import PortfolioService
 
@@ -257,3 +258,18 @@ async def get_dividends(
     Includes FII dividend exemption flag (is_exempt) for IR calculations.
     """
     return await service.get_dividends(db, tenant_id)
+
+
+@router.get("/dividend-income", response_model=DividendIncomeSummary)
+async def get_dividend_income(
+    months: int = Query(default=24, ge=1, le=60),
+    db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+    service: PortfolioService = Depends(_get_service),
+) -> DividendIncomeSummary:
+    """Return monthly aggregated dividend/JSCP/amortization income.
+
+    `months` controls how many calendar months of history to return (default 24).
+    Summary includes 12m total, monthly avg, YTD total, and biggest month.
+    """
+    return await service.get_dividend_income(db, tenant_id, months=months)
