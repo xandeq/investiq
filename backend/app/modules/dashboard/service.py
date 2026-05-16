@@ -428,13 +428,13 @@ class DashboardService:
                 INNER JOIN latest_snap_date ON s.snapshot_date = latest_snap_date.dt
             )
             SELECT
-                COALESCE(ls.sector, fm.segmento, h.asset_class) AS sector,
+                COALESCE(ls.sector, fm.segmento, h.asset_class::text) AS sector,
                 SUM(h.shares * COALESCE(ls.regular_market_price, 0)) AS total_value
             FROM holdings h
             LEFT JOIN latest_snap ls ON ls.ticker = h.ticker
             LEFT JOIN fii_metadata fm ON fm.ticker = h.ticker
             WHERE h.shares > 0
-            GROUP BY sector
+            GROUP BY COALESCE(ls.sector, fm.segmento, h.asset_class::text)
             ORDER BY total_value DESC
             """
         )

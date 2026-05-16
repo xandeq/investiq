@@ -42,9 +42,17 @@ export function BenchmarkChart() {
       lineWidth: 2,
       title: "Carteira",
     });
-    portfolioSeries.setData(
-      timeseries.map((p) => ({ time: p.date, value: parseFloat(p.value) }))
-    );
+    // Deduplicate and sort (lightweight-charts requires unique sorted dates)
+    const seen = new Map<string, number>();
+    for (const p of timeseries) {
+      const v = parseFloat(p.value);
+      if (!isNaN(v)) seen.set(p.date, v);
+    }
+    const cleanData = Array.from(seen.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([time, value]) => ({ time, value }));
+    if (cleanData.length === 0) { chart.remove(); return; }
+    portfolioSeries.setData(cleanData);
 
     const handleResize = () => {
       if (containerRef.current) {

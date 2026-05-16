@@ -67,6 +67,18 @@ export function PortfolioChart({ data }: Props) {
       },
     });
 
+    // Deduplicate and sort timeseries (keep last value per date, filter NaN)
+    const seen = new Map<string, number>();
+    for (const p of data) {
+      const v = parseFloat(p.value);
+      if (!isNaN(v)) seen.set(p.date, v);
+    }
+    const cleanData = Array.from(seen.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([time, value]) => ({ time, value }));
+
+    if (cleanData.length === 0) { chart.remove(); return; }
+
     // Portfolio value series
     const portfolioSeries = chart.addSeries(AreaSeries, {
       lineColor: "#2563eb",
@@ -74,13 +86,12 @@ export function PortfolioChart({ data }: Props) {
       bottomColor: "rgba(37, 99, 235, 0)",
       lineWidth: 2,
     });
-    portfolioSeries.setData(
-      data.map((p) => ({ time: p.date, value: parseFloat(p.value) }))
-    );
+    portfolioSeries.setData(cleanData);
 
     // CDI benchmark line (only if rate available and > 1 data point)
-    if (cdiRate > 0 && data.length > 1) {
-      const cdiBenchmark = buildCdiBenchmark(data, cdiRate);
+    const dataForCdi = cleanData.map(p => ({ date: p.time as string, value: String(p.value) }));
+    if (cdiRate > 0 && cleanData.length > 1) {
+      const cdiBenchmark = buildCdiBenchmark(dataForCdi, cdiRate);
       const cdiSeries = chart.addSeries(LineSeries, {
         color: "#10b981",
         lineWidth: 1,
