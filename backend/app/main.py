@@ -47,6 +47,7 @@ from app.modules.outcome_tracker.router import router as outcome_tracker_router
 from app.modules.briefing_engine.router import router as briefing_router
 from app.modules.integrations.router import router as integrations_router
 from app.modules.cash_flow_advisor.router import router as cash_flow_advisor_router
+from app.modules.funds.router import router as funds_router
 
 
 @asynccontextmanager
@@ -161,6 +162,8 @@ app.include_router(outcome_tracker_router, prefix="/outcomes", tags=["Outcome Tr
 app.include_router(briefing_router, prefix="/briefing", tags=["Briefing Engine"])
 # Server-to-server integrations (X-Integration-Key auth, no user JWT)
 app.include_router(integrations_router, prefix="/integrations", tags=["Integrations"])
+# Phase 38: Fundos de Investimento — CVM fund search + positions
+app.include_router(funds_router, prefix="/funds", tags=["Funds"])
 
 
 @app.get("/health")

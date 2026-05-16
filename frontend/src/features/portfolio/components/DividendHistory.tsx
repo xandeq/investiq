@@ -9,6 +9,7 @@ const TX_TYPE_LABELS: Record<string, string> = {
 };
 const ASSET_CLASS_LABELS: Record<string, string> = {
   acao: "Ações", fii: "FIIs", renda_fixa: "Renda Fixa", bdr: "BDRs", etf: "ETFs",
+  crypto: "Crypto", fundo: "Fundos",
 };
 
 export function DividendHistory() {

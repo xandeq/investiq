@@ -6,7 +6,8 @@ import { SortableHeader } from "@/components/ui/SortableHeader";
 import { PortfolioExportButtons } from "./PortfolioExportButtons";
 
 const ASSET_CLASS_LABELS: Record<string, string> = {
-  acao: "Ação", fii: "FII", renda_fixa: "Renda Fixa", bdr: "BDR", etf: "ETF",
+  acao: "Ação", fii: "FII", renda_fixa: "Renda Fixa", bdr: "BDR", etf: "ETF", crypto: "Crypto",
+  fundo: "Fundo",
 };
 
 const TH = "text-xs font-bold uppercase tracking-wider text-muted-foreground px-3 py-2.5";

@@ -11,7 +11,7 @@ import {
 } from "@/features/portfolio/hooks/useTransactions";
 import type { TransactionResponse, TransactionCreate, TransactionUpdate } from "@/features/portfolio/types";
 
-const ASSET_CLASSES = ["acao", "FII", "renda_fixa", "BDR", "ETF", "crypto"];
+const ASSET_CLASSES = ["acao", "FII", "renda_fixa", "BDR", "ETF", "crypto", "fundo"];
 const TX_TYPES = ["buy", "sell", "dividend", "jscp", "amortization"];
 
 const TX_TYPE_LABEL: Record<string, string> = {
@@ -20,6 +20,7 @@ const TX_TYPE_LABEL: Record<string, string> = {
 
 const ASSET_LABEL: Record<string, string> = {
   acao: "Ação", FII: "FII", renda_fixa: "Renda Fixa", BDR: "BDR", ETF: "ETF", crypto: "Crypto",
+  fundo: "Fundo de Investimento",
 };
 
 const TX_BADGE: Record<string, string> = {
@@ -92,10 +93,16 @@ function TransactionModal({ initial, onClose, onSave, loading, error }: ModalPro
   const set = (k: string, v: string | boolean) => setForm((f) => ({ ...f, [k]: v }));
   const isEdit = !!initial;
 
+  const isFundo = form.asset_class === "fundo";
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // For fundos: store CNPJ as digits only; otherwise uppercase the ticker
+    const tickerValue = isFundo
+      ? form.ticker.replace(/[^\d]/g, "")
+      : form.ticker.toUpperCase();
     onSave({
-      ticker: form.ticker.toUpperCase(),
+      ticker: tickerValue,
       asset_class: form.asset_class,
       transaction_type: form.transaction_type,
       transaction_date: form.transaction_date,
@@ -124,8 +131,20 @@ function TransactionModal({ initial, onClose, onSave, loading, error }: ModalPro
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ticker *</label>
-              <input required disabled={isEdit} value={form.ticker} onChange={(e) => set("ticker", e.target.value)} placeholder="VALE3" className={INPUT_CLS} />
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {isFundo ? "CNPJ do Fundo *" : "Ticker *"}
+              </label>
+              <input
+                required
+                disabled={isEdit}
+                value={form.ticker}
+                onChange={(e) => set("ticker", e.target.value)}
+                placeholder={isFundo ? "00.000.000/0001-00" : "VALE3"}
+                className={INPUT_CLS}
+              />
+              {isFundo && (
+                <p className="text-[10px] text-muted-foreground">Informe o CNPJ do fundo (com ou sem formatação)</p>
+              )}
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Data *</label>
@@ -156,7 +175,9 @@ function TransactionModal({ initial, onClose, onSave, loading, error }: ModalPro
               <input required type="number" step="any" min="0" value={form.quantity} onChange={(e) => set("quantity", e.target.value)} className={INPUT_CLS} />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Preço unitário (R$) *</label>
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {isFundo ? "Valor da cota (R$) *" : "Preço unitário (R$) *"}
+              </label>
               <input required type="number" step="any" min="0" value={form.unit_price} onChange={(e) => set("unit_price", e.target.value)} className={INPUT_CLS} />
             </div>
           </div>

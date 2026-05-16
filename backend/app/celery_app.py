@@ -54,6 +54,7 @@ def create_celery_app() -> Celery:
             "app.modules.telegram_bot.tasks",
             "app.modules.news.tasks",
             "app.modules.outcome_tracker.tasks",
+            "app.modules.funds.tasks",
         ],
     )
 
@@ -252,6 +253,20 @@ def create_celery_app() -> Celery:
                 "task": "outcome_tracker.auto_close_outcomes",
                 "schedule": crontab(minute=30, hour=18, day_of_week="1-5"),
                 "options": {"queue": "celery", "expires": 23 * 3600},
+            },
+            # Phase 38: Fund NAV refresh — daily at 19h BRT (after CVM updates INF_DIARIO)
+            "refresh-fund-quotes-daily": {
+                "task": "funds.refresh_fund_quotes",
+                "schedule": crontab(minute=0, hour=19, day_of_week="1-5"),
+                "args": [],
+                "options": {"expires": 23 * 3600},
+            },
+            # Phase 38: Fund registry refresh — weekly Sunday 03h BRT
+            "refresh-fund-registry-weekly": {
+                "task": "funds.refresh_fund_registry",
+                "schedule": crontab(minute=0, hour=3, day_of_week="0"),
+                "args": [],
+                "options": {"expires": 7 * 24 * 3600 - 3600},
             },
         },
     )

@@ -163,15 +163,26 @@ class PortfolioService:
             unrealized_pnl_pct: Decimal | None = None
 
             if redis_client is not None:
-                from app.modules.market_data.service import MarketDataService
-                mds = MarketDataService(redis_client)
-                quote = await mds.get_quote(ticker)
-                if not quote.data_stale:
-                    current_price = quote.price
-                    price_stale = False
-                    unrealized_pnl = (quote.price - pos.cmp) * pos.quantity
-                    if pos.total_cost > Decimal("0"):
-                        unrealized_pnl_pct = (unrealized_pnl / pos.total_cost) * Decimal("100")
+                _ac = str(asset_class.value) if hasattr(asset_class, "value") else str(asset_class)
+                if _ac == "fundo":
+                    from app.modules.funds.service import FundsService
+                    nav, nav_stale = await FundsService.get_fund_nav_from_redis(redis_client, ticker)
+                    if not nav_stale and nav is not None:
+                        current_price = nav
+                        price_stale = False
+                        unrealized_pnl = (nav - pos.cmp) * pos.quantity
+                        if pos.total_cost > Decimal("0"):
+                            unrealized_pnl_pct = (unrealized_pnl / pos.total_cost) * Decimal("100")
+                else:
+                    from app.modules.market_data.service import MarketDataService
+                    mds = MarketDataService(redis_client)
+                    quote = await mds.get_quote(ticker)
+                    if not quote.data_stale:
+                        current_price = quote.price
+                        price_stale = False
+                        unrealized_pnl = (quote.price - pos.cmp) * pos.quantity
+                        if pos.total_cost > Decimal("0"):
+                            unrealized_pnl_pct = (unrealized_pnl / pos.total_cost) * Decimal("100")
 
             positions.append(PositionResponse(
                 ticker=ticker,

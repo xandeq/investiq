@@ -32,6 +32,7 @@ const CLASS_LABELS: Record<string, string> = {
   etf: "ETFs",
   bdr: "BDRs",
   crypto: "Cripto",
+  fundo: "Fundos",
 };
 
 function fmtBrl(v: string | number) {

@@ -45,6 +45,7 @@ class AssetClass(str, enum.Enum):
     bdr = "bdr"
     etf = "etf"
     crypto = "crypto"
+    fundo = "fundo"
 
 
 class TransactionType(str, enum.Enum):

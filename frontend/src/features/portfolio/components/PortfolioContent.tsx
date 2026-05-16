@@ -5,6 +5,7 @@ import { DividendHistory } from "./DividendHistory";
 import { PortfolioSummary } from "./PortfolioSummary";
 import { PortfolioHistoryChart } from "./PortfolioHistoryChart";
 import { RebalancingCard } from "./RebalancingCard";
+import { FundPositionsCard } from "./FundPositionsCard";
 
 export function PortfolioContent() {
   return (
@@ -12,6 +13,7 @@ export function PortfolioContent() {
       <PortfolioSummary />
       <PortfolioHistoryChart />
       <RebalancingCard />
+      <FundPositionsCard />
       <PositionsTable />
       <PnlTable />
       <DividendHistory />
