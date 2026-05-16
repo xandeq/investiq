@@ -12,6 +12,7 @@ import {
   FileText,
   Copy,
   Check,
+  Scissors,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -594,9 +595,204 @@ function DeclarationTab() {
   );
 }
 
+// ── Tax-Loss Harvesting Tab ──────────────────────────────────────────────────
+
+interface HarvestItem {
+  ticker: string;
+  asset_class: string;
+  quantity: number;
+  avg_cost: number;
+  current_price: number;
+  unrealized_loss: number;
+  unrealized_loss_pct: number;
+  potential_tax_saving: number;
+  has_gain_to_offset: boolean;
+}
+
+interface HarvestData {
+  current_month: string;
+  accumulated_gain_month: number;
+  items: HarvestItem[];
+  total_unrealized_loss: number;
+  max_potential_saving: number;
+}
+
+const ASSET_LABELS: Record<string, string> = {
+  acao: "Ação",
+  fii: "FII",
+  bdr: "BDR",
+  etf: "ETF",
+};
+
+function TaxLossTab() {
+  const { data, isLoading, error } = useQuery<HarvestData>({
+    queryKey: ["ir-helper", "tax-loss"],
+    queryFn: () => apiClient("/ir-helper/tax-loss-harvesting"),
+    staleTime: 5 * 60_000,
+  });
+
+  return (
+    <div className="space-y-6">
+      {/* Explanation */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
+        <h3 className="font-semibold text-blue-800 flex items-center gap-2 mb-2">
+          <Scissors className="h-4 w-4" />
+          O que é Tax-Loss Harvesting?
+        </h3>
+        <p className="text-sm text-blue-700">
+          Vender posições com <strong>prejuízo latente</strong> antes do fim do mês para abater ganhos
+          tributáveis — reduzindo ou zerando o DARF. O prejuízo realizado é deduzido do lucro do mesmo mês.
+          Atenção: verifique a regra de wash-sale antes de recomprar o mesmo ativo.
+        </p>
+      </div>
+
+      {isLoading && (
+        <div className="space-y-3">
+          {[1, 2, 3].map((n) => (
+            <div key={n} className="h-16 rounded-xl bg-gray-100 animate-pulse" />
+          ))}
+        </div>
+      )}
+
+      {error && (
+        <div className="rounded-lg bg-red-50 border-l-4 border-red-500 p-4 text-sm text-red-600 flex gap-2">
+          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+          Erro ao carregar dados de tax-loss harvesting.
+        </div>
+      )}
+
+      {data && (
+        <>
+          {/* Summary cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-white border border-gray-200 rounded-xl p-5">
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Ganho tributável — {data.current_month}</p>
+              <p className={`text-xl font-bold mt-1 ${data.accumulated_gain_month > 0 ? "text-red-600" : "text-gray-400"}`}>
+                {data.accumulated_gain_month > 0 ? fmt(data.accumulated_gain_month) : "—"}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">lucro líquido do mês</p>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-xl p-5">
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Prejuízo latente total</p>
+              <p className={`text-xl font-bold mt-1 ${data.total_unrealized_loss < 0 ? "text-orange-600" : "text-gray-400"}`}>
+                {data.total_unrealized_loss < 0 ? fmt(data.total_unrealized_loss) : "—"}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">{data.items.length} posição{data.items.length !== 1 ? "s" : ""} candidata{data.items.length !== 1 ? "s" : ""}</p>
+            </div>
+            <div className={`rounded-xl p-5 border ${data.max_potential_saving > 0 ? "bg-emerald-50 border-emerald-200" : "bg-white border-gray-200"}`}>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Economia potencial</p>
+              <p className={`text-xl font-bold mt-1 ${data.max_potential_saving > 0 ? "text-emerald-700" : "text-gray-400"}`}>
+                {data.max_potential_saving > 0 ? fmt(data.max_potential_saving) : "—"}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">economia máxima em DARF</p>
+            </div>
+          </div>
+
+          {data.items.length === 0 && (
+            <div className="rounded-lg bg-gray-100 p-12 text-center">
+              <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto mb-3" />
+              <p className="font-semibold text-gray-900">Nenhuma posição com prejuízo latente</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Todas as suas posições estão com resultado positivo — parabéns!
+              </p>
+            </div>
+          )}
+
+          {data.items.length > 0 && (
+            <>
+              {data.accumulated_gain_month === 0 && (
+                <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-700 flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <span>
+                    Sem ganho tributável no mês corrente — nenhuma economia fiscal imediata.
+                    Vender para acumular prejuízo pode ser útil para meses futuros.
+                  </span>
+                </div>
+              )}
+
+              <div>
+                <h3 className="text-base font-semibold mb-3">
+                  Candidatos à venda — ordenados por prejuízo
+                </h3>
+                <div className="overflow-x-auto rounded-xl border border-gray-200">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-gray-50 text-gray-600 border-b border-gray-200">
+                        <th className="text-left px-4 py-3 font-semibold">Ativo</th>
+                        <th className="text-left px-4 py-3 font-semibold hidden sm:table-cell">Tipo</th>
+                        <th className="text-right px-4 py-3 font-semibold">Qtd</th>
+                        <th className="text-right px-4 py-3 font-semibold">CMP</th>
+                        <th className="text-right px-4 py-3 font-semibold">Cotação</th>
+                        <th className="text-right px-4 py-3 font-semibold">Prejuízo latente</th>
+                        <th className="text-right px-4 py-3 font-semibold">Economia DARF</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.items.map((item) => (
+                        <tr key={item.ticker} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                          <td className="px-4 py-3">
+                            <span className="font-bold font-mono">{item.ticker}</span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">
+                            {ASSET_LABELS[item.asset_class] ?? item.asset_class}
+                          </td>
+                          <td className="px-4 py-3 text-right font-mono">
+                            {item.quantity.toLocaleString("pt-BR", { maximumFractionDigits: 4 })}
+                          </td>
+                          <td className="px-4 py-3 text-right font-mono text-gray-500">
+                            {fmt(item.avg_cost)}
+                          </td>
+                          <td className="px-4 py-3 text-right font-mono">
+                            {fmt(item.current_price)}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <span className="text-red-600 font-semibold font-mono">
+                              {fmt(item.unrealized_loss)}
+                            </span>
+                            <span className="ml-1.5 text-xs text-red-400">
+                              ({item.unrealized_loss_pct.toFixed(1)}%)
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {item.potential_tax_saving > 0 ? (
+                              <span className="text-emerald-700 font-semibold font-mono">
+                                {fmt(item.potential_tax_saving)}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 text-xs">sem ganho</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-xs text-gray-400 mt-2">
+                  CMP = custo médio ponderado de aquisição. Cotação = última snapshot do screener.
+                </p>
+              </div>
+
+              {/* Warning */}
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <p className="text-sm font-semibold text-amber-800 mb-1">Avisos importantes</p>
+                <ul className="text-xs text-amber-700 space-y-1">
+                  <li>• <strong>Wash-sale:</strong> recomprar o mesmo ativo em até 30 dias pode anular o benefício fiscal.</li>
+                  <li>• <strong>Isenção:</strong> se suas vendas do mês ficarão abaixo de R$20.000, não haverá IR — a venda pode não ser necessária.</li>
+                  <li>• <strong>FIIs:</strong> rendimentos de FIIs são isentos, mas ganhos de capital (venda da cota) são tributáveis.</li>
+                  <li>• Este cálculo é estimado. Consulte um contador para decisões fiscais.</li>
+                </ul>
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 
-type Tab = "darf" | "declaration";
+type Tab = "darf" | "declaration" | "tax-loss";
 
 export function IrHelperContent() {
   const [tab, setTab] = useState<Tab>("darf");
@@ -607,15 +803,15 @@ export function IrHelperContent() {
       <div>
         <h2 className="text-2xl font-bold tracking-tight">IR Helper</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Cálculo de DARF mensal e auxílio para declaração DIRPF — Lei 11.033/2004
+          Cálculo de DARF mensal, declaração DIRPF e tax-loss harvesting — Lei 11.033/2004
         </p>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-200">
+      <div className="flex gap-1 border-b border-gray-200 overflow-x-auto">
         <button
           onClick={() => setTab("darf")}
-          className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 ${
+          className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 whitespace-nowrap ${
             tab === "darf"
               ? "border-blue-500 text-blue-700 bg-blue-50"
               : "border-transparent text-gray-600 hover:text-gray-900"
@@ -628,7 +824,7 @@ export function IrHelperContent() {
         </button>
         <button
           onClick={() => setTab("declaration")}
-          className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 ${
+          className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 whitespace-nowrap ${
             tab === "declaration"
               ? "border-blue-500 text-blue-700 bg-blue-50"
               : "border-transparent text-gray-600 hover:text-gray-900"
@@ -637,7 +833,20 @@ export function IrHelperContent() {
           <span className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
             Declaração DIRPF
-            <span className="bg-amber-100 text-amber-700 text-xs px-1.5 py-0.5 rounded-full font-semibold">
+          </span>
+        </button>
+        <button
+          onClick={() => setTab("tax-loss")}
+          className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 whitespace-nowrap ${
+            tab === "tax-loss"
+              ? "border-blue-500 text-blue-700 bg-blue-50"
+              : "border-transparent text-gray-600 hover:text-gray-900"
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <Scissors className="h-4 w-4" />
+            Tax-Loss Harvesting
+            <span className="bg-emerald-100 text-emerald-700 text-xs px-1.5 py-0.5 rounded-full font-semibold">
               Novo
             </span>
           </span>
@@ -645,7 +854,7 @@ export function IrHelperContent() {
       </div>
 
       {/* Tab content */}
-      {tab === "darf" ? <DarfTab /> : <DeclarationTab />}
+      {tab === "darf" ? <DarfTab /> : tab === "declaration" ? <DeclarationTab /> : <TaxLossTab />}
     </div>
   );
 }

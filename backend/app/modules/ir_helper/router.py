@@ -1,9 +1,10 @@
 """IR Helper router.
 
 Endpoints:
-  GET /ir-helper/summary?month=YYYY-MM     — Calcula DARF mensal de swing trade
-  GET /ir-helper/history                    — Histórico mensal de P&L e DARF
-  GET /ir-helper/declaration?year=YYYY      — Posições em 31/12 para DIRPF (Bens e Direitos)
+  GET /ir-helper/summary?month=YYYY-MM        — Calcula DARF mensal de swing trade
+  GET /ir-helper/history                       — Histórico mensal de P&L e DARF
+  GET /ir-helper/declaration?year=YYYY         — Posições em 31/12 para DIRPF (Bens e Direitos)
+  GET /ir-helper/tax-loss-harvesting           — Posições com prejuízo latente para abatimento fiscal
 """
 
 from collections import defaultdict
@@ -11,7 +12,7 @@ from datetime import date
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.middleware import get_authed_db, get_current_tenant_id
@@ -333,4 +334,166 @@ async def ir_declaration(
                 "Lucros e prejuízos realizados são declarados em 'Renda Variável', não aqui."
             ),
         },
+    }
+
+
+# ── Tax-Loss Harvesting ───────────────────────────────────────────────────────
+
+@router.get("/tax-loss-harvesting")
+async def ir_tax_loss_harvesting(
+    db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+) -> dict:
+    """Retorna posições com prejuízo latente que podem ser vendidas para abater
+    ganhos tributáveis do mês corrente (tax-loss harvesting).
+
+    Lógica:
+    - Calcula custo médio ponderado (CMP) de cada posição aberta
+    - Busca cotação mais recente de screener_snapshots
+    - Retorna apenas posições com prejuízo latente (preço < CMP)
+    - Estima economia tributária = min(prejuízo, lucro_líquido_mês) × 0.15
+    - Não inclui renda fixa (isenção própria)
+    """
+    current_month = date.today().strftime("%Y-%m")
+
+    # 1. Current holdings with CMP (replicate declaration logic for open positions)
+    result = await db.execute(
+        select(Transaction).where(
+            Transaction.tenant_id == tenant_id,
+            Transaction.transaction_type.in_([TransactionType.buy, TransactionType.sell]),
+            Transaction.deleted_at.is_(None),
+        ).order_by(Transaction.transaction_date, Transaction.created_at)
+    )
+    all_txs = result.scalars().all()
+
+    holdings: dict[str, dict] = {}
+    for tx in all_txs:
+        ticker = tx.ticker.upper()
+        ac = tx.asset_class.value if hasattr(tx.asset_class, "value") else str(tx.asset_class)
+        tx_type = tx.transaction_type.value if hasattr(tx.transaction_type, "value") else str(tx.transaction_type)
+
+        # Skip renda fixa — different tax regime
+        if ac in ("renda_fixa", "tesouro_direto"):
+            continue
+
+        cur = holdings.setdefault(ticker, {"qty": Decimal("0"), "avg_cost": Decimal("0"), "asset_class": ac})
+
+        if tx_type == "buy":
+            new_qty = cur["qty"] + tx.quantity
+            if new_qty > 0:
+                cur["avg_cost"] = (
+                    (cur["qty"] * cur["avg_cost"] + tx.quantity * tx.unit_price) / new_qty
+                ).quantize(Decimal("0.000001"))
+            cur["qty"] = new_qty
+        elif tx_type == "sell":
+            cur["qty"] = max(Decimal("0"), cur["qty"] - tx.quantity)
+
+    # Keep only open positions
+    open_positions = {t: v for t, v in holdings.items() if v["qty"] > Decimal("0")}
+
+    if not open_positions:
+        return {
+            "current_month": current_month,
+            "accumulated_gain_month": 0.0,
+            "items": [],
+            "total_unrealized_loss": 0.0,
+            "max_potential_saving": 0.0,
+        }
+
+    # 2. Latest screener prices for held tickers
+    tickers_list = list(open_positions.keys())
+    price_sql = text(
+        """
+        SELECT DISTINCT ON (ticker)
+            ticker, regular_market_price
+        FROM screener_snapshots
+        WHERE ticker = ANY(:tickers)
+        ORDER BY ticker, snapshot_date DESC
+        """
+    )
+    price_result = await db.execute(price_sql, {"tickers": tickers_list})
+    prices: dict[str, Decimal] = {
+        row[0]: Decimal(str(row[1])) for row in price_result.fetchall() if row[1] is not None
+    }
+
+    # 3. Current month accumulated gain (gross profit of sells this month, minus accumulated loss)
+    sell_result = await db.execute(
+        select(Transaction).where(
+            Transaction.tenant_id == tenant_id,
+            Transaction.transaction_type == TransactionType.sell,
+            Transaction.deleted_at.is_(None),
+        ).order_by(Transaction.transaction_date)
+    )
+    all_sells = sell_result.scalars().all()
+
+    by_month: dict[str, list[Transaction]] = defaultdict(list)
+    for tx in all_sells:
+        by_month[_month_key(tx.transaction_date)].append(tx)
+
+    # Replay accumulated loss up to this month (same logic as ir_summary)
+    accumulated_loss = Decimal("0")
+    for mk in sorted(k for k in by_month if k < current_month):
+        txs = by_month[mk]
+        month_total_vendas = sum(t.total_value or Decimal(0) for t in txs)
+        month_gross_profit = sum(t.gross_profit or Decimal(0) for t in txs)
+        if month_total_vendas >= ISENCAO_MENSAL:
+            net = month_gross_profit + accumulated_loss
+            accumulated_loss = net if net < 0 else Decimal("0")
+
+    current_sells = by_month.get(current_month, [])
+    current_total_vendas = sum(t.total_value or Decimal(0) for t in current_sells)
+    current_gross_profit = sum(t.gross_profit or Decimal(0) for t in current_sells)
+
+    if current_total_vendas < ISENCAO_MENSAL:
+        # Exempt month — no gain to offset
+        accumulated_gain = Decimal("0")
+    else:
+        net = current_gross_profit + accumulated_loss
+        accumulated_gain = max(net, Decimal("0"))
+
+    # 4. Build harvesting candidates (positions with unrealized loss)
+    items = []
+    for ticker, pos in open_positions.items():
+        current_price = prices.get(ticker)
+        if current_price is None:
+            continue  # no screener data — skip
+
+        qty = pos["qty"]
+        avg_cost = pos["avg_cost"]
+        unrealized = (current_price - avg_cost) * qty
+        if unrealized >= Decimal("0"):
+            continue  # gain or neutral — not a harvesting candidate
+
+        # Estimate tax saving: if sold today, how much would offset accumulated gain?
+        offsettable = min(abs(unrealized), accumulated_gain)
+        potential_saving = (offsettable * ALIQUOTA_SWING).quantize(Decimal("0.01"))
+
+        items.append({
+            "ticker": ticker,
+            "asset_class": pos["asset_class"],
+            "quantity": float(qty),
+            "avg_cost": float(avg_cost),
+            "current_price": float(current_price),
+            "unrealized_loss": float(unrealized),          # negative
+            "unrealized_loss_pct": float(
+                ((current_price - avg_cost) / avg_cost * 100).quantize(Decimal("0.01"))
+            ),
+            "potential_tax_saving": float(potential_saving),
+            "has_gain_to_offset": accumulated_gain > Decimal("0"),
+        })
+
+    # Sort: largest absolute loss first
+    items.sort(key=lambda x: x["unrealized_loss"])
+
+    total_loss = sum(it["unrealized_loss"] for it in items)
+    max_saving = float(
+        min(abs(Decimal(str(total_loss))), accumulated_gain) * ALIQUOTA_SWING
+    ) if items else 0.0
+
+    return {
+        "current_month": current_month,
+        "accumulated_gain_month": float(accumulated_gain),
+        "items": items,
+        "total_unrealized_loss": total_loss,
+        "max_potential_saving": max_saving,
     }

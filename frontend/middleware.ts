@@ -16,6 +16,8 @@ const PROTECTED_PATHS = [
   "/ir-helper",
   "/ai",
   "/insights",
+  "/inteligencia",
+  "/caixa",
   "/profile",
   "/planos",
   "/comparador",
