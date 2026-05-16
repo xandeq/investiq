@@ -45,8 +45,24 @@ class RiskMetricsResponse(BaseModel):
     volatility_annual_pct: Decimal
     max_drawdown_pct: Decimal
     positive_days_pct: Decimal
+    sharpe_ratio: Decimal | None = None   # None when risk-free rate unavailable
+    annual_return_pct: Decimal | None = None
     trading_days: int
     data_available: bool  # False when < 5 days of data
+
+
+class DividendRankingItem(BaseModel):
+    ticker: str
+    dy_pct: Decimal            # trailing DY from screener (%)
+    position_value: Decimal    # BRL
+    estimated_annual: Decimal  # dy_pct / 100 * position_value
+    sector: str | None = None
+
+
+class DividendRankingResponse(BaseModel):
+    items: list[DividendRankingItem]
+    total_estimated_annual: Decimal
+    data_available: bool
 
 
 class SectorAllocationItem(BaseModel):

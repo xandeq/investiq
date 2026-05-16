@@ -20,6 +20,7 @@ from app.modules.dashboard.schemas import (
     RiskMetricsResponse,
     SectorAllocationResponse,
     DividendCalendarResponse,
+    DividendRankingResponse,
 )
 from app.modules.dashboard.service import DashboardService
 
@@ -105,20 +106,35 @@ async def get_risk_metrics(
     db: AsyncSession = Depends(get_authed_db),
     tenant_id: str = Depends(get_current_tenant_id),
     service: DashboardService = Depends(_get_service),
+    redis=Depends(_get_redis),
 ) -> RiskMetricsResponse:
-    """Return annualised risk metrics computed from the last 252 trading days
-    of portfolio EOD snapshots.
+    """Return annualised risk metrics + Sharpe ratio from the last 252 trading days.
 
     Fields:
       - volatility_annual_pct: annualised std dev of daily returns × 100
       - max_drawdown_pct: maximum peak-to-trough decline × 100
       - positive_days_pct: proportion of days with positive return × 100
+      - annual_return_pct: annualised portfolio return over the window
+      - sharpe_ratio: (annual_return - CDI) / volatility  (null if < 10 days)
       - trading_days: number of data points used
       - data_available: False when fewer than 5 days of history exist
-
-    No Redis dependency — reads directly from portfolio_daily_value.
     """
-    return await service.get_risk_metrics(db, tenant_id)
+    return await service.get_risk_metrics(db, tenant_id, redis_client=redis)
+
+
+@router.get("/dividend-ranking", response_model=DividendRankingResponse)
+async def get_dividend_ranking(
+    db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+    service: DashboardService = Depends(_get_service),
+) -> DividendRankingResponse:
+    """Return portfolio holdings ranked by trailing dividend yield (DY).
+
+    Uses screener_snapshots.dy (last available snapshot) and current
+    position quantities. Returns empty when no holdings have DY data.
+    Fields per item: ticker, dy_pct, position_value, estimated_annual, sector.
+    """
+    return await service.get_dividend_ranking(db, tenant_id)
 
 
 @router.get("/sector-allocation", response_model=SectorAllocationResponse)

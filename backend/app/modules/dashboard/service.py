@@ -32,6 +32,8 @@ from app.modules.dashboard.schemas import (
     SectorAllocationResponse,
     DividendEventItem,
     DividendCalendarResponse,
+    DividendRankingItem,
+    DividendRankingResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -226,12 +228,14 @@ class DashboardService:
         self,
         db: AsyncSession,
         tenant_id: str,
+        redis_client=None,
     ) -> RiskMetricsResponse:
         """Compute annualised risk metrics from the last 252 trading days of
         portfolio_daily_value snapshots for the given tenant.
 
         Returns data_available=False (with zeroed metrics) when fewer than 5
         data points exist — not enough to produce meaningful statistics.
+        Sharpe ratio uses CDI as risk-free rate (read from Redis when available).
         """
         since = date.today() - timedelta(days=365)  # ~252 trading days in 1 year
 
@@ -283,10 +287,34 @@ class DashboardService:
         positive = sum(1 for r in daily_returns if r > 0)
         pos_pct = (positive / len(daily_returns) * 100.0) if daily_returns else 0.0
 
+        # Annualised portfolio return over the full window
+        annual_return: float | None = None
+        sharpe: float | None = None
+        n = len(daily_returns)
+        if n >= 10 and values[0] > 0.0:
+            cumulative = (values[-1] / values[0]) - 1.0
+            annual_return = ((1.0 + cumulative) ** (252.0 / n) - 1.0) * 100.0
+
+            # CDI from Redis as risk-free rate (percent p.a.)
+            rf_pct: float = 14.4  # sensible default
+            if redis_client is not None:
+                try:
+                    raw = await redis_client.get("market:macro:cdi")
+                    if raw:
+                        rf_pct = float(raw.decode() if isinstance(raw, bytes) else raw)
+                except Exception:
+                    pass
+
+            vol_decimal = vol_annual / 100.0
+            if vol_decimal > 0.0:
+                sharpe = (annual_return - rf_pct) / (vol_decimal * 100.0)
+
         return RiskMetricsResponse(
             volatility_annual_pct=Decimal(str(round(vol_annual, 2))),
             max_drawdown_pct=Decimal(str(round(max_drawdown, 2))),
             positive_days_pct=Decimal(str(round(pos_pct, 2))),
+            annual_return_pct=Decimal(str(round(annual_return, 2))) if annual_return is not None else None,
+            sharpe_ratio=Decimal(str(round(sharpe, 3))) if sharpe is not None else None,
             trading_days=len(values),
             data_available=True,
         )
@@ -444,3 +472,76 @@ class DashboardService:
         events.sort(key=lambda e: (e.payment_date == "", e.payment_date))
 
         return DividendCalendarResponse(events=events, data_available=len(events) > 0)
+
+    async def get_dividend_ranking(
+        self,
+        db: AsyncSession,
+        tenant_id: str,
+    ) -> DividendRankingResponse:
+        """Return portfolio holdings ranked by dividend yield (DY from screener_snapshots).
+
+        Uses the latest available screener snapshot for each ticker.
+        Position value = quantity * screener price (same source as sector allocation).
+        DY comes from screener_snapshots.dy (trailing 12m, in decimal: 0.12 = 12%).
+        """
+        sql = text(
+            """
+            WITH latest_snaps AS (
+                SELECT DISTINCT ON (ticker)
+                    ticker, dy, regular_market_price, sector
+                FROM screener_snapshots
+                ORDER BY ticker, snapshot_date DESC
+            ),
+            holdings AS (
+                SELECT ticker,
+                    SUM(CASE WHEN transaction_type IN ('buy','dividend','jscp','amortization')
+                              THEN quantity ELSE 0 END)
+                  - SUM(CASE WHEN transaction_type = 'sell' THEN quantity ELSE 0 END) AS net_qty
+                FROM transactions
+                WHERE tenant_id = :tid
+                  AND asset_class IN ('acao','fii','etf','bdr','crypto')
+                GROUP BY ticker
+                HAVING SUM(CASE WHEN transaction_type IN ('buy','dividend','jscp','amortization')
+                                THEN quantity ELSE 0 END)
+                     - SUM(CASE WHEN transaction_type = 'sell' THEN quantity ELSE 0 END) > 0
+            )
+            SELECT h.ticker,
+                   COALESCE(s.dy, 0)                          AS dy,
+                   h.net_qty * COALESCE(s.regular_market_price, 0) AS position_value,
+                   s.sector
+            FROM holdings h
+            LEFT JOIN latest_snaps s ON s.ticker = h.ticker
+            WHERE s.dy IS NOT NULL AND s.dy > 0
+            ORDER BY s.dy DESC
+            LIMIT 20
+            """
+        )
+        result = await db.execute(sql, {"tid": tenant_id})
+        rows = result.fetchall()
+
+        if not rows:
+            return DividendRankingResponse(items=[], total_estimated_annual=Decimal("0"), data_available=False)
+
+        items = []
+        total = Decimal("0")
+        for ticker, dy_raw, pos_val_raw, sector in rows:
+            dy = Decimal(str(dy_raw or 0))
+            pos_val = Decimal(str(pos_val_raw or 0))
+            # dy in screener is already a percentage (e.g., 12.5 = 12.5%)
+            # Normalize: if dy > 1 treat as percent already; if < 1 treat as decimal fraction
+            dy_pct = dy if dy > Decimal("1") else dy * Decimal("100")
+            estimated_annual = (dy_pct / Decimal("100")) * pos_val
+            total += estimated_annual
+            items.append(DividendRankingItem(
+                ticker=str(ticker),
+                dy_pct=dy_pct.quantize(Decimal("0.01")),
+                position_value=pos_val.quantize(Decimal("0.01")),
+                estimated_annual=estimated_annual.quantize(Decimal("0.01")),
+                sector=sector,
+            ))
+
+        return DividendRankingResponse(
+            items=items,
+            total_estimated_annual=total.quantize(Decimal("0.01")),
+            data_available=True,
+        )
