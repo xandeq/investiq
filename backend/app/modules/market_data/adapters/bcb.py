@@ -123,10 +123,10 @@ def fetch_macro_indicators() -> dict:
 
 def fetch_unemployment() -> Decimal | None:
     """Fetch latest PNAD unemployment rate from BCB SGS series 13522 (%)."""
-    from bcb import Sgs
+    import bcb.sgs as sgs
 
     try:
-        df = Sgs().get({13522: "unemployment"}, start="2020-01-01")
+        df = sgs.get({13522: "unemployment"}, start="2020-01-01")
         col = df["unemployment"].dropna()
         if col.empty:
             logger.warning("BCB SGS 13522 (unemployment) returned empty data")
@@ -139,10 +139,10 @@ def fetch_unemployment() -> Decimal | None:
 
 def fetch_gdp_growth() -> Decimal | None:
     """Fetch latest quarterly GDP growth from BCB SGS series 4380 (%)."""
-    from bcb import Sgs
+    import bcb.sgs as sgs
 
     try:
-        df = Sgs().get({4380: "gdp_growth"}, start="2020-01-01")
+        df = sgs.get({4380: "gdp_growth"}, start="2020-01-01")
         col = df["gdp_growth"].dropna()
         if col.empty:
             logger.warning("BCB SGS 4380 (gdp_growth) returned empty data")
