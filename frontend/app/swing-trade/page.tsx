@@ -14,16 +14,7 @@ export default function SwingTradePage() {
       <AppNav />
       <main className="min-h-screen bg-background">
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <div className="space-y-6">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Swing Trade</h1>
-              <p className="text-sm text-gray-500 mt-1">
-                Sinais da sua carteira, radar de descontos e registro de
-                operações.
-              </p>
-            </div>
-            <SwingTradeContent />
-          </div>
+          <SwingTradeContent />
         </div>
       </main>
     </>

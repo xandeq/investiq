@@ -45,6 +45,8 @@ class MacroCache(BaseModel):
     ptax_usd: Decimal
     fetched_at: datetime
     data_stale: bool = False
+    unemployment_pct: Decimal | None = None
+    gdp_growth_pct: Decimal | None = None
 
 
 class FundamentalsCache(BaseModel):

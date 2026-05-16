@@ -102,7 +102,7 @@ class MarketDataService:
         Individual indicators are stored as separate keys and assembled
         into a MacroCache response. Returns data_stale=True if any key is missing.
         """
-        keys = ["selic", "cdi", "ipca", "ptax_usd", "fetched_at"]
+        keys = ["selic", "cdi", "ipca", "ptax_usd", "fetched_at", "unemployment_pct", "gdp_growth_pct"]
         values: dict[str, bytes | None] = {}
 
         for k in keys:
@@ -140,6 +140,15 @@ class MarketDataService:
         else:
             fetched_at = _EPOCH_MIN
 
+        def _optional_json_decimal(raw: bytes | None) -> Decimal | None:
+            if raw is None:
+                return None
+            try:
+                s = raw.decode() if isinstance(raw, bytes) else raw
+                return Decimal(json.loads(s)["value"])
+            except Exception:
+                return None
+
         return MacroCache(
             selic=_to_decimal(values["selic"]),
             cdi=_to_decimal(values["cdi"]),
@@ -147,6 +156,8 @@ class MarketDataService:
             ptax_usd=_to_decimal(values["ptax_usd"]),
             fetched_at=fetched_at,
             data_stale=False,
+            unemployment_pct=_optional_json_decimal(values["unemployment_pct"]),
+            gdp_growth_pct=_optional_json_decimal(values["gdp_growth_pct"]),
         )
 
     async def get_fundamentals(self, ticker: str) -> FundamentalsCache:

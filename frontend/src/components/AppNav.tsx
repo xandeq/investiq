@@ -2,9 +2,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useSubscription } from "@/features/billing/hooks/useSubscription";
 import { TrialBanner } from "@/features/billing/components/TrialBanner";
+import { apiClient } from "@/lib/api-client";
 import {
   LayoutDashboard,
   Briefcase,
@@ -30,6 +32,30 @@ import {
   Lightbulb,
   WalletCards,
 } from "lucide-react";
+
+interface UnreadCountResponse {
+  count: number;
+}
+
+function useInsightsUnreadCount() {
+  const { data } = useQuery<UnreadCountResponse>({
+    queryKey: ["insights-unread-count"],
+    queryFn: () => apiClient<UnreadCountResponse>("/insights/unread-count"),
+    staleTime: 60 * 1000,
+    refetchInterval: 60 * 1000,
+  });
+  return data?.count ?? 0;
+}
+
+function InsightsBadge() {
+  const count = useInsightsUnreadCount();
+  if (count === 0) return null;
+  return (
+    <span className="bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center leading-none shrink-0">
+      {count > 9 ? "9+" : count}
+    </span>
+  );
+}
 
 interface NavItem {
   href: string;
@@ -207,7 +233,8 @@ function NavDropdown({
                 }`}
               >
                 <Icon className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
-                {label}
+                <span className="flex-1">{label}</span>
+                {href === "/insights" && <InsightsBadge />}
               </Link>
             );
           })}

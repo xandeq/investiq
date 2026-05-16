@@ -8,6 +8,8 @@ interface MacroCache {
   cdi: string;
   ipca: string;
   ptax_usd: string;
+  unemployment_pct?: string | null;
+  gdp_growth_pct?: string | null;
   data_stale: boolean;
   fetched_at: string | null;
 }
@@ -17,6 +19,8 @@ const INDICATOR_STYLES = [
   { bg: "bg-emerald-50", label: "text-emerald-600" },
   { bg: "bg-amber-50", label: "text-amber-600" },
   { bg: "bg-gray-100", label: "text-gray-600" },
+  { bg: "bg-rose-50", label: "text-rose-600" },
+  { bg: "bg-violet-50", label: "text-violet-600" },
 ];
 
 export function MacroIndicators() {
@@ -37,17 +41,23 @@ export function MacroIndicators() {
   }
   if (!macro) return null;
 
-  const indicators = [
+  const indicators: { label: string; value: string; isCurrency?: boolean }[] = [
     { label: "SELIC", value: macro.selic },
     { label: "CDI", value: macro.cdi },
     { label: "IPCA", value: macro.ipca },
     { label: "PTAX", value: macro.ptax_usd, isCurrency: true },
+    ...(macro.unemployment_pct != null
+      ? [{ label: "Desemprego", value: macro.unemployment_pct }]
+      : []),
+    ...(macro.gdp_growth_pct != null
+      ? [{ label: "PIB (trim.)", value: macro.gdp_growth_pct }]
+      : []),
   ];
 
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       {indicators.map(({ label, value, isCurrency }, i) => {
-        const style = INDICATOR_STYLES[i];
+        const style = INDICATOR_STYLES[i] ?? INDICATOR_STYLES[INDICATOR_STYLES.length - 1];
         return (
           <div key={label} className={`rounded-lg ${style.bg} px-4 py-3`}>
             <p className={`text-xs font-bold uppercase tracking-wider ${style.label}`}>{label}</p>

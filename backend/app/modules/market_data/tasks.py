@@ -34,7 +34,11 @@ import redis as redis_lib
 import requests as requests_lib
 
 from app.celery_app import celery_app
-from app.modules.market_data.adapters.bcb import fetch_macro_indicators
+from app.modules.market_data.adapters.bcb import (
+    fetch_gdp_growth,
+    fetch_macro_indicators,
+    fetch_unemployment,
+)
 from app.modules.market_data.adapters.brapi import BrapiClient
 
 logger = logging.getLogger(__name__)
@@ -204,6 +208,28 @@ def refresh_macro(self) -> None:
             float(macro["ipca"]),
             float(macro["ptax_usd"]),
         )
+
+        unemployment = fetch_unemployment()
+        if unemployment is not None:
+            r.set(
+                "market:macro:unemployment_pct",
+                json.dumps({"value": str(unemployment)}),
+                ex=_MACRO_TTL,
+            )
+            logger.debug("Wrote market:macro:unemployment_pct to Redis (TTL=%d)", _MACRO_TTL)
+        else:
+            logger.warning("refresh_macro: unemployment fetch returned None — skipping")
+
+        gdp_growth = fetch_gdp_growth()
+        if gdp_growth is not None:
+            r.set(
+                "market:macro:gdp_growth_pct",
+                json.dumps({"value": str(gdp_growth)}),
+                ex=_MACRO_TTL,
+            )
+            logger.debug("Wrote market:macro:gdp_growth_pct to Redis (TTL=%d)", _MACRO_TTL)
+        else:
+            logger.warning("refresh_macro: gdp_growth fetch returned None — skipping")
 
     except Exception as exc:
         logger.error("refresh_macro failed: %s", exc)

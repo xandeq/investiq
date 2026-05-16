@@ -119,3 +119,35 @@ def fetch_macro_indicators() -> dict:
         "ptax_usd": ptax_usd,
         "fetched_at": datetime.utcnow().isoformat(),
     }
+
+
+def fetch_unemployment() -> Decimal | None:
+    """Fetch latest PNAD unemployment rate from BCB SGS series 13522 (%)."""
+    from bcb import Sgs
+
+    try:
+        df = Sgs().get({13522: "unemployment"}, start="2020-01-01")
+        col = df["unemployment"].dropna()
+        if col.empty:
+            logger.warning("BCB SGS 13522 (unemployment) returned empty data")
+            return None
+        return Decimal(str(float(col.iloc[-1])))
+    except Exception as exc:
+        logger.warning("fetch_unemployment failed: %s", exc)
+        return None
+
+
+def fetch_gdp_growth() -> Decimal | None:
+    """Fetch latest quarterly GDP growth from BCB SGS series 4380 (%)."""
+    from bcb import Sgs
+
+    try:
+        df = Sgs().get({4380: "gdp_growth"}, start="2020-01-01")
+        col = df["gdp_growth"].dropna()
+        if col.empty:
+            logger.warning("BCB SGS 4380 (gdp_growth) returned empty data")
+            return None
+        return Decimal(str(float(col.iloc[-1])))
+    except Exception as exc:
+        logger.warning("fetch_gdp_growth failed: %s", exc)
+        return None
