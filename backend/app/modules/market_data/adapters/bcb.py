@@ -126,7 +126,7 @@ def fetch_unemployment() -> Decimal | None:
     import bcb.sgs as sgs
 
     try:
-        df = sgs.get({13522: "unemployment"}, start="2020-01-01")
+        df = sgs.get({"unemployment": 13522}, start="2020-01-01")
         col = df["unemployment"].dropna()
         if col.empty:
             logger.warning("BCB SGS 13522 (unemployment) returned empty data")
@@ -142,7 +142,7 @@ def fetch_gdp_growth() -> Decimal | None:
     import bcb.sgs as sgs
 
     try:
-        df = sgs.get({4380: "gdp_growth"}, start="2020-01-01")
+        df = sgs.get({"gdp_growth": 4380}, start="2020-01-01")
         col = df["gdp_growth"].dropna()
         if col.empty:
             logger.warning("BCB SGS 4380 (gdp_growth) returned empty data")
