@@ -28,6 +28,7 @@ from app.modules.dashboard.schemas import (
     TimeseriesPoint,
     RecentTransaction,
     RiskMetricsResponse,
+    StressScenario,
     SectorAllocationItem,
     SectorAllocationResponse,
     DividendEventItem,
@@ -309,12 +310,89 @@ class DashboardService:
             if vol_decimal > 0.0:
                 sharpe = (annual_return - rf_pct) / (vol_decimal * 100.0)
 
+        # ── VaR 95% (parametric, daily) ───────────────────────────────────────
+        portfolio_value = Decimal(str(round(values[-1], 2)))
+        daily_vol_decimal = (vol_annual / 100.0) / math.sqrt(252)
+        var_95_pct = Decimal(str(round(daily_vol_decimal * 1.6449 * 100.0, 2)))
+        var_95_brl = (portfolio_value * Decimal(str(round(daily_vol_decimal * 1.6449, 6)))).quantize(Decimal("0.01"))
+
+        # ── Stress tests: query current asset class composition ───────────────
+        stress_sql = text(
+            """
+            WITH holdings AS (
+                SELECT asset_class, ticker,
+                       SUM(CASE WHEN transaction_type = 'buy' THEN quantity ELSE 0 END) -
+                       SUM(CASE WHEN transaction_type = 'sell' THEN quantity ELSE 0 END) AS net_qty
+                FROM transactions
+                WHERE tenant_id = :tid AND transaction_type IN ('buy','sell')
+                GROUP BY asset_class, ticker
+                HAVING SUM(CASE WHEN transaction_type = 'buy' THEN quantity ELSE 0 END) -
+                       SUM(CASE WHEN transaction_type = 'sell' THEN quantity ELSE 0 END) > 0
+            ),
+            latest_snaps AS (
+                SELECT DISTINCT ON (ticker) ticker, regular_market_price
+                FROM screener_snapshots ORDER BY ticker, snapshot_date DESC
+            )
+            SELECT h.asset_class,
+                   SUM(h.net_qty * COALESCE(ls.regular_market_price, 0)) AS class_value
+            FROM holdings h
+            LEFT JOIN latest_snaps ls ON ls.ticker = h.ticker
+            GROUP BY h.asset_class
+            """
+        )
+        srow = await db.execute(stress_sql, {"tid": tenant_id})
+        equity_v = fii_v = fi_v = crypto_v = 0.0
+        for ac, val in srow.fetchall():
+            v = float(val or 0)
+            ac_s = str(ac or "").lower()
+            if ac_s in ("acao", "etf", "bdr"):
+                equity_v += v
+            elif ac_s == "fii":
+                fii_v += v
+            elif ac_s in ("renda_fixa", "tesouro_direto"):
+                fi_v += v
+            elif ac_s == "crypto":
+                crypto_v += v
+
+        pv = float(portfolio_value) or 1.0
+
+        def _scenario(label: str, assumption: str, impact_brl: float) -> StressScenario:
+            pct = (impact_brl / pv * 100.0) if pv else 0.0
+            return StressScenario(
+                label=label,
+                assumption=assumption,
+                impact_brl=Decimal(str(round(impact_brl, 2))),
+                impact_pct=Decimal(str(round(pct, 2))),
+            )
+
+        stress_scenarios = [
+            _scenario(
+                "Ibov −20%",
+                "Ações/ETFs −20%, FIIs −12%",
+                -(equity_v * 0.20 + fii_v * 0.12),
+            ),
+            _scenario(
+                "SELIC +200bps",
+                "RF (duration 2a) −4%, FIIs −3%",
+                -(fi_v * 0.04 + fii_v * 0.03),
+            ),
+            _scenario(
+                "BRL −15%",
+                "Cripto −5% (correlação parcial)",
+                -(crypto_v * 0.05),
+            ),
+        ]
+
         return RiskMetricsResponse(
             volatility_annual_pct=Decimal(str(round(vol_annual, 2))),
             max_drawdown_pct=Decimal(str(round(max_drawdown, 2))),
             positive_days_pct=Decimal(str(round(pos_pct, 2))),
             annual_return_pct=Decimal(str(round(annual_return, 2))) if annual_return is not None else None,
             sharpe_ratio=Decimal(str(round(sharpe, 3))) if sharpe is not None else None,
+            var_95_pct=var_95_pct,
+            var_95_brl=var_95_brl,
+            stress_scenarios=stress_scenarios,
+            portfolio_value_brl=portfolio_value,
             trading_days=len(values),
             data_available=True,
         )

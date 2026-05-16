@@ -41,14 +41,25 @@ class DashboardSummaryResponse(BaseModel):
     recent_transactions: list[RecentTransaction]
 
 
+class StressScenario(BaseModel):
+    label: str
+    assumption: str
+    impact_brl: Decimal
+    impact_pct: Decimal
+
+
 class RiskMetricsResponse(BaseModel):
     volatility_annual_pct: Decimal
     max_drawdown_pct: Decimal
     positive_days_pct: Decimal
-    sharpe_ratio: Decimal | None = None   # None when risk-free rate unavailable
+    sharpe_ratio: Decimal | None = None
     annual_return_pct: Decimal | None = None
+    var_95_pct: Decimal | None = None        # daily parametric VaR at 95% confidence (% portfolio)
+    var_95_brl: Decimal | None = None        # daily VaR in R$
+    stress_scenarios: list[StressScenario] = []
+    portfolio_value_brl: Decimal | None = None
     trading_days: int
-    data_available: bool  # False when < 5 days of data
+    data_available: bool
 
 
 class DividendRankingItem(BaseModel):
