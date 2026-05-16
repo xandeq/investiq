@@ -8,7 +8,7 @@ interface Props {
 
 export function AnalysisDisclaimer({ dataTimestamp }: Props) {
   return (
-    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+    <div data-testid="cvm-disclaimer" className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
       <p className="text-sm text-amber-800 font-medium">
         Análise informativa — não constitui recomendação de investimento pessoal.
         O conteúdo é apresentado unicamente para fins educacionais e informativos,

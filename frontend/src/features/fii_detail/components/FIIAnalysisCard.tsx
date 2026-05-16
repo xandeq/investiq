@@ -24,6 +24,7 @@ export function FIIAnalysisCard({
 
   return (
     <div className="border rounded-lg p-6 space-y-4">
+      <AnalysisDisclaimer />
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Analise IA do FII</h3>
         {!isCompleted && !isLoading && (
@@ -53,12 +54,9 @@ export function FIIAnalysisCard({
       )}
 
       {isCompleted && narrative && (
-        <>
-          <AnalysisDisclaimer />
-          <div className="prose prose-sm max-w-none">
-            <p className="whitespace-pre-line">{narrative}</p>
-          </div>
-        </>
+        <div className="prose prose-sm max-w-none">
+          <p className="whitespace-pre-line">{narrative}</p>
+        </div>
       )}
     </div>
   );

@@ -68,18 +68,8 @@ test.describe('FII Detail - CVM Disclaimer Regression', () => {
     await page.waitForLoadState('networkidle').catch(() => null);
     await page.waitForTimeout(3000);
 
-    // Trigger analysis
-    const button = page.locator('button:has-text("Gerar Analise IA")');
-    if (await button.isVisible()) {
-      await button.click();
-      // Wait for analysis to complete (up to 90s)
-      await page.waitForTimeout(5000);
-      // Check for disclaimer text (CVM warning)
-      const disclaimer = page.locator('[data-testid="cvm-disclaimer"]').or(
-        page.getByText(/recomenda.*investimento/i)
-      );
-      // Disclaimer appears after analysis completes or may already be visible
-      await expect(disclaimer).toBeVisible({ timeout: 90000 });
-    }
+    // Disclaimer must always be visible on the analysis card (CVM compliance)
+    const disclaimer = page.locator('[data-testid="cvm-disclaimer"]').first();
+    await expect(disclaimer).toBeVisible({ timeout: 10000 });
   });
 });
