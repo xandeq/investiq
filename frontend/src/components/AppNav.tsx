@@ -104,13 +104,14 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "IA & Análise",
     icon: Sparkles,
-    activePrefixes: ["/ai", "/insights", "/opportunity-detector", "/swing-trade"],
+    activePrefixes: ["/ai", "/insights", "/opportunity-detector", "/swing-trade", "/inteligencia"],
     items: [
       { href: "/ai/advisor", label: "Advisor de Carteira", icon: BrainCircuit },
       { href: "/ai", label: "Análise de Ativo", icon: BrainCircuit, exact: true },
       { href: "/insights", label: "Insights", icon: ListChecks },
       { href: "/opportunity-detector", label: "Oportunidades", icon: Zap },
       { href: "/swing-trade", label: "Swing Trade", icon: Activity },
+      { href: "/inteligencia", label: "Inteligência", icon: ScrollText },
     ],
   },
   {

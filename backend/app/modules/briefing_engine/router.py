@@ -182,6 +182,93 @@ async def get_sentiment(
     }
 
 
+@router.get("/market-heat")
+@limiter.limit("20/minute")
+async def get_market_heat(
+    request: Request,
+    limit: int = Query(30, ge=5, le=100, description="Max number of tickers to return"),
+    hours: int = Query(24, ge=1, le=72, description="Look-back window in hours"),
+    current_user=Depends(get_current_user),
+) -> dict:
+    """Return sentiment heat map across B3 tickers.
+
+    Aggregates sentiment_snapshots grouped by ticker for the given time window.
+    Sorted by total mention_count descending. Used by the Intelligence Dashboard.
+    """
+    import os
+    import psycopg2
+
+    db_url = os.environ.get("DATABASE_URL", "")
+    if not db_url:
+        raise HTTPException(status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE, detail="DB not configured")
+    db_url = db_url.replace("postgresql+asyncpg://", "postgresql://").replace("asyncpg://", "postgresql://")
+
+    try:
+        conn = psycopg2.connect(db_url)
+        with conn.cursor() as cur:
+            # Aggregate per ticker: weighted avg score + total mentions + source breakdown
+            cur.execute(
+                """
+                SELECT
+                    ticker,
+                    SUM(mention_count) AS total_mentions,
+                    CASE WHEN SUM(mention_count) > 0
+                        THEN SUM(score * mention_count) / SUM(mention_count)
+                        ELSE AVG(score)
+                    END AS weighted_score,
+                    COUNT(*) AS snapshot_count,
+                    MAX(created_at) AS last_updated,
+                    json_agg(DISTINCT source) AS sources
+                FROM sentiment_snapshots
+                WHERE created_at >= NOW() - make_interval(hours => %s)
+                GROUP BY ticker
+                ORDER BY total_mentions DESC
+                LIMIT %s
+                """,
+                (hours, limit),
+            )
+            rows = cur.fetchall()
+
+            # Also fetch top Reddit mentions separately (mention_count last 24h)
+            cur.execute(
+                """
+                SELECT ticker, SUM(mention_count) AS mentions
+                FROM sentiment_snapshots
+                WHERE source = 'reddit'
+                  AND created_at >= NOW() - INTERVAL '24 hours'
+                GROUP BY ticker
+                ORDER BY mentions DESC
+                LIMIT 10
+                """,
+            )
+            reddit_top = cur.fetchall()
+        conn.close()
+    except Exception as exc:
+        logger.error("briefing/market-heat DB error: %s", exc)
+        raise HTTPException(status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE, detail="DB error")
+
+    tickers = [
+        {
+            "ticker": r[0],
+            "mention_count": int(r[1]) if r[1] else 0,
+            "score": round(float(r[2]), 3) if r[2] is not None else 0.0,
+            "snapshot_count": int(r[3]),
+            "last_updated": r[4].isoformat() if r[4] else None,
+            "sources": r[5] or [],
+        }
+        for r in rows
+    ]
+
+    return {
+        "hours": hours,
+        "ticker_count": len(tickers),
+        "tickers": tickers,
+        "reddit_top10": [
+            {"ticker": r[0], "mentions": int(r[1])} for r in reddit_top
+        ],
+    }
+
+
 @router.get("/news-feed")
 @limiter.limit("30/minute")
 async def get_news_feed(
