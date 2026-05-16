@@ -168,3 +168,26 @@ class DividendIncomeSummary(BaseModel):
     biggest_month_brl: Decimal
     biggest_month_label: str   # "Abr/2026"
     data_available: bool
+
+
+class TargetAllocationItem(BaseModel):
+    asset_class: str
+    target_pct: Decimal
+
+
+class RebalancingSlot(BaseModel):
+    asset_class: str
+    current_value: Decimal
+    current_pct: Decimal
+    target_pct: Decimal
+    drift_brl: Decimal          # positive = overweight, negative = underweight
+    drift_pct: Decimal          # percentage points above/below target
+    action: str                 # "comprar", "vender", "manter"
+
+
+class RebalancingPlan(BaseModel):
+    total_portfolio: Decimal
+    slots: list[RebalancingSlot]
+    has_targets: bool
+    max_drift_pct: Decimal      # worst single drift in pp
+    targets_sum_pct: Decimal    # should be ~100

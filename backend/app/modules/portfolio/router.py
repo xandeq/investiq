@@ -34,6 +34,8 @@ from app.modules.portfolio.schemas import (
     BenchmarkResponse,
     DividendResponse,
     DividendIncomeSummary,
+    TargetAllocationItem,
+    RebalancingPlan,
 )
 from app.modules.portfolio.service import PortfolioService
 
@@ -273,3 +275,42 @@ async def get_dividend_income(
     Summary includes 12m total, monthly avg, YTD total, and biggest month.
     """
     return await service.get_dividend_income(db, tenant_id, months=months)
+
+
+@router.get("/targets", response_model=list[TargetAllocationItem])
+async def get_targets(
+    db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+    service: PortfolioService = Depends(_get_service),
+) -> list[TargetAllocationItem]:
+    """Return the tenant's target allocation percentages by asset class."""
+    return await service.get_targets(db, tenant_id)
+
+
+@router.put("/targets", response_model=list[TargetAllocationItem])
+async def upsert_targets(
+    items: list[TargetAllocationItem],
+    db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+    service: PortfolioService = Depends(_get_service),
+) -> list[TargetAllocationItem]:
+    """Replace target allocation percentages for the tenant.
+
+    Replaces all existing targets atomically. Sum of target_pct need not equal 100
+    (allows partial target setting); the UI warns when it does not.
+    """
+    return await service.upsert_targets(db, tenant_id, items)
+
+
+@router.get("/rebalancing-plan", response_model=RebalancingPlan)
+async def get_rebalancing_plan(
+    db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+    service: PortfolioService = Depends(_get_service),
+) -> RebalancingPlan:
+    """Compute current vs target allocation drift and rebalancing actions.
+
+    Returns per-class drift in R$ and percentage points, plus action labels.
+    Requires targets to be set via PUT /portfolio/targets first.
+    """
+    return await service.get_rebalancing_plan(db, tenant_id)

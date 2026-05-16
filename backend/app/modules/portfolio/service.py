@@ -35,6 +35,9 @@ from app.modules.portfolio.schemas import (
     DividendResponse,
     DividendIncomeMonth,
     DividendIncomeSummary,
+    TargetAllocationItem,
+    RebalancingSlot,
+    RebalancingPlan,
 )
 from app.modules.portfolio.cmp import build_position_from_history
 
@@ -521,4 +524,117 @@ class PortfolioService:
             biggest_month_brl=(biggest.total if biggest else Decimal("0")).quantize(Decimal("0.01")),
             biggest_month_label=biggest_label,
             data_available=True,
+        )
+
+    async def get_targets(self, db: AsyncSession, tenant_id: str) -> list[TargetAllocationItem]:
+        from app.modules.portfolio.models import PortfolioTarget
+        result = await db.execute(
+            select(PortfolioTarget)
+            .where(PortfolioTarget.tenant_id == tenant_id)
+            .order_by(PortfolioTarget.asset_class)
+        )
+        return [
+            TargetAllocationItem(asset_class=t.asset_class, target_pct=t.target_pct)
+            for t in result.scalars().all()
+        ]
+
+    async def upsert_targets(
+        self,
+        db: AsyncSession,
+        tenant_id: str,
+        items: list[TargetAllocationItem],
+    ) -> list[TargetAllocationItem]:
+        from sqlalchemy import text
+        from app.modules.portfolio.models import PortfolioTarget
+
+        # Delete existing targets for this tenant and re-insert
+        await db.execute(
+            text("DELETE FROM portfolio_targets WHERE tenant_id = :tid"),
+            {"tid": tenant_id},
+        )
+        for item in items:
+            db.add(PortfolioTarget(
+                tenant_id=tenant_id,
+                asset_class=item.asset_class,
+                target_pct=item.target_pct,
+            ))
+        await db.commit()
+        return await self.get_targets(db, tenant_id)
+
+    async def get_rebalancing_plan(
+        self,
+        db: AsyncSession,
+        tenant_id: str,
+        redis_client=None,
+    ) -> RebalancingPlan:
+        pnl = await self.get_pnl(db, tenant_id, redis_client)
+        total = float(pnl.total_portfolio_value)
+
+        # Current allocation by asset class
+        current: dict[str, float] = {}
+        for item in pnl.allocation:
+            current[item.asset_class] = float(item.total_value)
+
+        targets = await self.get_targets(db, tenant_id)
+        has_targets = bool(targets)
+
+        if not has_targets or total == 0:
+            # Return current state without targets for display
+            slots = []
+            for ac, val in sorted(current.items()):
+                cur_pct = (val / total * 100) if total else 0
+                slots.append(RebalancingSlot(
+                    asset_class=ac,
+                    current_value=Decimal(str(round(val, 2))),
+                    current_pct=Decimal(str(round(cur_pct, 2))),
+                    target_pct=Decimal("0"),
+                    drift_brl=Decimal("0"),
+                    drift_pct=Decimal("0"),
+                    action="—",
+                ))
+            return RebalancingPlan(
+                total_portfolio=Decimal(str(round(total, 2))),
+                slots=slots,
+                has_targets=False,
+                max_drift_pct=Decimal("0"),
+                targets_sum_pct=Decimal("0"),
+            )
+
+        target_map = {t.asset_class: float(t.target_pct) for t in targets}
+        all_classes = sorted(set(list(current.keys()) + list(target_map.keys())))
+
+        slots = []
+        max_drift = 0.0
+        for ac in all_classes:
+            cur_val = current.get(ac, 0.0)
+            cur_pct = (cur_val / total * 100) if total else 0.0
+            tgt_pct = target_map.get(ac, 0.0)
+            tgt_val = total * tgt_pct / 100
+            drift_brl = cur_val - tgt_val
+            drift_pct = cur_pct - tgt_pct
+            if abs(drift_pct) > max_drift:
+                max_drift = abs(drift_pct)
+            if drift_pct > 1.0:
+                action = "vender"
+            elif drift_pct < -1.0:
+                action = "comprar"
+            else:
+                action = "manter"
+            slots.append(RebalancingSlot(
+                asset_class=ac,
+                current_value=Decimal(str(round(cur_val, 2))),
+                current_pct=Decimal(str(round(cur_pct, 2))),
+                target_pct=Decimal(str(round(tgt_pct, 2))),
+                drift_brl=Decimal(str(round(drift_brl, 2))),
+                drift_pct=Decimal(str(round(drift_pct, 2))),
+                action=action,
+            ))
+
+        targets_sum = sum(t.target_pct for t in targets)
+        return RebalancingPlan(
+            total_portfolio=Decimal(str(round(total, 2))),
+            slots=slots,
+            has_targets=True,
+            max_drift_pct=Decimal(str(round(max_drift, 2))),
+            targets_sum_pct=targets_sum,
         )

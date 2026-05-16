@@ -163,3 +163,23 @@ class CorporateAction(Base):
             f"<CorporateAction id={self.id} ticker={self.ticker} "
             f"type={self.action_type} factor={self.factor}>"
         )
+
+
+class PortfolioTarget(Base):
+    """Target allocation percentage per asset class per tenant.
+
+    Used by the rebalancing engine to compute drift and suggest trades.
+    Unique constraint on (tenant_id, asset_class) — one row per class per user.
+    """
+    __tablename__ = "portfolio_targets"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    asset_class: Mapped[str] = mapped_column(String(32), nullable=False)
+    target_pct: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, server_default=func.now(), onupdate=_utcnow
+    )
+
+    def __repr__(self) -> str:
+        return f"<PortfolioTarget tenant={self.tenant_id} class={self.asset_class} {self.target_pct}%>"
