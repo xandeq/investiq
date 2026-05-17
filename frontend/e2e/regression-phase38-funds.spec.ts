@@ -70,4 +70,30 @@ test.describe('Phase 38 Regression — RLS SET LOCAL', () => {
     });
     expect(r.status()).toBe(404);
   });
+
+  test('feature: GET /funds/info/{cnpj} returns 200 with fund data for known CNPJ', async ({ request }) => {
+    // CNPJ 42754444000162 = Istambul FI Multimercado — seeded by refresh_fund_registry task
+    const token = await getAuthCookie();
+    const r = await request.get(`${API}/funds/info/42754444000162`, {
+      headers: { Cookie: `access_token=${token}` },
+    });
+    expect(r.status()).toBe(200);
+    const body = await r.json();
+    expect(body).toHaveProperty('cnpj', '42754444000162');
+    expect(body).toHaveProperty('name');
+  });
+
+  test('bug: celery worker image must include funds module (tasks registered)', async ({ request }) => {
+    // Verifies funds.refresh_fund_registry ran and populated fund_info.
+    // If this fails, the celery worker image was not rebuilt after Phase 38 deploy.
+    const token = await getAuthCookie();
+    const r = await request.get(`${API}/funds/search?q=istambul`, {
+      headers: { Cookie: `access_token=${token}` },
+    });
+    expect(r.status()).toBe(200);
+    const body = await r.json();
+    expect(Array.isArray(body)).toBe(true);
+    // At least 1 fund should be found after registry sync
+    expect(body.length).toBeGreaterThan(0);
+  });
 });
