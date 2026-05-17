@@ -70,8 +70,11 @@ async def _get_tier(
 ) -> str:
     """Dependency: return the LLM routing tier for the current user.
 
-    "admin" — admin emails: free pool first, paid as last resort.
+    Precedence: pro+ultra wins over admin so admins can opt into the premium
+    chain by toggling ai_mode=ultra. Otherwise admin email → admin tier.
+
     "ultra" — pro users with ai_mode="ultra": premium model chain.
+    "admin" — admin emails (without ultra mode): free pool first, paid as last resort.
     "paid"  — pro users with ai_mode="standard": paid chain first, free as fallback.
     "free"  — free-plan / trial users: free pool only.
     """
@@ -81,11 +84,14 @@ async def _get_tier(
     user = result.scalar_one_or_none()
     if user is None:
         return "free"  # safe default
-    if user.email in settings.ADMIN_EMAILS:
+    ai_mode = getattr(user, "ai_mode", "standard") or "standard"
+    is_admin = user.email in settings.ADMIN_EMAILS
+    if ai_mode == "ultra" and (user.plan == "pro" or is_admin):
+        return "ultra"
+    if is_admin:
         return "admin"
     if user.plan == "pro":
-        ai_mode = getattr(user, "ai_mode", "standard") or "standard"
-        return "ultra" if ai_mode == "ultra" else "paid"
+        return "paid"
     return "free"  # free plan or active trial
 
 

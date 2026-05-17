@@ -177,7 +177,9 @@ async def update_ai_mode(
     if user is None:
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")
 
-    if data.ai_mode == "ultra" and user.plan != "pro":
+    from app.core.config import settings
+    is_admin = user.email in settings.ADMIN_EMAILS
+    if data.ai_mode == "ultra" and user.plan != "pro" and not is_admin:
         raise HTTPException(
             status_code=403,
             detail="Modo Ultra requer plano Pro. Faça upgrade para acessar modelos premium.",
