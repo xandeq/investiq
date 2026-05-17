@@ -49,6 +49,14 @@
 | Salvar cenários / histórico de simulações | Enhancement futuro |
 | Comparação com IBOVESPA histórico | Sem feed histórico de índice disponível |
 
+## v1.9 Requirements
+
+### Notificações Telegram
+
+- [ ] **TG-01**: Usuário pro pode informar seu Telegram chat_id em `/profile` → seção "Notificações" (instrução de como obter o chat_id via @userinfobot + campo de texto + botão salvar) — campo persiste no banco e reaparece ao recarregar
+- [ ] **TG-02**: Backend envia mensagem Telegram automática para cada usuário pro com `telegram_chat_id` configurado quando um novo sinal de entrada é gerado — mensagem inclui ticker, tipo (compra/venda), preço, grau do sinal e link para a página do ativo
+- [ ] **TG-03**: Usuário pode desconectar o Telegram (limpar o chat_id) via botão "Desconectar" na mesma seção
+
 ## Traceability
 
 | Requirement | Phase | Status |
@@ -65,12 +73,16 @@
 | SIM-01 | Phase 28 | Complete |
 | SIM-02 | Phase 28 | Complete |
 | SIM-03 | Phase 28 | Complete |
+| TG-01 | Phase 39 | Planned |
+| TG-02 | Phase 39 | Planned |
+| TG-03 | Phase 39 | Planned |
 
 **Coverage:**
 - v1.4 requirements: 7 total — all complete ✓
 - v1.6 requirements: 2 total — all complete ✓
 - v1.7 requirements: 3 total — all mapped to Phase 28 ✓
+- v1.9 requirements: 3 total — all mapped to Phase 39 ○
 
 ---
 *Requirements defined: 2026-04-12*
-*Last updated: 2026-04-19 — SIM-01/02/03 promoted from deferred to v1.7 active*
+*Last updated: 2026-05-17 — TG-01/02/03 added for Phase 39 (Telegram notifications)*

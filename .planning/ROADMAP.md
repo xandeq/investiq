@@ -496,10 +496,49 @@ Por isso, 1 fase: cenários sem retorno projetado (SIM-02) são inúteis; delta 
 ## Phases
 
 - [x] **Phase 28: Simulador de Alocação** — Página `/simulador` com formulário (valor + prazo), 3 cenários de alocação (RF/ações/FIIs) com retorno projetado via TaxEngine + macro rates, e delta vs carteira atual para usuários com portfólio cadastrado (completed 2026-04-19)
+- [ ] **Phase 39: Notificações Telegram por Usuário** — Cada usuário pro conecta seu Telegram via `/profile`, informando o `chat_id`. Quando um sinal é gerado, o backend envia notificação personalizada via bot para o chat_id do usuário.
 
 ---
 
 ## Phase Details
+
+### Phase 39: Notificações Telegram por Usuário
+
+**Goal:** Usuário pro configura seu Telegram chat_id no perfil e passa a receber notificações automáticas quando sinais de entrada são gerados para tickers que ele acompanha
+
+**Milestone:** v1.9 — Notificações
+
+**Depends on:**
+- `signal_engine` (Phases 26+) — geração de sinais de entrada
+- `users` table — migration adiciona `telegram_chat_id VARCHAR(32)`
+- Telegram Bot Token — já configurado (TELEGRAM_BOT_TOKEN em .secrets.env)
+- `telegram_chat_id 721438452` já em uso no briefing_engine (admin)
+
+**Requirements:** TG-01, TG-02, TG-03
+
+**Acceptance criteria:**
+1. `PATCH /profile/telegram` aceita `{"telegram_chat_id": "123456789"}` e persiste no banco
+2. `GET /profile` retorna `telegram_chat_id` (null ou string)
+3. UI em `/profile` → seção "Notificações" com instrução para obter chat_id + campo de texto + botão salvar
+4. Quando sinal gerado por `signal_engine`, backend envia mensagem via `requests.post` para Telegram API para cada usuário pro com `telegram_chat_id` não nulo
+5. E2E Playwright: conectar Telegram via UI → campo salvo → logout/login → campo persistido
+
+**Implementation notes:**
+- Migration 0038: `ALTER TABLE users ADD COLUMN telegram_chat_id VARCHAR(32) DEFAULT NULL`
+- Novo endpoint: `PATCH /profile/telegram` (ou extend `PATCH /profile`)
+- Serviço de envio: `send_telegram_notification(chat_id, message)` em `app/core/telegram.py`
+- Trigger: após `signal_engine` gravar novo sinal → task Celery `notify_users_for_signal`
+- Mensagem: ticker, tipo (compra/venda), preço alvo, grau do sinal
+- Sem histórico de notificações em v1 (só envio)
+- Rate limit: 1 notificação por sinal por usuário (evitar duplicatas com Redis lock)
+
+**Plans:** 2 plans
+
+Plans:
+- [ ] 39-01-PLAN.md — Backend: migration 0038 + User.telegram_chat_id + app/core/telegram.py + GET/PATCH /profile/telegram + notify_users_for_signal Celery task + signal_engine hook + 12 unit tests
+- [ ] 39-02-PLAN.md — Frontend: TelegramCard.tsx (connect/disconnect states + @userinfobot instructions) + ProfileContent.tsx wiring + profile/api.ts client + Playwright E2E v1.9-telegram-notifications.spec.ts (3 tests)
+
+---
 
 ### Phase 28: Simulador de Alocação
 
