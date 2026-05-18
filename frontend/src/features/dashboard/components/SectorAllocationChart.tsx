@@ -1,5 +1,6 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import {
   BarChart,
   Bar,
@@ -11,6 +12,7 @@ import {
 } from "recharts";
 import { apiClient } from "@/lib/api-client";
 import { formatBRL, formatPct } from "@/lib/formatters";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 
 interface SectorItem {
   sector: string;
@@ -44,22 +46,20 @@ export function SectorAllocationChart() {
 
   if (isLoading) {
     return (
-      <div className="rounded-lg bg-white p-6">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4">
-          Alocação por Setor
-        </h3>
-        <div className="h-48 rounded bg-gray-100 animate-pulse" />
+      <div className="rounded-xl border border-zinc-200 bg-white p-5 space-y-4">
+        <ShimmerSkeleton className="h-3 w-32" />
+        <ShimmerSkeleton className="h-44 rounded-lg" />
       </div>
     );
   }
 
   if (!data || data.sectors.length === 0) {
     return (
-      <div className="rounded-lg bg-white p-6">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4">
+      <div className="rounded-xl border border-zinc-200 bg-white p-5">
+        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-4">
           Alocação por Setor
         </h3>
-        <div className="flex items-center justify-center h-20 text-muted-foreground text-sm">
+        <div className="flex items-center justify-center h-20 text-zinc-400 text-sm">
           Registre transações de ações para ver alocação por setor
         </div>
       </div>
@@ -78,8 +78,13 @@ export function SectorAllocationChart() {
   const chartHeight = Math.max(180, chartData.length * 40);
 
   return (
-    <div className="rounded-lg bg-white p-6">
-      <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4">
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      className="rounded-xl border border-zinc-200 bg-white p-5"
+    >
+      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-4">
         Alocação por Setor
       </h3>
       <ResponsiveContainer width="100%" height={chartHeight}>
@@ -106,10 +111,10 @@ export function SectorAllocationChart() {
               if (!active || !payload?.[0]) return null;
               const d = payload[0].payload as typeof chartData[number];
               return (
-                <div className="rounded-md bg-white border border-gray-100 px-3 py-2 text-xs shadow-sm">
-                  <p className="font-semibold mb-1">{d.sectorFull}</p>
-                  <p>{formatBRL(d.value)}</p>
-                  <p>{formatPct(d.pctLabel)}</p>
+                <div className="rounded-lg bg-white border border-zinc-200 px-3 py-2 text-xs shadow-sm">
+                  <p className="font-semibold text-zinc-800 mb-1">{d.sectorFull}</p>
+                  <p className="text-zinc-600">{formatBRL(d.value)}</p>
+                  <p className="text-zinc-400">{formatPct(d.pctLabel)}</p>
                 </div>
               );
             }}
@@ -121,6 +126,6 @@ export function SectorAllocationChart() {
           </Bar>
         </BarChart>
       </ResponsiveContainer>
-    </div>
+    </motion.div>
   );
 }

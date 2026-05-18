@@ -1,7 +1,9 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { apiClient } from "@/lib/api-client";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 
 interface DividendMonth {
   month: string;
@@ -40,16 +42,26 @@ export function DividendIncomeCard() {
   });
 
   if (isLoading) {
-    return <div className="h-48 rounded-xl bg-gray-100 animate-pulse" />;
+    return (
+      <div className="rounded-xl border border-zinc-100 bg-white p-4 space-y-3">
+        <ShimmerSkeleton className="h-3 w-32" />
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <ShimmerSkeleton key={i} className="h-12 rounded-lg" />
+          ))}
+        </div>
+        <ShimmerSkeleton className="h-40 rounded-lg" />
+      </div>
+    );
   }
 
   if (!data || !data.data_available) {
     return (
-      <div className="rounded-xl border bg-white p-4">
-        <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+      <div className="rounded-xl border border-zinc-200 bg-white p-4">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-2">
           Proventos Recebidos
         </p>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-zinc-400">
           Nenhum provento registrado. Adicione transações do tipo Dividendo, JCP ou Amortização.
         </p>
       </div>
@@ -76,21 +88,32 @@ export function DividendIncomeCard() {
   ];
 
   return (
-    <div className="rounded-xl border bg-white p-4 space-y-4">
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      className="rounded-xl border border-zinc-200 bg-white p-4 space-y-4"
+    >
       <div className="flex items-center justify-between">
-        <p className="text-xs font-bold uppercase tracking-wider text-gray-500">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
           Proventos Recebidos
         </p>
-        <span className="text-xs text-gray-400">últimos 24 meses</span>
+        <span className="text-[11px] text-zinc-300">últimos 24 meses</span>
       </div>
 
       {/* Summary chips */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {summaryCards.map(({ label, value, color }) => (
-          <div key={label} className="rounded-lg bg-gray-50 px-3 py-2">
-            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">{label}</p>
-            <p className={`text-sm font-extrabold mt-0.5 ${color}`}>{value}</p>
-          </div>
+        {summaryCards.map(({ label, value, color }, i) => (
+          <motion.div
+            key={label}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1], delay: i * 0.05 }}
+            className="rounded-lg bg-zinc-50 border border-zinc-100 px-3 py-2"
+          >
+            <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide">{label}</p>
+            <p className={`text-sm font-extrabold mt-0.5 tabular-nums ${color}`}>{value}</p>
+          </motion.div>
         ))}
       </div>
 
@@ -122,6 +145,6 @@ export function DividendIncomeCard() {
           </BarChart>
         </ResponsiveContainer>
       )}
-    </div>
+    </motion.div>
   );
 }
