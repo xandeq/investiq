@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: - Client-side filtering with useMemo
 status: unknown
-last_updated: "2026-05-18T00:31:03.719Z"
+last_updated: "2026-05-18T01:05:38.339Z"
 progress:
   total_phases: 2
   completed_phases: 2
@@ -196,6 +196,8 @@ SIM-01 (form → scenarios), SIM-02 (projected returns), SIM-03 (delta) are tigh
 - [Phase 28]: data-testid=scenario-{key} on card buttons for Plan 03 Playwright selectors
 - [Phase 39-telegram-notifications]: trial_ends_at timezone normalization required for SQLite+PostgreSQL compatibility in _is_pro_or_trial
 - [Phase 39-telegram-notifications]: Disconnect (null telegram_chat_id) always allowed for any plan — pro gate only blocks non-null writes
+- [Phase 39-telegram-notifications]: TelegramCard detects pro gate via LimitError.type=LIMIT from apiClient — no plan prop, server-driven 403 response
+- [Phase 39-telegram-notifications]: TelegramCard rendered ONLY in summary view (not wizard/edit) — matches AIModeCard/EmailPrefsCard placement
 
 ## Open Questions (resolve in Phase 28)
 
@@ -236,3 +238,4 @@ SIM-01 (form → scenarios), SIM-02 (projected returns), SIM-03 (delta) are tigh
 | Phase 28 P01 | 240 | 2 tasks | 5 files |
 | Phase 28 P02 | 15 | 2 tasks | 2 files |
 | Phase 39-telegram-notifications P01 | 1800 | 3 tasks | 7 files |
+| Phase 39-telegram-notifications P02 | 2400 | 2 tasks | 4 files |

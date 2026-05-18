@@ -496,7 +496,7 @@ Por isso, 1 fase: cenários sem retorno projetado (SIM-02) são inúteis; delta 
 ## Phases
 
 - [x] **Phase 28: Simulador de Alocação** — Página `/simulador` com formulário (valor + prazo), 3 cenários de alocação (RF/ações/FIIs) com retorno projetado via TaxEngine + macro rates, e delta vs carteira atual para usuários com portfólio cadastrado (completed 2026-04-19)
-- [ ] **Phase 39: Notificações Telegram por Usuário** — Cada usuário pro conecta seu Telegram via `/profile`, informando o `chat_id`. Quando um sinal é gerado, o backend envia notificação personalizada via bot para o chat_id do usuário.
+- [x] **Phase 39: Notificações Telegram por Usuário** — Cada usuário pro conecta seu Telegram via `/profile`, informando o `chat_id`. Quando um sinal é gerado, o backend envia notificação personalizada via bot para o chat_id do usuário. (completed 2026-05-18)
 
 ---
 
@@ -532,11 +532,11 @@ Por isso, 1 fase: cenários sem retorno projetado (SIM-02) são inúteis; delta 
 - Sem histórico de notificações em v1 (só envio)
 - Rate limit: 1 notificação por sinal por usuário (evitar duplicatas com Redis lock)
 
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 39-01-PLAN.md — Backend: migration 0038 + User.telegram_chat_id + app/core/telegram.py + GET/PATCH /profile/telegram + notify_users_for_signal Celery task + signal_engine hook + 12 unit tests
-- [ ] 39-02-PLAN.md — Frontend: TelegramCard.tsx (connect/disconnect states + @userinfobot instructions) + ProfileContent.tsx wiring + profile/api.ts client + Playwright E2E v1.9-telegram-notifications.spec.ts (3 tests)
+- [x] 39-02-PLAN.md — Frontend: TelegramCard.tsx (connect/disconnect states + @userinfobot instructions) + ProfileContent.tsx wiring + profile/api.ts client + Playwright E2E v1.9-telegram-notifications.spec.ts (3 tests)
 
 ---
 
