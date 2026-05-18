@@ -1,6 +1,6 @@
 "use client";
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendUp, TrendDown, Minus } from "@phosphor-icons/react";
 import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 import type { SwingSignalItem } from "../types";
 
@@ -24,13 +24,13 @@ const SIGNAL_CONFIG: Record<
     label: "COMPRAR",
     pill: "bg-emerald-50 text-emerald-700 border-emerald-200 ring-1 ring-emerald-300/60",
     dot: "bg-emerald-400",
-    Icon: TrendingUp,
+    Icon: TrendUp,
   },
   sell: {
     label: "VENDER",
     pill: "bg-red-50 text-red-600 border-red-200 ring-1 ring-red-300/60",
     dot: "bg-red-400",
-    Icon: TrendingDown,
+    Icon: TrendDown,
   },
   neutral: {
     label: "NEUTRO",
@@ -56,7 +56,7 @@ function SignalBadge({ signal }: { signal: string }) {
           aria-hidden
         />
       )}
-      <Icon size={11} strokeWidth={2.5} aria-hidden />
+      <Icon size={11} weight="bold" aria-hidden />
       {cfg.label}
     </span>
   );

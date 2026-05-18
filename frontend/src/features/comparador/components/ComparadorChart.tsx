@@ -39,14 +39,14 @@ function formatBRLFull(value: number): string {
 export function ComparadorChart({ data, produtoRfLabel }: Props) {
   if (!data || data.length === 0) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-white p-6 text-center text-sm text-gray-500">
+      <div className="rounded-lg border border-zinc-200 bg-white p-6 text-center text-sm text-zinc-500">
         Sem dados para o gráfico.
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
+    <div className="rounded-lg border border-zinc-200 bg-white p-4">
       <h3 className="text-sm font-bold mb-3">Evolução do patrimônio (R$)</h3>
       <ResponsiveContainer width="100%" height={320}>
         <LineChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
@@ -101,7 +101,7 @@ export function ComparadorChart({ data, produtoRfLabel }: Props) {
           />
         </LineChart>
       </ResponsiveContainer>
-      <p className="mt-2 text-xs text-gray-400 text-center">
+      <p className="mt-2 text-xs text-zinc-400 text-center">
         Projeção linear com taxa líquida constante — estimativa educacional.
       </p>
     </div>

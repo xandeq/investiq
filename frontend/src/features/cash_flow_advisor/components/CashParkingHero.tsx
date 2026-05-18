@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, CalendarDays, RefreshCw, ShieldCheck, WalletCards } from "lucide-react";
+import { ArrowRight, CalendarDots, ArrowClockwise, ShieldCheck, Wallet } from "@phosphor-icons/react";
 import type { CashParkingResponse } from "../types";
 
 function asNumber(value: string | number | null | undefined): number {
@@ -39,7 +39,7 @@ export function CashParkingHero({ data }: { data: CashParkingResponse }) {
     return (
       <section className="rounded-lg border border-amber-200 bg-amber-50 p-5">
         <div className="flex items-start gap-3">
-          <WalletCards className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" aria-hidden />
+          <Wallet className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" weight="fill" aria-hidden />
           <div>
             <h2 className="text-base font-semibold text-amber-950">Caixa abaixo do limite operacional</h2>
             <p className="mt-1 text-sm text-amber-800">Valor disponível: {formatBRL(data.amount)}.</p>
@@ -54,7 +54,7 @@ export function CashParkingHero({ data }: { data: CashParkingResponse }) {
       <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr] lg:items-center">
         <div>
           <div className="mb-3 flex items-center gap-2 text-sm font-medium text-emerald-700">
-            <ShieldCheck className="h-4 w-4" aria-hidden />
+            <ShieldCheck className="h-4 w-4" weight="fill" aria-hidden />
             Melhor alternativa líquida para a janela atual
           </div>
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -69,9 +69,9 @@ export function CashParkingHero({ data }: { data: CashParkingResponse }) {
           </p>
           {data.next_big_outflow && (
             <div className="mt-4 inline-flex flex-wrap items-center gap-2 rounded-md bg-white px-3 py-2 text-sm text-emerald-900 ring-1 ring-emerald-200">
-              <CalendarDays className="h-4 w-4 text-emerald-600" aria-hidden />
+              <CalendarDots className="h-4 w-4 text-emerald-600" weight="fill" aria-hidden />
               Próxima saída: {formatBRL(data.next_big_outflow.amount)} em {formatDate(data.next_big_outflow.date)}
-              <ArrowRight className="h-3.5 w-3.5 text-emerald-500" aria-hidden />
+              <ArrowRight className="h-3.5 w-3.5 text-emerald-500" weight="bold" aria-hidden />
               {data.next_big_outflow.description}
             </div>
           )}
@@ -88,7 +88,7 @@ export function CashParkingHero({ data }: { data: CashParkingResponse }) {
           </div>
           <div className="col-span-2 rounded-lg bg-white p-4 ring-1 ring-emerald-200">
             <p className="flex items-center gap-2 text-xs font-medium uppercase text-emerald-700">
-              <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+              <ArrowClockwise className="h-3.5 w-3.5" aria-hidden />
               Atualizado
             </p>
             <p className="mt-1 text-sm font-semibold text-emerald-950">

@@ -21,9 +21,9 @@ function fmtBRL(val: number | null): string {
 }
 
 function changeBadge(val: string | null) {
-  if (!val) return <span className="text-gray-400">—</span>;
+  if (!val) return <span className="text-zinc-400">—</span>;
   const n = parseFloat(val);
-  if (isNaN(n)) return <span className="text-gray-400">—</span>;
+  if (isNaN(n)) return <span className="text-zinc-400">—</span>;
   const color = n >= 0 ? "text-emerald-600" : "text-red-500";
   return (
     <span className={`font-medium ${color}`}>
@@ -149,7 +149,7 @@ export function AcoesUniverseContent() {
   }
 
   function SortIndicator({ col }: { col: SortCol }) {
-    if (sortCol !== col) return <span className="ml-1 text-gray-300">↕</span>;
+    if (sortCol !== col) return <span className="ml-1 text-zinc-300">↕</span>;
     return (
       <span className="ml-1 text-blue-500">
         {sortDir === "asc" ? "↑" : "↓"}
@@ -166,7 +166,7 @@ export function AcoesUniverseContent() {
   }) {
     return (
       <th
-        className="text-left py-3 px-4 text-xs font-semibold text-gray-600 cursor-pointer select-none hover:text-gray-900 whitespace-nowrap"
+        className="text-left py-3 px-4 text-xs font-semibold text-zinc-600 cursor-pointer select-none hover:text-zinc-900 whitespace-nowrap"
         onClick={() => toggleSort(col)}
       >
         {children}
@@ -183,11 +183,11 @@ export function AcoesUniverseContent() {
   return (
     <div className="space-y-4">
       {/* Filter bar */}
-      <div className="rounded-lg border border-gray-200 bg-white p-4">
+      <div className="rounded-lg border border-zinc-200 bg-white p-4">
         <div className="flex flex-wrap gap-4 items-end">
           {/* DY min */}
           <div className="min-w-[120px]">
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label className="block text-xs font-medium text-zinc-600 mb-1">
               DY min (%)
             </label>
             <input
@@ -199,13 +199,13 @@ export function AcoesUniverseContent() {
                 setMinDy(e.target.value);
                 setPage(0);
               }}
-              className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+              className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
             />
           </div>
 
           {/* P/L max */}
           <div className="min-w-[120px]">
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label className="block text-xs font-medium text-zinc-600 mb-1">
               P/L max
             </label>
             <input
@@ -217,13 +217,13 @@ export function AcoesUniverseContent() {
                 setMaxPl(e.target.value);
                 setPage(0);
               }}
-              className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+              className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
             />
           </div>
 
           {/* Setor dropdown */}
           <div className="min-w-[180px]">
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label className="block text-xs font-medium text-zinc-600 mb-1">
               Setor
             </label>
             <select
@@ -232,7 +232,7 @@ export function AcoesUniverseContent() {
                 setSectorFilter(e.target.value);
                 setPage(0);
               }}
-              className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+              className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
             >
               <option value="">Todos os setores</option>
               {sectors.map((s) => (
@@ -245,7 +245,7 @@ export function AcoesUniverseContent() {
 
           {/* Market Cap tier buttons */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label className="block text-xs font-medium text-zinc-600 mb-1">
               Market Cap
             </label>
             <div className="flex gap-1">
@@ -255,7 +255,7 @@ export function AcoesUniverseContent() {
                 className={`px-3 py-2 rounded-md text-xs font-medium border transition-colors ${
                   mcapTier === "small"
                     ? "bg-blue-500 text-white border-blue-500"
-                    : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                    : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
                 }`}
               >
                 Small &lt;2B
@@ -266,7 +266,7 @@ export function AcoesUniverseContent() {
                 className={`px-3 py-2 rounded-md text-xs font-medium border transition-colors ${
                   mcapTier === "mid"
                     ? "bg-blue-500 text-white border-blue-500"
-                    : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                    : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
                 }`}
               >
                 Mid 2B–10B
@@ -277,7 +277,7 @@ export function AcoesUniverseContent() {
                 className={`px-3 py-2 rounded-md text-xs font-medium border transition-colors ${
                   mcapTier === "large"
                     ? "bg-blue-500 text-white border-blue-500"
-                    : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                    : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
                 }`}
               >
                 Large &gt;10B
@@ -295,7 +295,7 @@ export function AcoesUniverseContent() {
                 setMcapTier("");
                 setPage(0);
               }}
-              className="px-4 py-2 rounded-md text-sm text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 rounded-md text-sm text-zinc-600 border border-zinc-200 hover:bg-zinc-50 transition-colors"
             >
               Limpar
             </button>
@@ -304,14 +304,14 @@ export function AcoesUniverseContent() {
       </div>
 
       {/* Status bar */}
-      <div className="flex items-center justify-between text-xs text-gray-500">
+      <div className="flex items-center justify-between text-xs text-zinc-500">
         <span>
           {isLoading
             ? "Carregando..."
             : `${filtered.length} ações encontradas`}
         </span>
         {data?.disclaimer && (
-          <span className="text-gray-400 italic truncate max-w-xs">
+          <span className="text-zinc-400 italic truncate max-w-xs">
             {data.disclaimer}
           </span>
         )}
@@ -326,11 +326,11 @@ export function AcoesUniverseContent() {
 
       {/* Table */}
       {!isError && (
-        <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+        <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
+                <tr className="bg-zinc-50 border-b border-zinc-200">
                   <ThSortable col="ticker">Ticker</ThSortable>
                   <ThSortable col="sector">Setor</ThSortable>
                   <ThSortable col="regular_market_price">Preço</ThSortable>
@@ -343,10 +343,10 @@ export function AcoesUniverseContent() {
               <tbody>
                 {isLoading
                   ? Array.from({ length: 8 }).map((_, i) => (
-                      <tr key={i} className="border-b border-gray-100">
+                      <tr key={i} className="border-b border-zinc-100">
                         {Array.from({ length: 7 }).map((_, j) => (
                           <td key={j} className="py-3 px-4">
-                            <div className="h-4 bg-gray-100 rounded animate-pulse" />
+                            <div className="h-4 bg-zinc-100 rounded" />
                           </td>
                         ))}
                       </tr>
@@ -354,7 +354,7 @@ export function AcoesUniverseContent() {
                   : pageRows.map((row) => (
                       <tr
                         key={row.ticker}
-                        className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                        className="border-b border-zinc-100 hover:bg-zinc-50 transition-colors"
                       >
                         {/* Ticker */}
                         <td className="py-3 px-4">
@@ -365,14 +365,14 @@ export function AcoesUniverseContent() {
                             {row.ticker}
                           </Link>
                           {row.short_name && (
-                            <div className="text-xs text-gray-500 truncate max-w-[140px]">
+                            <div className="text-xs text-zinc-500 truncate max-w-[140px]">
                               {row.short_name}
                             </div>
                           )}
                         </td>
 
                         {/* Setor */}
-                        <td className="py-3 px-4 text-xs text-gray-600">
+                        <td className="py-3 px-4 text-xs text-zinc-600">
                           {row.sector ?? "—"}
                         </td>
 
@@ -415,7 +415,7 @@ export function AcoesUniverseContent() {
                   <tr>
                     <td
                       colSpan={7}
-                      className="py-12 text-center text-sm text-gray-500"
+                      className="py-12 text-center text-sm text-zinc-500"
                     >
                       Nenhum ativo encontrado com os filtros aplicados
                     </td>
@@ -427,22 +427,22 @@ export function AcoesUniverseContent() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between">
-              <span className="text-xs text-gray-500">
+            <div className="px-4 py-3 border-t border-zinc-100 flex items-center justify-between">
+              <span className="text-xs text-zinc-500">
                 Página {page + 1} de {totalPages}
               </span>
               <div className="flex gap-2">
                 <button
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                   disabled={page === 0}
-                  className="px-3 py-1.5 rounded text-xs border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition-colors"
+                  className="px-3 py-1.5 rounded text-xs border border-zinc-200 disabled:opacity-40 hover:bg-zinc-50 transition-colors"
                 >
                   Anterior
                 </button>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                   disabled={page >= totalPages - 1}
-                  className="px-3 py-1.5 rounded text-xs border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition-colors"
+                  className="px-3 py-1.5 rounded text-xs border border-zinc-200 disabled:opacity-40 hover:bg-zinc-50 transition-colors"
                 >
                   Próxima
                 </button>
@@ -452,7 +452,7 @@ export function AcoesUniverseContent() {
         </div>
       )}
 
-      <p className="text-xs text-gray-400 text-center">
+      <p className="text-xs text-zinc-400 text-center">
         Dados atualizados diariamente via snapshot B3. Fonte: brapi.dev
       </p>
     </div>

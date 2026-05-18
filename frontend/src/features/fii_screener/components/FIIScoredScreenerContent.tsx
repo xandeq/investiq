@@ -29,7 +29,7 @@ function fmt(val: string | null | undefined, decimals = 2, suffix = ""): string 
 }
 
 function segmentoBadge(seg: string | null) {
-  if (!seg) return <span className="text-gray-400">—</span>;
+  if (!seg) return <span className="text-zinc-400">—</span>;
   const colors: Record<string, string> = {
     Logistica: "bg-orange-100 text-orange-700",
     "Lajes Corporativas": "bg-sky-100 text-sky-700",
@@ -42,9 +42,9 @@ function segmentoBadge(seg: string | null) {
     Hotel: "bg-yellow-100 text-yellow-700",
     Hospital: "bg-pink-100 text-pink-700",
     Educacional: "bg-cyan-100 text-cyan-700",
-    Outros: "bg-gray-100 text-gray-600",
+    Outros: "bg-zinc-100 text-zinc-600",
   };
-  const cls = colors[seg] ?? "bg-gray-100 text-gray-600";
+  const cls = colors[seg] ?? "bg-zinc-100 text-zinc-600";
   return (
     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cls}`}>
       {seg}
@@ -70,8 +70,8 @@ function FIIScoredTableRow({
     : "—";
 
   return (
-    <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-      <td className="py-3 px-4 text-sm text-gray-500 tabular-nums">{rank}</td>
+    <tr className="border-b border-zinc-100 hover:bg-zinc-50 transition-colors">
+      <td className="py-3 px-4 text-sm text-zinc-500 tabular-nums">{rank}</td>
       <td className="py-3 px-4">
         <Link
           href={`/fii/${row.ticker}`}
@@ -80,7 +80,7 @@ function FIIScoredTableRow({
           {row.ticker}
         </Link>
         {row.short_name && (
-          <div className="text-xs text-gray-500 truncate max-w-[140px]">
+          <div className="text-xs text-zinc-500 truncate max-w-[140px]">
             {row.short_name}
           </div>
         )}
@@ -98,7 +98,7 @@ function FIIScoredTableRow({
   );
 }
 
-const TH = "text-left py-3 px-4 text-xs font-semibold text-gray-600";
+const TH = "text-left py-3 px-4 text-xs font-semibold text-zinc-600";
 
 export function FIIScoredScreenerContent() {
   const { data, isLoading, error } = useFIIScoredScreener();
@@ -140,16 +140,16 @@ export function FIIScoredScreenerContent() {
       )}
 
       {/* Filter bar */}
-      <div className="rounded-lg border border-gray-200 bg-white p-4">
+      <div className="rounded-lg border border-zinc-200 bg-white p-4">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label className="block text-xs font-medium text-zinc-600 mb-1">
               Segmento
             </label>
             <select
               value={segmentoFilter}
               onChange={(e) => setSegmentoFilter(e.target.value)}
-              className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+              className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
             >
               <option value="">Todos os segmentos</option>
               {SEGMENTOS.map((s) => (
@@ -160,7 +160,7 @@ export function FIIScoredScreenerContent() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label className="block text-xs font-medium text-zinc-600 mb-1">
               DY min (%)
             </label>
             <input
@@ -169,13 +169,13 @@ export function FIIScoredScreenerContent() {
               placeholder="Ex: 8"
               value={minDyFilter}
               onChange={(e) => setMinDyFilter(e.target.value)}
-              className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+              className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
             />
           </div>
           <div className="flex items-end">
             <button
               onClick={clearFilters}
-              className="px-4 py-2 rounded-md text-sm text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors w-full sm:w-auto"
+              className="px-4 py-2 rounded-md text-sm text-zinc-600 border border-zinc-200 hover:bg-zinc-50 transition-colors w-full sm:w-auto"
             >
               Limpar filtros
             </button>
@@ -184,14 +184,14 @@ export function FIIScoredScreenerContent() {
       </div>
 
       {/* Status bar */}
-      <div className="flex items-center justify-between text-xs text-gray-500">
+      <div className="flex items-center justify-between text-xs text-zinc-500">
         <span>
           {isLoading
             ? "Carregando..."
             : `${filtered.length} FII${filtered.length !== 1 ? "s" : ""}`}
         </span>
         {data?.score_available && data.results.length > 0 && (
-          <span className="text-gray-400">Ordenado por score (maior = melhor)</span>
+          <span className="text-zinc-400">Ordenado por score (maior = melhor)</span>
         )}
       </div>
 
@@ -204,11 +204,11 @@ export function FIIScoredScreenerContent() {
 
       {/* Table */}
       {!error && (
-        <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+        <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
+                <tr className="bg-zinc-50 border-b border-zinc-200">
                   <th className={TH}>#</th>
                   <SortableHeader col="ticker" label="Ticker" activeCol={col} dir={dir} onSort={toggle} className={TH} />
                   <SortableHeader col="segmento" label="Segmento" activeCol={col} dir={dir} onSort={toggle} className={TH} />
@@ -221,10 +221,10 @@ export function FIIScoredScreenerContent() {
               <tbody>
                 {isLoading
                   ? Array.from({ length: 8 }).map((_, i) => (
-                      <tr key={i} className="border-b border-gray-100">
+                      <tr key={i} className="border-b border-zinc-100">
                         {Array.from({ length: 7 }).map((_, j) => (
                           <td key={j} className="py-3 px-4">
-                            <div className="h-4 bg-gray-100 rounded animate-pulse" />
+                            <div className="h-4 bg-zinc-100 rounded" />
                           </td>
                         ))}
                       </tr>
@@ -236,7 +236,7 @@ export function FIIScoredScreenerContent() {
                   <tr>
                     <td
                       colSpan={7}
-                      className="py-12 text-center text-sm text-gray-500"
+                      className="py-12 text-center text-sm text-zinc-500"
                     >
                       Nenhum FII encontrado com os filtros selecionados
                     </td>
@@ -250,7 +250,7 @@ export function FIIScoredScreenerContent() {
 
       {/* CVM Disclaimer */}
       {data?.disclaimer && (
-        <p className="text-xs text-gray-400 text-center">{data.disclaimer}</p>
+        <p className="text-xs text-zinc-400 text-center">{data.disclaimer}</p>
       )}
     </div>
   );

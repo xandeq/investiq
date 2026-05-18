@@ -1,5 +1,6 @@
 "use client";
 import { useState, type FormEvent } from "react";
+import { X } from "@phosphor-icons/react";
 import type { OperationCreatePayload } from "../types";
 
 interface Props {
@@ -102,22 +103,22 @@ export function NewOperationModal({ open, onClose, onSubmit, isPending }: Props)
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
       <div className="w-full max-w-lg rounded-lg bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">Nova Operação</h2>
+        <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4">
+          <h2 className="text-lg font-semibold text-zinc-900">Nova Operação</h2>
           <button
             type="button"
             onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-zinc-400 hover:text-zinc-600"
             aria-label="Fechar"
           >
-            ✕
+            <X size={18} weight="bold" aria-hidden />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">
+              <label className="block text-xs font-medium text-zinc-600 mb-1">
                 Ticker *
               </label>
               <input
@@ -125,19 +126,19 @@ export function NewOperationModal({ open, onClose, onSubmit, isPending }: Props)
                 value={ticker}
                 onChange={(e) => setTicker(e.target.value.toUpperCase())}
                 placeholder="PETR4"
-                className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400 uppercase"
+                className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400 uppercase"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
+              <label className="block text-xs font-medium text-zinc-600 mb-1">
                 Classe
               </label>
               <select
                 value={assetClass}
                 onChange={(e) => setAssetClass(e.target.value)}
-                className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
               >
                 <option value="acao">Ação</option>
                 <option value="fii">FII</option>
@@ -147,20 +148,20 @@ export function NewOperationModal({ open, onClose, onSubmit, isPending }: Props)
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
+              <label className="block text-xs font-medium text-zinc-600 mb-1">
                 Data de Entrada *
               </label>
               <input
                 type="date"
                 value={entryDate}
                 onChange={(e) => setEntryDate(e.target.value)}
-                className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
+              <label className="block text-xs font-medium text-zinc-600 mb-1">
                 Quantidade *
               </label>
               <input
@@ -169,13 +170,13 @@ export function NewOperationModal({ open, onClose, onSubmit, isPending }: Props)
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
                 placeholder="100"
-                className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
+              <label className="block text-xs font-medium text-zinc-600 mb-1">
                 Preço de Entrada *
               </label>
               <input
@@ -184,13 +185,13 @@ export function NewOperationModal({ open, onClose, onSubmit, isPending }: Props)
                 value={entryPrice}
                 onChange={(e) => setEntryPrice(e.target.value)}
                 placeholder="32.50"
-                className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
+              <label className="block text-xs font-medium text-zinc-600 mb-1">
                 Preço Alvo
               </label>
               <input
@@ -199,12 +200,12 @@ export function NewOperationModal({ open, onClose, onSubmit, isPending }: Props)
                 value={targetPrice}
                 onChange={(e) => setTargetPrice(e.target.value)}
                 placeholder="opcional"
-                className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
+              <label className="block text-xs font-medium text-zinc-600 mb-1">
                 Stop Loss
               </label>
               <input
@@ -213,12 +214,12 @@ export function NewOperationModal({ open, onClose, onSubmit, isPending }: Props)
                 value={stopPrice}
                 onChange={(e) => setStopPrice(e.target.value)}
                 placeholder="opcional"
-                className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
               />
             </div>
 
             <div className="col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">
+              <label className="block text-xs font-medium text-zinc-600 mb-1">
                 Notas
               </label>
               <textarea
@@ -226,7 +227,7 @@ export function NewOperationModal({ open, onClose, onSubmit, isPending }: Props)
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
                 placeholder="Tese da operação, fonte do setup..."
-                className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
               />
             </div>
           </div>
@@ -241,7 +242,7 @@ export function NewOperationModal({ open, onClose, onSubmit, isPending }: Props)
             <button
               type="button"
               onClick={handleClose}
-              className="px-4 py-2 rounded-md text-sm text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 rounded-md text-sm text-zinc-600 border border-zinc-200 hover:bg-zinc-50 transition-colors"
               disabled={isPending}
             >
               Cancelar

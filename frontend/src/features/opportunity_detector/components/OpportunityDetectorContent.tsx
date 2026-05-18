@@ -10,7 +10,7 @@ const RISK_COLORS: Record<string, string> = {
   baixo: "bg-green-100 text-green-700",
   medio: "bg-yellow-100 text-yellow-700",
   alto: "bg-red-100 text-red-700",
-  evitar: "bg-gray-900 text-white",
+  evitar: "bg-zinc-900 text-white",
 };
 
 const ASSET_TYPE_LABELS: Record<string, string> = {
@@ -37,8 +37,8 @@ function fmtDate(iso: string): string {
 }
 
 function RiskBadge({ level }: { level: string | null }) {
-  if (!level) return <span className="text-gray-400">—</span>;
-  const cls = RISK_COLORS[level.toLowerCase()] ?? "bg-gray-100 text-gray-600";
+  if (!level) return <span className="text-zinc-400">—</span>;
+  const cls = RISK_COLORS[level.toLowerCase()] ?? "bg-zinc-100 text-zinc-600";
   return (
     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cls}`}>
       {level}
@@ -73,35 +73,35 @@ function FollowButton({ row }: { row: OpportunityRow }) {
 function ExpandedDetail({ row }: { row: OpportunityRow }) {
   return (
     <tr>
-      <td colSpan={8} className="px-6 pb-4 pt-0 bg-gray-50 border-b border-gray-100">
+      <td colSpan={8} className="px-6 pb-4 pt-0 bg-zinc-50 border-b border-zinc-100">
         <div className="space-y-3 pt-3">
           {row.cause_explanation && (
             <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-1">
                 Causa
               </p>
-              <p className="text-sm text-gray-700">{row.cause_explanation}</p>
+              <p className="text-sm text-zinc-700">{row.cause_explanation}</p>
             </div>
           )}
           {row.risk_rationale && (
             <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-1">
                 Racional de Risco
               </p>
-              <p className="text-sm text-gray-700">{row.risk_rationale}</p>
+              <p className="text-sm text-zinc-700">{row.risk_rationale}</p>
             </div>
           )}
           {(row.recommended_amount_brl != null || row.target_upside_pct != null) && (
             <div className="flex gap-6 text-sm">
               {row.recommended_amount_brl != null && (
                 <div>
-                  <span className="text-gray-500">Aporte sugerido: </span>
+                  <span className="text-zinc-500">Aporte sugerido: </span>
                   <span className="font-medium">R$ {fmt(row.recommended_amount_brl)}</span>
                 </div>
               )}
               {row.target_upside_pct != null && (
                 <div>
-                  <span className="text-gray-500">Upside alvo: </span>
+                  <span className="text-zinc-500">Upside alvo: </span>
                   <span className="font-medium">{fmt(row.target_upside_pct)}%</span>
                 </div>
               )}
@@ -109,10 +109,10 @@ function ExpandedDetail({ row }: { row: OpportunityRow }) {
           )}
           {row.telegram_message && (
             <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-1">
                 Mensagem Telegram
               </p>
-              <pre className="bg-gray-50 rounded p-3 font-mono text-xs text-gray-700 whitespace-pre-wrap border border-gray-200 overflow-x-auto">
+              <pre className="bg-zinc-50 rounded p-3 font-mono text-xs text-zinc-700 whitespace-pre-wrap border border-zinc-200 overflow-x-auto">
                 {row.telegram_message}
               </pre>
             </div>
@@ -146,20 +146,20 @@ function OpportunityTableRow({
     <>
       <tr
         onClick={onToggle}
-        className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
+        className="border-b border-zinc-100 hover:bg-zinc-50 transition-colors cursor-pointer"
       >
-        <td className="py-3 px-4 text-xs text-gray-500 tabular-nums whitespace-nowrap">
+        <td className="py-3 px-4 text-xs text-zinc-500 tabular-nums whitespace-nowrap">
           {fmtDate(row.detected_at)}
         </td>
         <td className="py-3 px-4">
           <span className="font-mono font-bold text-sm">{row.ticker}</span>
         </td>
-        <td className="py-3 px-4 text-sm text-gray-600">
+        <td className="py-3 px-4 text-sm text-zinc-600">
           {ASSET_TYPE_LABELS[row.asset_type] ?? row.asset_type}
         </td>
         <td className="py-3 px-4 text-sm">
           {row.asset_type === "renda_fixa" ? (
-            <span className="text-gray-500 text-xs truncate max-w-[120px] block">
+            <span className="text-zinc-500 text-xs truncate max-w-[120px] block">
               {row.cause_explanation ?? "—"}
             </span>
           ) : (
@@ -271,16 +271,16 @@ export function OpportunityDetectorContent() {
   return (
     <div className="space-y-4">
       {/* Filter bar */}
-      <div className="rounded-lg border border-gray-200 bg-white p-4">
+      <div className="rounded-lg border border-zinc-200 bg-white p-4">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label className="block text-xs font-medium text-zinc-600 mb-1">
               Tipo de Ativo
             </label>
             <select
               value={assetTypeFilter}
               onChange={(e) => setAssetTypeFilter(e.target.value)}
-              className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+              className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
             >
               <option value="">Todos</option>
               <option value="acao">Ações</option>
@@ -289,13 +289,13 @@ export function OpportunityDetectorContent() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label className="block text-xs font-medium text-zinc-600 mb-1">
               Período
             </label>
             <select
               value={daysFilter}
               onChange={(e) => setDaysFilter(Number(e.target.value))}
-              className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+              className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
             >
               <option value={7}>7 dias</option>
               <option value={30}>30 dias</option>
@@ -306,7 +306,7 @@ export function OpportunityDetectorContent() {
           <div className="flex items-end gap-2">
             <button
               onClick={clearFilters}
-              className="px-4 py-2 rounded-md text-sm text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 rounded-md text-sm text-zinc-600 border border-zinc-200 hover:bg-zinc-50 transition-colors"
             >
               Limpar filtros
             </button>
@@ -324,7 +324,7 @@ export function OpportunityDetectorContent() {
                   Analisando...
                 </>
               ) : (
-                "🔍 Escanear Agora"
+                "Escanear Agora"
               )}
             </button>
           </div>
@@ -347,21 +347,21 @@ export function OpportunityDetectorContent() {
       {/* Divider between radar and alerts */}
       {radarEnabled && radarData && (
         <div className="flex items-center gap-3">
-          <div className="flex-1 border-t border-gray-200" />
-          <span className="text-xs text-gray-400 whitespace-nowrap">Alertas de crash automáticos</span>
-          <div className="flex-1 border-t border-gray-200" />
+          <div className="flex-1 border-t border-zinc-200" />
+          <span className="text-xs text-zinc-400 whitespace-nowrap">Alertas de crash automáticos</span>
+          <div className="flex-1 border-t border-zinc-200" />
         </div>
       )}
 
       {/* Status bar */}
-      <div className="flex items-center justify-between text-xs text-gray-500">
+      <div className="flex items-center justify-between text-xs text-zinc-500">
         <span>
           {isLoading
             ? "Carregando..."
             : `${data?.total ?? 0} oportunidade${(data?.total ?? 0) !== 1 ? "s" : ""} encontrada${(data?.total ?? 0) !== 1 ? "s" : ""}`}
         </span>
         {data && data.results.length > 0 && (
-          <span className="text-gray-400">
+          <span className="text-zinc-400">
             Clique em uma linha para ver detalhes
           </span>
         )}
@@ -376,33 +376,33 @@ export function OpportunityDetectorContent() {
 
       {/* Table */}
       {!error && (
-        <div className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+        <div className="rounded-lg border border-zinc-200 bg-white shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 whitespace-nowrap">
+                <tr className="bg-zinc-50 border-b border-zinc-200">
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-600 whitespace-nowrap">
                     Data
                   </th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600">
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-600">
                     Ticker
                   </th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600">
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-600">
                     Tipo
                   </th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600">
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-600">
                     Queda
                   </th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600">
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-600">
                     Preço
                   </th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600">
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-600">
                     Risco
                   </th>
-                  <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                  <th className="text-center py-3 px-4 text-xs font-semibold text-zinc-600">
                     Oportun.?
                   </th>
-                  <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                  <th className="text-center py-3 px-4 text-xs font-semibold text-zinc-600">
                     Ação
                   </th>
                 </tr>
@@ -410,10 +410,10 @@ export function OpportunityDetectorContent() {
               <tbody>
                 {isLoading
                   ? Array.from({ length: 8 }).map((_, i) => (
-                      <tr key={i} className="border-b border-gray-100">
+                      <tr key={i} className="border-b border-zinc-100">
                         {Array.from({ length: 8 }).map((_, j) => (
                           <td key={j} className="py-3 px-4">
-                            <div className="h-4 bg-gray-100 rounded animate-pulse" />
+                            <div className="h-4 bg-zinc-100 rounded" />
                           </td>
                         ))}
                       </tr>
@@ -430,7 +430,7 @@ export function OpportunityDetectorContent() {
                   <tr>
                     <td
                       colSpan={8}
-                      className="py-12 text-center text-sm text-gray-500"
+                      className="py-12 text-center text-sm text-zinc-500"
                     >
                       Nenhuma oportunidade detectada no período selecionado
                     </td>
