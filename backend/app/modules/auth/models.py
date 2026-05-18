@@ -65,6 +65,9 @@ class User(Base):
     # AI quality mode — "standard" uses gpt-4o-mini/deepseek, "ultra" uses Claude/GPT-4o chain
     ai_mode: Mapped[str] = mapped_column(String(10), default="standard", nullable=False, server_default="standard")
 
+    # Telegram per-user notifications (Phase 39) — null = not connected
+    telegram_chat_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+
     # Stripe billing columns — set by webhooks, never from checkout redirect
     stripe_customer_id: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
     stripe_subscription_id: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
