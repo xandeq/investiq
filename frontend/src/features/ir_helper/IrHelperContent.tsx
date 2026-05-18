@@ -586,7 +586,7 @@ function DeclarationTab() {
                 </ul>
               </li>
               <li>
-                <strong>4.</strong> ⚠️ {data.instrucoes.nota}
+                <strong>4.</strong> <Warning className="inline h-3.5 w-3.5 text-amber-500 align-middle -mt-0.5" weight="fill" /> {data.instrucoes.nota}
               </li>
             </ol>
           </div>
