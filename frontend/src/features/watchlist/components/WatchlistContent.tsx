@@ -1,6 +1,9 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
+import { CheckCircle, Bell, BellSlash } from "@phosphor-icons/react";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 import { useWatchlistQuotes, useAddToWatchlist, useRemoveFromWatchlist, useUpdateWatchlistItem } from "../hooks/useWatchlist";
 import type { WatchlistQuote } from "../types";
 
@@ -38,7 +41,7 @@ function AddForm() {
         onChange={(e) => setTicker(e.target.value)}
         placeholder="Ticker (ex: VALE3)"
         maxLength={10}
-        className="bg-gray-100 text-gray-900 rounded-md px-3 py-2 text-sm w-40 font-mono uppercase border-2 border-transparent focus:outline-none focus:bg-white focus:border-blue-500 transition-all duration-200"
+        className="bg-zinc-100 text-zinc-900 rounded-md px-3 py-2 text-sm w-40 font-mono uppercase border-2 border-transparent focus:outline-none focus:bg-white focus:border-blue-500 transition-all duration-200"
       />
       <button
         type="submit"
@@ -61,7 +64,7 @@ function AlertInline({ ticker, current }: { ticker: string; current: string | nu
     return (
       <button
         onClick={() => setEditing(true)}
-        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+        className="text-xs text-zinc-400 hover:text-zinc-700 transition-colors"
       >
         {current ? fmtBRL(current) : "—"}
       </button>
@@ -76,7 +79,7 @@ function AlertInline({ ticker, current }: { ticker: string; current: string | nu
         value={val}
         onChange={(e) => setVal(e.target.value)}
         placeholder="0.00"
-        className="w-24 bg-gray-100 rounded px-2 py-1 text-xs border-2 border-transparent focus:outline-none focus:bg-white focus:border-blue-500 transition-all duration-200"
+        className="w-24 bg-zinc-100 rounded px-2 py-1 text-xs border-2 border-transparent focus:outline-none focus:bg-white focus:border-blue-500 transition-all duration-200"
         autoFocus
       />
       <button
@@ -91,7 +94,7 @@ function AlertInline({ ticker, current }: { ticker: string; current: string | nu
       </button>
       <button
         onClick={() => setEditing(false)}
-        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+        className="text-xs text-zinc-400 hover:text-zinc-700 transition-colors"
       >
         ×
       </button>
@@ -102,7 +105,6 @@ function AlertInline({ ticker, current }: { ticker: string; current: string | nu
 function AlertBadge({ item }: { item: WatchlistQuote }) {
   if (!item.price_alert_target) return null;
 
-  // ✅ Alert fired within last 25h (covers 23h dedup window + buffer)
   if (item.alert_triggered_at) {
     const firedAt = new Date(item.alert_triggered_at);
     const hoursAgo = (Date.now() - firedAt.getTime()) / 3_600_000;
@@ -112,58 +114,64 @@ function AlertBadge({ item }: { item: WatchlistQuote }) {
       return (
         <span
           title="Email de alerta enviado"
-          className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+          className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
         >
-          ✅ Disparado em {day} {time}
+          <CheckCircle size={11} weight="fill" />
+          Disparado em {day} {time}
         </span>
       );
     }
   }
 
-  // 🔔 Price is within ±2% of target right now
   if (item.price && Number(item.price_alert_target) > 0) {
     const diff = Math.abs(Number(item.price) - Number(item.price_alert_target)) / Number(item.price_alert_target);
     if (diff <= 0.02) {
       return (
         <span
           title="Preco proximo do alvo — email sera enviado no proximo ciclo (15 min)"
-          className="text-xs bg-amber-50 text-amber-700 border border-amber-300 font-bold px-2 py-0.5 rounded-full animate-pulse"
+          className="inline-flex items-center gap-1 text-xs bg-amber-50 text-amber-700 border border-amber-300 font-bold px-2 py-0.5 rounded-full animate-pulse"
         >
-          🔔 Alerta ativo
+          <Bell size={11} weight="fill" />
+          Alerta ativo
         </span>
       );
     }
   }
 
-  // Silent monitoring (configured, not yet triggered)
   return (
     <span
       title={`Monitorando R$ ${Number(item.price_alert_target).toFixed(2)}`}
-      className="text-xs bg-blue-50 text-blue-400 border border-blue-100 px-2 py-0.5 rounded-full"
+      className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-400 border border-blue-100 px-2 py-0.5 rounded-full"
     >
-      🔕 Aguardando
+      <BellSlash size={11} />
+      Aguardando
     </span>
   );
 }
 
-function WatchlistRow({ item }: { item: WatchlistQuote }) {
+function WatchlistRow({ item, index }: { item: WatchlistQuote; index: number }) {
   const removeMut = useRemoveFromWatchlist();
 
   return (
-    <tr className="hover:bg-gray-50/50 transition-colors">
+    <motion.tr
+      initial={{ opacity: 0, x: -6 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1], delay: index * 0.04 }}
+      className="hover:bg-zinc-50/60 transition-colors"
+    >
       <td className="px-4 py-3">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-mono font-semibold">{item.ticker}</span>
           {item.price_alert_target && <AlertBadge item={item} />}
         </div>
-        {item.notes && <p className="text-xs text-muted-foreground mt-0.5">{item.notes}</p>}
+        {item.notes && <p className="text-xs text-zinc-400 mt-0.5">{item.notes}</p>}
       </td>
       <td className="px-4 py-3 text-right tabular-nums font-medium">
-        {item.data_stale ? <span className="text-xs text-muted-foreground">N/D</span> : fmtBRL(item.price)}
+        {item.data_stale ? <span className="text-xs text-zinc-400">N/D</span> : fmtBRL(item.price)}
       </td>
-      <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{fmtPct(item.dy)}</td>
-      <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{item.pl ?? "—"}</td>
-      <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{item.pvp ?? "—"}</td>
+      <td className="px-4 py-3 text-right tabular-nums text-zinc-400">{fmtPct(item.dy)}</td>
+      <td className="px-4 py-3 text-right tabular-nums text-zinc-400">{item.pl ?? "—"}</td>
+      <td className="px-4 py-3 text-right tabular-nums text-zinc-400">{item.pvp ?? "—"}</td>
       <td className="px-4 py-3 text-right">
         <AlertInline ticker={item.ticker} current={item.price_alert_target} />
       </td>
@@ -171,20 +179,20 @@ function WatchlistRow({ item }: { item: WatchlistQuote }) {
         <div className="flex items-center gap-1 justify-end">
           <Link
             href={`/ai?ticker=${item.ticker}`}
-            className="text-xs text-muted-foreground hover:text-blue-500 px-2 py-1 rounded-md hover:bg-blue-50 transition-all duration-200"
+            className="text-xs text-zinc-400 hover:text-blue-500 px-2 py-1 rounded-md hover:bg-blue-50 transition-all duration-200"
           >
             Analisar
           </Link>
           <button
             onClick={() => removeMut.mutate(item.ticker)}
             disabled={removeMut.isPending}
-            className="text-xs text-muted-foreground hover:text-red-500 px-2 py-1 rounded-md hover:bg-red-50 transition-all duration-200"
+            className="text-xs text-zinc-400 hover:text-red-500 px-2 py-1 rounded-md hover:bg-red-50 transition-all duration-200"
           >
             Remover
           </button>
         </div>
       </td>
-    </tr>
+    </motion.tr>
   );
 }
 
@@ -196,38 +204,44 @@ export function WatchlistContent() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Watchlist</h2>
-          <p className="text-sm text-muted-foreground">Acompanhe ativos que você monitora</p>
+          <p className="text-sm text-zinc-400">Acompanhe ativos que você monitora</p>
         </div>
         <AddForm />
       </div>
 
-      <div className="rounded-lg bg-white overflow-hidden">
+      <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gray-100">
+            <thead className="border-b border-zinc-100">
               <tr>
-                <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Ticker</th>
-                <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Preço</th>
-                <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">DY</th>
-                <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">P/L</th>
-                <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">P/VP</th>
-                <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Alerta</th>
+                <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400">Ticker</th>
+                <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400">Preço</th>
+                <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400">DY</th>
+                <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400">P/L</th>
+                <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400">P/VP</th>
+                <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400">Alerta</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-zinc-50">
               {isLoading && (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground text-sm">Carregando...</td></tr>
+                <tr>
+                  <td colSpan={7} className="px-4 py-4">
+                    <div className="space-y-2">
+                      {[0,1,2].map((n) => <ShimmerSkeleton key={n} className="h-8 w-full rounded-md" />)}
+                    </div>
+                  </td>
+                </tr>
               )}
               {!isLoading && quotes.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground text-sm">
+                  <td colSpan={7} className="px-4 py-8 text-center text-zinc-400 text-sm">
                     Sua watchlist está vazia. Adicione um ticker acima.
                   </td>
                 </tr>
               )}
-              {quotes.map((q) => (
-                <WatchlistRow key={q.ticker} item={q} />
+              {quotes.map((q, i) => (
+                <WatchlistRow key={q.ticker} item={q} index={i} />
               ))}
             </tbody>
           </table>

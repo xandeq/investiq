@@ -1,5 +1,5 @@
 "use client";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendUp, TrendDown, Minus } from "@phosphor-icons/react";
 import { motion } from "framer-motion";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { NetWorthSkeleton } from "@/components/ui/ShimmerSkeleton";
@@ -43,7 +43,7 @@ export function NetWorthCard({
   const isPositiveDaily = dailyPnlNum >= 0;
   const isZeroDaily = dailyPnlNum === 0;
 
-  const DailyIcon = isZeroDaily ? Minus : isPositiveDaily ? TrendingUp : TrendingDown;
+  const DailyIcon = isZeroDaily ? Minus : isPositiveDaily ? TrendUp : TrendDown;
 
   return (
     <motion.div
@@ -118,7 +118,7 @@ export function NetWorthCard({
                 : "text-red-400"
             }`}
           >
-            <DailyIcon className="h-4 w-4 shrink-0" strokeWidth={2.5} />
+            <DailyIcon className="h-4 w-4 shrink-0" weight="bold" />
             <AnimatedNumber value={dailyPnlNum} formatter={brlFormatter} />
             <span className="text-sm font-medium opacity-75">
               (<AnimatedNumber value={dailyPnlPctNum} formatter={pctFormatter} />)
