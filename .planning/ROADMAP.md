@@ -159,7 +159,7 @@ v1.3 phases (17–20) completed 2026-04-11. Archive: `.planning/milestones/v1.3-
 ## Phases
 
 - [x] **Phase 23: Portfolio Health Check** — Diagnostic (ADVI-01) (completed 2026-04-18)
-- [ ] **Phase 24: AI Advisor Recommendations** — Narrative + suggestions (ADVI-02)
+- [x] **Phase 24: AI Advisor Recommendations** — Narrative + suggestions (ADVI-02) (completed 2026-05-18)
 - [x] **Phase 25: Smart Screener** — Complementary assets filtered (ADVI-03) (completed 2026-04-18)
 - [x] **Phase 26: Entry Signals** — Buy suggestions with fundamentals context (ADVI-04) (completed 2026-04-18)
 
@@ -256,7 +256,7 @@ Plans:
 | Phase | Plans | Status | Completed |
 |-------|-------|--------|-----------|
 | 23. Portfolio Health Check | 1/1 | Complete | 2026-04-18 |
-| 24. AI Advisor Recommendations | 1/1 | Planned | — |
+| 24. AI Advisor Recommendations | 1/1 | Complete | 2026-05-18 |
 | 25. Smart Screener | 1/1 | Complete   | 2026-04-18 |
 | 26. Entry Signals | 1/1 | Complete   | 2026-04-18 |
 
@@ -267,7 +267,7 @@ Plans:
 | Requirement | Phase | Description | Status |
 |-------------|-------|-------------|--------|
 | ADVI-01 | Phase 23 | Portfolio health score, biggest risk, passive income, underperformers | Complete |
-| ADVI-02 | Phase 24 | AI diagnosis + recommendations referencing user's portfolio | Planned |
+| ADVI-02 | Phase 24 | AI diagnosis + recommendations referencing user's portfolio | Complete |
 | ADVI-03 | Phase 25 | Smart screener filtered to complementary assets | Planned |
 | ADVI-04 | Phase 26 | Entry signals (hybrid: owned=on-demand, universe=daily) | Planned |
 
