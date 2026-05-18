@@ -8,7 +8,7 @@ const LEVEL_BADGE: Record<string, string> = {
   ERROR: "bg-red-100 text-red-700 border border-red-200",
   WARNING: "bg-yellow-100 text-yellow-700 border border-yellow-200",
   INFO: "bg-blue-100 text-blue-700 border border-blue-200",
-  DEBUG: "bg-gray-100 text-gray-600 border border-gray-200",
+  DEBUG: "bg-zinc-100 text-zinc-600 border border-zinc-200",
 };
 
 function formatDate(iso: string) {

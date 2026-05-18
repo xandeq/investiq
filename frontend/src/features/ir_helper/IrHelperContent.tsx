@@ -4,16 +4,17 @@ import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import {
   Calculator,
-  TrendingDown,
-  TrendingUp,
+  TrendDown,
+  TrendUp,
   Receipt,
-  AlertCircle,
-  CheckCircle2,
+  Warning,
+  CheckCircle,
   FileText,
   Copy,
   Check,
   Scissors,
-} from "lucide-react";
+} from "@phosphor-icons/react";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -106,7 +107,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={copy}
-      className="ml-1 inline-flex items-center text-gray-400 hover:text-gray-700 transition-colors"
+      className="ml-1 inline-flex items-center text-zinc-400 hover:text-zinc-700 transition-colors"
       title="Copiar"
     >
       {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
@@ -135,26 +136,26 @@ function DarfTab() {
     <div className="space-y-6">
       {/* Month selector */}
       <div className="flex items-center gap-2">
-        <label className="text-sm font-medium text-gray-700">Mês</label>
+        <label className="text-sm font-medium text-zinc-700">Mês</label>
         <input
           type="month"
           value={month}
           onChange={(e) => setMonth(e.target.value)}
-          className="bg-gray-100 border-0 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+          className="bg-zinc-100 border-0 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
         />
       </div>
 
       {isLoading && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((n) => (
-            <div key={n} className="h-24 rounded-xl bg-gray-100 animate-pulse" />
+            <ShimmerSkeleton key={n} className="h-24 rounded-xl" />
           ))}
         </div>
       )}
 
       {error && (
         <div className="rounded-lg bg-red-50 border-l-4 border-red-500 p-4 text-sm text-red-600 flex gap-2">
-          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+          <Warning className="h-4 w-4 shrink-0 mt-0.5" weight="fill" />
           Erro ao carregar dados do IR Helper.
         </div>
       )}
@@ -165,7 +166,7 @@ function DarfTab() {
           <div className="flex items-center gap-3">
             {summary.isento ? (
               <div className="flex items-center gap-2 bg-emerald-100 text-emerald-700 px-4 py-2 rounded-full font-semibold text-sm">
-                <CheckCircle2 className="h-4 w-4" />
+                <CheckCircle className="h-4 w-4" weight="fill" />
                 ISENTO — vendas abaixo de R$20.000
               </div>
             ) : summary.darf_gerado ? (
@@ -175,7 +176,7 @@ function DarfTab() {
               </div>
             ) : (
               <div className="flex items-center gap-2 bg-amber-100 text-amber-700 px-4 py-2 rounded-full font-semibold text-sm">
-                <AlertCircle className="h-4 w-4" />
+                <Warning className="h-4 w-4" weight="fill" />
                 IR abaixo de R$10 — sem DARF
               </div>
             )}
@@ -183,35 +184,35 @@ function DarfTab() {
 
           {/* Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
+            <div className="bg-white border border-zinc-200 rounded-xl p-5">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Total Vendas</p>
               <p className="text-xl font-bold mt-1">{fmt(summary.total_vendas)}</p>
-              <p className="text-xs text-gray-500 mt-1">{summary.transactions_count} operações</p>
+              <p className="text-xs text-zinc-500 mt-1">{summary.transactions_count} operações</p>
             </div>
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
+            <div className="bg-white border border-zinc-200 rounded-xl p-5">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Lucro Bruto</p>
               <p className={`text-xl font-bold mt-1 ${summary.lucro_bruto >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                 {fmt(summary.lucro_bruto)}
               </p>
               {summary.lucro_bruto >= 0 ? (
-                <TrendingUp className="h-4 w-4 text-emerald-500 mt-1" />
+                <TrendUp className="h-4 w-4 text-emerald-500 mt-1" />
               ) : (
-                <TrendingDown className="h-4 w-4 text-red-500 mt-1" />
+                <TrendDown className="h-4 w-4 text-red-500 mt-1" />
               )}
             </div>
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
+            <div className="bg-white border border-zinc-200 rounded-xl p-5">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Prejuízo Acumulado</p>
-              <p className={`text-xl font-bold mt-1 ${summary.prejuizo_acumulado > 0 ? "text-red-600" : "text-gray-400"}`}>
+              <p className={`text-xl font-bold mt-1 ${summary.prejuizo_acumulado > 0 ? "text-red-600" : "text-zinc-400"}`}>
                 {summary.prejuizo_acumulado > 0 ? `−${fmt(summary.prejuizo_acumulado)}` : "—"}
               </p>
-              <p className="text-xs text-gray-500 mt-1">meses anteriores</p>
+              <p className="text-xs text-zinc-500 mt-1">meses anteriores</p>
             </div>
-            <div className={`rounded-xl p-5 border ${summary.darf_gerado ? "bg-red-50 border-red-200" : "bg-white border-gray-200"}`}>
+            <div className={`rounded-xl p-5 border ${summary.darf_gerado ? "bg-red-50 border-red-200" : "bg-white border-zinc-200"}`}>
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">DARF</p>
-              <p className={`text-xl font-bold mt-1 ${summary.darf_gerado ? "text-red-600" : "text-gray-400"}`}>
+              <p className={`text-xl font-bold mt-1 ${summary.darf_gerado ? "text-red-600" : "text-zinc-400"}`}>
                 {summary.darf_gerado ? fmt(summary.darf_valor) : "—"}
               </p>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-zinc-500 mt-1">
                 {summary.darf_gerado ? `Vencimento: último dia útil do mês` : "sem DARF"}
               </p>
             </div>
@@ -237,7 +238,7 @@ function DarfTab() {
           {/* Rules */}
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
             <h3 className="font-semibold text-blue-800 flex items-center gap-2">
-              <AlertCircle className="h-4 w-4" />
+              <Warning className="h-4 w-4" weight="fill" />
               Regras do IR — Swing Trade
             </h3>
             <ul className="mt-3 space-y-1 text-sm text-blue-700">
@@ -256,7 +257,7 @@ function DarfTab() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-gray-100 text-gray-600">
+                    <tr className="bg-zinc-100 text-zinc-600">
                       <th className="text-left px-4 py-2.5 rounded-tl-lg font-semibold">Ticker</th>
                       <th className="text-left px-4 py-2.5 font-semibold">Data</th>
                       <th className="text-right px-4 py-2.5 font-semibold">Qtd</th>
@@ -267,9 +268,9 @@ function DarfTab() {
                   </thead>
                   <tbody>
                     {summary.transactions.map((tx) => (
-                      <tr key={tx.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                      <tr key={tx.id} className="border-b border-zinc-100 hover:bg-zinc-50 transition-colors">
                         <td className="px-4 py-3 font-bold font-mono">{tx.ticker}</td>
-                        <td className="px-4 py-3 text-gray-600">
+                        <td className="px-4 py-3 text-zinc-600">
                           {new Date(tx.date + "T00:00:00").toLocaleDateString("pt-BR")}
                         </td>
                         <td className="px-4 py-3 text-right">{tx.quantity.toLocaleString("pt-BR")}</td>
@@ -281,7 +282,7 @@ function DarfTab() {
                               {tx.gross_profit >= 0 ? "+" : ""}{fmt(tx.gross_profit)}
                             </span>
                           ) : (
-                            <span className="text-gray-400 text-xs">não informado</span>
+                            <span className="text-zinc-400 text-xs">não informado</span>
                           )}
                         </td>
                       </tr>
@@ -304,7 +305,7 @@ function DarfTab() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-100 text-gray-600">
+                <tr className="bg-zinc-100 text-zinc-600">
                   <th className="text-left px-4 py-2.5 rounded-tl-lg font-semibold">Mês</th>
                   <th className="text-right px-4 py-2.5 font-semibold">Total Vendas</th>
                   <th className="text-right px-4 py-2.5 font-semibold">Lucro Bruto</th>
@@ -316,7 +317,7 @@ function DarfTab() {
                 {[...history].reverse().map((row) => (
                   <tr
                     key={row.month}
-                    className={`border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer ${row.month === month ? "bg-blue-50" : ""}`}
+                    className={`border-b border-zinc-100 hover:bg-zinc-50 transition-colors cursor-pointer ${row.month === month ? "bg-blue-50" : ""}`}
                     onClick={() => setMonth(row.month)}
                   >
                     <td className="px-4 py-3 font-medium">{row.month}</td>
@@ -331,7 +332,7 @@ function DarfTab() {
                       ) : row.darf_gerado ? (
                         <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs font-medium">DARF</span>
                       ) : (
-                        <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs font-medium">Sem DARF</span>
+                        <span className="bg-zinc-100 text-zinc-600 px-2 py-0.5 rounded-full text-xs font-medium">Sem DARF</span>
                       )}
                     </td>
                   </tr>
@@ -339,14 +340,14 @@ function DarfTab() {
               </tbody>
             </table>
           </div>
-          <p className="text-xs text-gray-400 mt-2">Clique em uma linha para ver os detalhes do mês.</p>
+          <p className="text-xs text-zinc-400 mt-2">Clique em uma linha para ver os detalhes do mês.</p>
         </div>
       )}
 
       {!isLoading && summary && summary.transactions_count === 0 && history.length === 0 && (
-        <div className="rounded-lg bg-gray-100 p-12 text-center">
-          <Calculator className="h-8 w-8 text-gray-400 mx-auto mb-3" />
-          <p className="font-semibold text-gray-900">Nenhuma venda registrada</p>
+        <div className="rounded-lg bg-zinc-100 p-12 text-center">
+          <Calculator className="h-8 w-8 text-zinc-400 mx-auto mb-3" />
+          <p className="font-semibold text-zinc-900">Nenhuma venda registrada</p>
           <p className="text-sm text-muted-foreground mt-1">
             Registre transações de venda na carteira para calcular o IR.
           </p>
@@ -392,11 +393,11 @@ function DeclarationTab() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-gray-700">Ano-base</label>
+          <label className="text-sm font-medium text-zinc-700">Ano-base</label>
           <select
             value={year}
             onChange={(e) => setYear(Number(e.target.value))}
-            className="bg-gray-100 border-0 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            className="bg-zinc-100 border-0 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
           >
             {availableYears.map((y) => (
               <option key={y} value={y}>{y}</option>
@@ -408,7 +409,7 @@ function DeclarationTab() {
       {/* Brazil tax deadline alert */}
       {year === currentYr - 1 && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-3">
-          <span className="text-lg mt-0.5">⏰</span>
+          <Warning className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" weight="fill" />
           <div>
             <p className="text-sm font-semibold text-amber-800">Prazo da DIRPF {year + 1}: 30 de abril</p>
             <p className="text-xs text-amber-700 mt-0.5">
@@ -421,22 +422,22 @@ function DeclarationTab() {
       {isLoading && (
         <div className="space-y-3">
           {[1, 2, 3].map((n) => (
-            <div key={n} className="h-16 rounded-xl bg-gray-100 animate-pulse" />
+            <ShimmerSkeleton key={n} className="h-16 rounded-xl" />
           ))}
         </div>
       )}
 
       {error && (
         <div className="rounded-lg bg-red-50 border-l-4 border-red-500 p-4 text-sm text-red-600 flex gap-2">
-          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+          <Warning className="h-4 w-4 shrink-0 mt-0.5" weight="fill" />
           Erro ao carregar declaração.
         </div>
       )}
 
       {data && data.items.length === 0 && (
-        <div className="rounded-lg bg-gray-100 p-12 text-center">
-          <FileText className="h-8 w-8 text-gray-400 mx-auto mb-3" />
-          <p className="font-semibold text-gray-900">Nenhum ativo em 31/12/{year}</p>
+        <div className="rounded-lg bg-zinc-100 p-12 text-center">
+          <FileText className="h-8 w-8 text-zinc-400 mx-auto mb-3" />
+          <p className="font-semibold text-zinc-900">Nenhum ativo em 31/12/{year}</p>
           <p className="text-sm text-muted-foreground mt-1">
             Não há posições abertas ou encerradas neste ano. Verifique se suas transações estão cadastradas.
           </p>
@@ -447,19 +448,19 @@ function DeclarationTab() {
         <>
           {/* Totals summary */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
+            <div className="bg-white border border-zinc-200 rounded-xl p-5">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
                 Situação em 31/12/{year - 1}
               </p>
               <p className="text-xl font-bold mt-1">{fmt(data.total_declarado_anterior)}</p>
-              <p className="text-xs text-gray-500 mt-1">ano anterior</p>
+              <p className="text-xs text-zinc-500 mt-1">ano anterior</p>
             </div>
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
+            <div className="bg-white border border-zinc-200 rounded-xl p-5">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
                 Situação em 31/12/{year}
               </p>
               <p className="text-xl font-bold mt-1">{fmt(data.total_declarado_atual)}</p>
-              <p className="text-xs text-gray-500 mt-1">ano-base (declarar este valor)</p>
+              <p className="text-xs text-zinc-500 mt-1">ano-base (declarar este valor)</p>
             </div>
           </div>
 
@@ -468,10 +469,10 @@ function DeclarationTab() {
             <h3 className="text-base font-semibold mb-3">
               Bens e Direitos — {data.items.length} {data.items.length === 1 ? "ativo" : "ativos"}
             </h3>
-            <div className="overflow-x-auto rounded-xl border border-gray-200">
+            <div className="overflow-x-auto rounded-xl border border-zinc-200">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50 text-gray-600 border-b border-gray-200">
+                  <tr className="bg-zinc-50 text-zinc-600 border-b border-zinc-200">
                     <th className="text-left px-4 py-3 font-semibold">Código RF</th>
                     <th className="text-left px-4 py-3 font-semibold">Ativo</th>
                     <th className="text-left px-4 py-3 font-semibold hidden md:table-cell">Tipo</th>
@@ -487,20 +488,20 @@ function DeclarationTab() {
                     return (
                       <tr
                         key={item.ticker}
-                        className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${isLiquidated ? "opacity-60" : ""}`}
+                        className={`border-b border-zinc-100 hover:bg-zinc-50 transition-colors ${isLiquidated ? "opacity-60" : ""}`}
                       >
                         <td className="px-4 py-3">
-                          <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">
+                          <span className="font-mono text-xs bg-zinc-100 px-2 py-0.5 rounded">
                             {item.grupo}.{item.codigo}
                           </span>
                         </td>
                         <td className="px-4 py-3">
                           <div className="font-bold font-mono">{item.ticker}</div>
                           {isLiquidated && (
-                            <div className="text-xs text-gray-400">liquidado em {year}</div>
+                            <div className="text-xs text-zinc-400">liquidado em {year}</div>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-gray-600 hidden md:table-cell">
+                        <td className="px-4 py-3 text-zinc-600 hidden md:table-cell">
                           {ASSET_CLASS_LABELS[item.asset_class] ?? item.asset_class}
                         </td>
                         <td className="px-4 py-3 text-right font-mono text-sm">
@@ -512,7 +513,7 @@ function DeclarationTab() {
                         <td className="px-4 py-3 text-right font-mono text-sm">
                           {item.custo_medio_atual > 0 ? fmt(item.custo_medio_atual) : "—"}
                         </td>
-                        <td className="px-4 py-3 text-right font-mono text-sm text-gray-500">
+                        <td className="px-4 py-3 text-right font-mono text-sm text-zinc-500">
                           {item.situacao_ano_anterior > 0 ? fmt(item.situacao_ano_anterior) : "—"}
                         </td>
                         <td className="px-4 py-3 text-right font-mono text-sm font-semibold">
@@ -523,8 +524,8 @@ function DeclarationTab() {
                   })}
                 </tbody>
                 <tfoot>
-                  <tr className="bg-gray-50 font-semibold border-t-2 border-gray-200">
-                    <td colSpan={5} className="px-4 py-3 text-xs text-gray-500 uppercase tracking-wide">
+                  <tr className="bg-zinc-50 font-semibold border-t-2 border-zinc-200">
+                    <td colSpan={5} className="px-4 py-3 text-xs text-zinc-500 uppercase tracking-wide">
                       Total
                     </td>
                     <td className="px-4 py-3 text-right font-mono">{fmt(data.total_declarado_anterior)}</td>
@@ -533,7 +534,7 @@ function DeclarationTab() {
                 </tfoot>
               </table>
             </div>
-            <p className="text-xs text-gray-400 mt-2">
+            <p className="text-xs text-zinc-400 mt-2">
               * Valores em custo de aquisição (CMP) — NÃO é valor de mercado.
             </p>
           </div>
@@ -542,17 +543,17 @@ function DeclarationTab() {
           <div>
             <h3 className="text-base font-semibold mb-3">
               Discriminação por ativo
-              <span className="text-xs font-normal text-gray-500 ml-2">— copie e cole no campo "Discriminação" do ReceitaNet</span>
+              <span className="text-xs font-normal text-zinc-500 ml-2">— copie e cole no campo "Discriminação" do ReceitaNet</span>
             </h3>
             <div className="space-y-2">
               {data.items.filter(it => it.situacao_ano_atual > 0).map((item) => (
-                <div key={item.ticker} className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 flex items-start justify-between gap-3">
+                <div key={item.ticker} className="bg-zinc-50 border border-zinc-200 rounded-lg px-4 py-3 flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-bold font-mono text-sm">{item.ticker}</span>
-                      <span className="text-xs text-gray-500 font-mono">Grupo {item.grupo} · Código {item.codigo}</span>
+                      <span className="text-xs text-zinc-500 font-mono">Grupo {item.grupo} · Código {item.codigo}</span>
                     </div>
-                    <p className="text-xs text-gray-600 break-words leading-relaxed">{item.discriminacao}</p>
+                    <p className="text-xs text-zinc-600 break-words leading-relaxed">{item.discriminacao}</p>
                   </div>
                   <CopyButton text={item.discriminacao} />
                 </div>
@@ -649,14 +650,14 @@ function TaxLossTab() {
       {isLoading && (
         <div className="space-y-3">
           {[1, 2, 3].map((n) => (
-            <div key={n} className="h-16 rounded-xl bg-gray-100 animate-pulse" />
+            <ShimmerSkeleton key={n} className="h-16 rounded-xl" />
           ))}
         </div>
       )}
 
       {error && (
         <div className="rounded-lg bg-red-50 border-l-4 border-red-500 p-4 text-sm text-red-600 flex gap-2">
-          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+          <Warning className="h-4 w-4 shrink-0 mt-0.5" weight="fill" />
           Erro ao carregar dados de tax-loss harvesting.
         </div>
       )}
@@ -665,33 +666,33 @@ function TaxLossTab() {
         <>
           {/* Summary cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
+            <div className="bg-white border border-zinc-200 rounded-xl p-5">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Ganho tributável — {data.current_month}</p>
-              <p className={`text-xl font-bold mt-1 ${data.accumulated_gain_month > 0 ? "text-red-600" : "text-gray-400"}`}>
+              <p className={`text-xl font-bold mt-1 ${data.accumulated_gain_month > 0 ? "text-red-600" : "text-zinc-400"}`}>
                 {data.accumulated_gain_month > 0 ? fmt(data.accumulated_gain_month) : "—"}
               </p>
-              <p className="text-xs text-gray-500 mt-1">lucro líquido do mês</p>
+              <p className="text-xs text-zinc-500 mt-1">lucro líquido do mês</p>
             </div>
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
+            <div className="bg-white border border-zinc-200 rounded-xl p-5">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Prejuízo latente total</p>
-              <p className={`text-xl font-bold mt-1 ${data.total_unrealized_loss < 0 ? "text-orange-600" : "text-gray-400"}`}>
+              <p className={`text-xl font-bold mt-1 ${data.total_unrealized_loss < 0 ? "text-orange-600" : "text-zinc-400"}`}>
                 {data.total_unrealized_loss < 0 ? fmt(data.total_unrealized_loss) : "—"}
               </p>
-              <p className="text-xs text-gray-500 mt-1">{data.items.length} posição{data.items.length !== 1 ? "s" : ""} candidata{data.items.length !== 1 ? "s" : ""}</p>
+              <p className="text-xs text-zinc-500 mt-1">{data.items.length} posição{data.items.length !== 1 ? "s" : ""} candidata{data.items.length !== 1 ? "s" : ""}</p>
             </div>
-            <div className={`rounded-xl p-5 border ${data.max_potential_saving > 0 ? "bg-emerald-50 border-emerald-200" : "bg-white border-gray-200"}`}>
+            <div className={`rounded-xl p-5 border ${data.max_potential_saving > 0 ? "bg-emerald-50 border-emerald-200" : "bg-white border-zinc-200"}`}>
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Economia potencial</p>
-              <p className={`text-xl font-bold mt-1 ${data.max_potential_saving > 0 ? "text-emerald-700" : "text-gray-400"}`}>
+              <p className={`text-xl font-bold mt-1 ${data.max_potential_saving > 0 ? "text-emerald-700" : "text-zinc-400"}`}>
                 {data.max_potential_saving > 0 ? fmt(data.max_potential_saving) : "—"}
               </p>
-              <p className="text-xs text-gray-500 mt-1">economia máxima em DARF</p>
+              <p className="text-xs text-zinc-500 mt-1">economia máxima em DARF</p>
             </div>
           </div>
 
           {data.items.length === 0 && (
-            <div className="rounded-lg bg-gray-100 p-12 text-center">
-              <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto mb-3" />
-              <p className="font-semibold text-gray-900">Nenhuma posição com prejuízo latente</p>
+            <div className="rounded-lg bg-zinc-100 p-12 text-center">
+              <CheckCircle className="h-8 w-8 text-emerald-500 mx-auto mb-3" />
+              <p className="font-semibold text-zinc-900">Nenhuma posição com prejuízo latente</p>
               <p className="text-sm text-muted-foreground mt-1">
                 Todas as suas posições estão com resultado positivo — parabéns!
               </p>
@@ -702,7 +703,7 @@ function TaxLossTab() {
             <>
               {data.accumulated_gain_month === 0 && (
                 <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-700 flex items-start gap-2">
-                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <Warning className="h-4 w-4 shrink-0 mt-0.5" weight="fill" />
                   <span>
                     Sem ganho tributável no mês corrente — nenhuma economia fiscal imediata.
                     Vender para acumular prejuízo pode ser útil para meses futuros.
@@ -714,10 +715,10 @@ function TaxLossTab() {
                 <h3 className="text-base font-semibold mb-3">
                   Candidatos à venda — ordenados por prejuízo
                 </h3>
-                <div className="overflow-x-auto rounded-xl border border-gray-200">
+                <div className="overflow-x-auto rounded-xl border border-zinc-200">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="bg-gray-50 text-gray-600 border-b border-gray-200">
+                      <tr className="bg-zinc-50 text-zinc-600 border-b border-zinc-200">
                         <th className="text-left px-4 py-3 font-semibold">Ativo</th>
                         <th className="text-left px-4 py-3 font-semibold hidden sm:table-cell">Tipo</th>
                         <th className="text-right px-4 py-3 font-semibold">Qtd</th>
@@ -729,17 +730,17 @@ function TaxLossTab() {
                     </thead>
                     <tbody>
                       {data.items.map((item) => (
-                        <tr key={item.ticker} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                        <tr key={item.ticker} className="border-b border-zinc-100 hover:bg-zinc-50 transition-colors">
                           <td className="px-4 py-3">
                             <span className="font-bold font-mono">{item.ticker}</span>
                           </td>
-                          <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">
+                          <td className="px-4 py-3 text-zinc-500 hidden sm:table-cell">
                             {ASSET_LABELS[item.asset_class] ?? item.asset_class}
                           </td>
                           <td className="px-4 py-3 text-right font-mono">
                             {item.quantity.toLocaleString("pt-BR", { maximumFractionDigits: 4 })}
                           </td>
-                          <td className="px-4 py-3 text-right font-mono text-gray-500">
+                          <td className="px-4 py-3 text-right font-mono text-zinc-500">
                             {fmt(item.avg_cost)}
                           </td>
                           <td className="px-4 py-3 text-right font-mono">
@@ -759,7 +760,7 @@ function TaxLossTab() {
                                 {fmt(item.potential_tax_saving)}
                               </span>
                             ) : (
-                              <span className="text-gray-400 text-xs">sem ganho</span>
+                              <span className="text-zinc-400 text-xs">sem ganho</span>
                             )}
                           </td>
                         </tr>
@@ -767,7 +768,7 @@ function TaxLossTab() {
                     </tbody>
                   </table>
                 </div>
-                <p className="text-xs text-gray-400 mt-2">
+                <p className="text-xs text-zinc-400 mt-2">
                   CMP = custo médio ponderado de aquisição. Cotação = última snapshot do screener.
                 </p>
               </div>
@@ -808,13 +809,13 @@ export function IrHelperContent() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-200 overflow-x-auto">
+      <div className="flex gap-1 border-b border-zinc-200 overflow-x-auto">
         <button
           onClick={() => setTab("darf")}
           className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 whitespace-nowrap ${
             tab === "darf"
               ? "border-blue-500 text-blue-700 bg-blue-50"
-              : "border-transparent text-gray-600 hover:text-gray-900"
+              : "border-transparent text-zinc-600 hover:text-zinc-900"
           }`}
         >
           <span className="flex items-center gap-2">
@@ -827,7 +828,7 @@ export function IrHelperContent() {
           className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 whitespace-nowrap ${
             tab === "declaration"
               ? "border-blue-500 text-blue-700 bg-blue-50"
-              : "border-transparent text-gray-600 hover:text-gray-900"
+              : "border-transparent text-zinc-600 hover:text-zinc-900"
           }`}
         >
           <span className="flex items-center gap-2">
@@ -840,7 +841,7 @@ export function IrHelperContent() {
           className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 whitespace-nowrap ${
             tab === "tax-loss"
               ? "border-blue-500 text-blue-700 bg-blue-50"
-              : "border-transparent text-gray-600 hover:text-gray-900"
+              : "border-transparent text-zinc-600 hover:text-zinc-900"
           }`}
         >
           <span className="flex items-center gap-2">
