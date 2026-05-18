@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
+import { FileCsv, FileXls, Printer, Copy, Check, X, CaretDown, DownloadSimple } from "@phosphor-icons/react";
 import { PnLResponse } from "@/features/portfolio/types";
 import {
   exportPortfolioCsv,
@@ -20,10 +21,10 @@ const FORMAT_LABELS: Record<ExportFormat, string> = {
   pdf: "PDF (imprimir)",
 };
 
-const FORMAT_ICONS: Record<ExportFormat, string> = {
-  csv: "📄",
-  xls: "📊",
-  pdf: "🖨️",
+const FORMAT_ICONS: Record<ExportFormat, React.ElementType> = {
+  csv: FileCsv,
+  xls: FileXls,
+  pdf: Printer,
 };
 
 export function PortfolioExportButtons({ pnl }: PortfolioExportButtonsProps) {
@@ -32,7 +33,6 @@ export function PortfolioExportButtons({ pnl }: PortfolioExportButtonsProps) {
   const [exporting, setExporting] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on outside click
   useEffect(() => {
     function handleOutside(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -71,36 +71,37 @@ export function PortfolioExportButtons({ pnl }: PortfolioExportButtonsProps) {
 
   return (
     <div className="flex items-center gap-2">
-      {/* ── Export dropdown ── */}
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={() => setDropdownOpen((v) => !v)}
           disabled={exporting}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 transition-colors disabled:opacity-50 shadow-sm"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 transition-colors disabled:opacity-50 shadow-sm"
           title="Exportar carteira"
         >
-          <span className="text-sm">↓</span>
+          <DownloadSimple size={13} weight="bold" />
           {exporting ? "Exportando…" : "Exportar"}
-          <span className="text-[10px] text-gray-400 ml-0.5">▾</span>
+          <CaretDown size={10} className="text-zinc-400 ml-0.5" />
         </button>
 
         {dropdownOpen && (
-          <div className="absolute right-0 top-full mt-1 z-50 min-w-[160px] rounded-lg border border-gray-200 bg-white shadow-lg py-1">
-            {(["csv", "xls", "pdf"] as ExportFormat[]).map((fmt) => (
-              <button
-                key={fmt}
-                onClick={() => handleExport(fmt)}
-                className="w-full text-left flex items-center gap-2 px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                <span>{FORMAT_ICONS[fmt]}</span>
-                <span>{FORMAT_LABELS[fmt]}</span>
-              </button>
-            ))}
+          <div className="absolute right-0 top-full mt-1 z-50 min-w-[160px] rounded-lg border border-zinc-200 bg-white shadow-lg py-1">
+            {(["csv", "xls", "pdf"] as ExportFormat[]).map((fmt) => {
+              const Icon = FORMAT_ICONS[fmt];
+              return (
+                <button
+                  key={fmt}
+                  onClick={() => handleExport(fmt)}
+                  className="w-full text-left flex items-center gap-2 px-4 py-2 text-xs text-zinc-700 hover:bg-zinc-50 transition-colors"
+                >
+                  <Icon size={14} className="text-zinc-400" />
+                  <span>{FORMAT_LABELS[fmt]}</span>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* ── Copy to clipboard ── */}
       <button
         onClick={handleCopy}
         disabled={copyState !== "idle"}
@@ -110,18 +111,15 @@ export function PortfolioExportButtons({ pnl }: PortfolioExportButtonsProps) {
             ? "border-emerald-300 bg-emerald-50 text-emerald-700"
             : copyState === "error"
             ? "border-red-300 bg-red-50 text-red-700"
-            : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+            : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
         }`}
       >
         {copyState === "copied" ? (
-          <>✓ Copiado!</>
+          <><Check size={12} weight="bold" /> Copiado!</>
         ) : copyState === "error" ? (
-          <>✗ Erro</>
+          <><X size={12} weight="bold" /> Erro</>
         ) : (
-          <>
-            <span className="text-sm">⧉</span>
-            Copiar
-          </>
+          <><Copy size={12} /> Copiar</>
         )}
       </button>
     </div>

@@ -1,5 +1,7 @@
 "use client";
 import Link from "next/link";
+import { motion } from "framer-motion";
+import { Check } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 
@@ -27,38 +29,51 @@ export function OnboardingBanner() {
   const doneCount = steps.filter(s => s.done).length;
 
   return (
-    <div className="rounded-lg bg-[#111827] text-white p-5 space-y-4">
+    <motion.div
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="rounded-xl bg-zinc-900 text-white p-5 space-y-4"
+    >
       <div className="flex items-center justify-between">
         <p className="text-sm font-bold tracking-tight">Configure seu copiloto</p>
-        <span className="text-xs font-semibold text-gray-400">{doneCount}/{steps.length} passos</span>
+        <span className="text-xs font-semibold text-zinc-400">{doneCount}/{steps.length} passos</span>
       </div>
 
-      {/* Steps */}
       <div className="flex items-center gap-2">
         {steps.map((s, i) => (
           <div key={s.key} className="flex items-center gap-2">
-            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-              s.done ? "bg-blue-500 text-white" : "bg-gray-600 text-gray-400"
-            }`}>
-              {s.done ? "✓" : i + 1}
-            </div>
-            <span className={`text-xs hidden sm:block ${s.done ? "text-gray-300" : "text-gray-500"}`}>{s.label}</span>
-            {i < steps.length - 1 && <div className="h-px w-4 sm:w-8 bg-gray-700" />}
+            <motion.div
+              initial={{ scale: 0.85, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.25, delay: i * 0.07 }}
+              className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                s.done ? "bg-blue-500 text-white" : "bg-zinc-700 text-zinc-400"
+              }`}
+            >
+              {s.done ? <Check size={12} weight="bold" /> : i + 1}
+            </motion.div>
+            <span className={`text-xs hidden sm:block ${s.done ? "text-zinc-300" : "text-zinc-500"}`}>{s.label}</span>
+            {i < steps.length - 1 && <div className="h-px w-4 sm:w-8 bg-zinc-700" />}
           </div>
         ))}
       </div>
 
-      {/* Progress bar */}
-      <div className="h-1.5 rounded-full bg-gray-700 overflow-hidden">
-        <div className="h-full rounded-full bg-blue-500 transition-all duration-500" style={{ width: `${pct}%` }} />
+      <div className="h-1.5 rounded-full bg-zinc-700 overflow-hidden">
+        <motion.div
+          className="h-full rounded-full bg-blue-500"
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        />
       </div>
 
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-400">{next?.label}</p>
+        <p className="text-sm text-zinc-400">{next?.label}</p>
         <Link href={next?.href ?? "/"} className="text-sm font-semibold text-blue-400 hover:text-blue-300 transition-colors">
           Fazer agora →
         </Link>
       </div>
-    </div>
+    </motion.div>
   );
 }

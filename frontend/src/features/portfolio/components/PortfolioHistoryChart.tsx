@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { motion } from "framer-motion";
 import {
   AreaChart,
   Area,
@@ -10,6 +11,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 import { usePortfolioHistory, type HistoryRange } from "../hooks/usePortfolioHistory";
 
 const RANGES: { label: string; value: HistoryRange }[] = [
@@ -35,8 +37,8 @@ function fmtDate(dateStr: string) {
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-sm">
-      <p className="font-semibold text-gray-700 mb-2">
+    <div className="bg-white border border-zinc-200 rounded-lg shadow-lg p-3 text-sm">
+      <p className="font-semibold text-zinc-700 mb-2">
         {new Date(label + "T12:00:00").toLocaleDateString("pt-BR", {
           day: "2-digit", month: "short", year: "numeric",
         })}
@@ -44,14 +46,14 @@ function CustomTooltip({ active, payload, label }: any) {
       {payload.map((entry: { color: string; name: string; value: number }) => (
         <div key={entry.name} className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full" style={{ background: entry.color }} />
-          <span className="text-gray-500">{entry.name}:</span>
+          <span className="text-zinc-400">{entry.name}:</span>
           <span className="font-semibold tabular-nums">
             {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(entry.value)}
           </span>
         </div>
       ))}
       {payload.length === 2 && (
-        <div className="mt-2 pt-2 border-t border-gray-100 text-xs">
+        <div className="mt-2 pt-2 border-t border-zinc-100 text-xs">
           {(() => {
             const val = payload.find((p: { name: string }) => p.name === "Patrimônio")?.value ?? 0;
             const inv = payload.find((p: { name: string }) => p.name === "Investido")?.value ?? 0;
@@ -83,7 +85,6 @@ export function PortfolioHistoryChart() {
     total_invested: parseFloat(p.total_invested),
   }));
 
-  // Compute return pct for the selected period
   const firstPoint = chartData[0];
   const lastPoint = chartData[chartData.length - 1];
   const periodReturn =
@@ -92,10 +93,15 @@ export function PortfolioHistoryChart() {
       : null;
 
   return (
-    <div className="rounded-lg bg-white p-6">
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      className="rounded-xl border border-zinc-200 bg-white p-6"
+    >
       <div className="flex items-start justify-between flex-wrap gap-3 mb-6">
         <div>
-          <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+          <h3 className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
             Evolução do Patrimônio
           </h3>
           {periodReturn !== null && (
@@ -105,16 +111,15 @@ export function PortfolioHistoryChart() {
           )}
         </div>
 
-        {/* Range selector */}
-        <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+        <div className="flex gap-1 bg-zinc-100 rounded-lg p-1">
           {RANGES.map((r) => (
             <button
               key={r.value}
               onClick={() => setRange(r.value)}
               className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all duration-150 ${
                 range === r.value
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-muted-foreground hover:text-gray-700"
+                  ? "bg-white text-zinc-900 shadow-sm"
+                  : "text-zinc-400 hover:text-zinc-700"
               }`}
             >
               {r.label}
@@ -123,18 +128,18 @@ export function PortfolioHistoryChart() {
         </div>
       </div>
 
-      {isLoading && (
-        <div className="h-64 w-full bg-gray-50 rounded-lg animate-pulse" />
-      )}
+      {isLoading && <ShimmerSkeleton className="h-64 w-full rounded-lg" />}
 
       {!isLoading && !hasData && (
-        <div className="h-64 flex flex-col items-center justify-center text-center gap-3 bg-gray-50 rounded-lg">
-          <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-lg">
-            📈
+        <div className="h-64 flex flex-col items-center justify-center text-center gap-3 bg-zinc-50 rounded-lg">
+          <div className="h-10 w-10 rounded-full bg-zinc-100 border border-zinc-200 flex items-center justify-center">
+            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden>
+              <path d="M3 17l5-5 4 4 5-6 4 4" stroke="#a1a1aa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-700">Dados históricos em construção</p>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-sm font-semibold text-zinc-700">Dados históricos em construção</p>
+            <p className="text-xs text-zinc-400 mt-1">
               O gráfico é populado diariamente após o fechamento do mercado.
               <br />Volte amanhã após as 18h30.
             </p>
@@ -156,18 +161,18 @@ export function PortfolioHistoryChart() {
               </linearGradient>
             </defs>
 
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" vertical={false} />
             <XAxis
               dataKey="date"
               tickFormatter={fmtDate}
-              tick={{ fontSize: 11, fill: "#94a3b8" }}
+              tick={{ fontSize: 11, fill: "#a1a1aa" }}
               axisLine={false}
               tickLine={false}
               interval="preserveStartEnd"
             />
             <YAxis
               tickFormatter={fmtBRL}
-              tick={{ fontSize: 11, fill: "#94a3b8" }}
+              tick={{ fontSize: 11, fill: "#a1a1aa" }}
               axisLine={false}
               tickLine={false}
               width={64}
@@ -204,9 +209,9 @@ export function PortfolioHistoryChart() {
         </ResponsiveContainer>
       )}
 
-      <p className="text-[10px] text-muted-foreground mt-3 text-right">
+      <p className="text-[10px] text-zinc-400 mt-3 text-right">
         Atualizado diariamente às 18h30 BRT · Patrimônio = preços de fechamento × quantidade
       </p>
-    </div>
+    </motion.div>
   );
 }

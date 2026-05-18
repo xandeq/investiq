@@ -1,8 +1,10 @@
 "use client";
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Crosshair, PencilSimple, Check, X, Warning } from "@phosphor-icons/react";
 import { apiClient } from "@/lib/api-client";
-import { Target, Pencil, Check, X } from "lucide-react";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 
 interface TargetItem { asset_class: string; target_pct: string }
 
@@ -43,7 +45,7 @@ function fmtBrl(v: string | number) {
 function actionColor(action: string) {
   if (action === "comprar") return "text-emerald-600 bg-emerald-50";
   if (action === "vender") return "text-red-600 bg-red-50";
-  return "text-gray-500 bg-gray-50";
+  return "text-zinc-500 bg-zinc-50";
 }
 
 export function RebalancingCard() {
@@ -98,22 +100,27 @@ export function RebalancingCard() {
 
   const sumTargets = Object.values(draft).reduce((s, v) => s + (parseFloat(v) || 0), 0);
 
-  if (isLoading) return <div className="h-40 rounded-xl bg-gray-100 animate-pulse" />;
+  if (isLoading) return <ShimmerSkeleton className="h-40 rounded-xl" />;
   if (!plan) return null;
 
   return (
-    <div className="rounded-xl border bg-white p-4 space-y-4">
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="rounded-xl border border-zinc-200 bg-white p-4 space-y-4"
+    >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Target className="h-4 w-4 text-blue-500" />
-          <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Rebalanceamento</p>
+          <Crosshair className="h-4 w-4 text-blue-500" weight="fill" />
+          <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">Rebalanceamento</p>
         </div>
         {!editing ? (
           <button
             onClick={startEdit}
-            className="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-blue-600 border rounded-md hover:border-blue-300 transition-colors"
+            className="flex items-center gap-1 px-2 py-1 text-xs text-zinc-500 hover:text-blue-600 border border-zinc-200 rounded-md hover:border-blue-300 transition-colors"
           >
-            <Pencil className="h-3 w-3" />
+            <PencilSimple className="h-3 w-3" />
             {plan.has_targets ? "Editar metas" : "Definir metas"}
           </button>
         ) : (
@@ -132,7 +139,7 @@ export function RebalancingCard() {
       </div>
 
       {!plan.has_targets && !editing && (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-zinc-400">
           Defina a alocação alvo por classe de ativo para ver o plano de rebalanceamento.
         </p>
       )}
@@ -140,7 +147,7 @@ export function RebalancingCard() {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b text-[11px] uppercase text-gray-400 font-semibold">
+            <tr className="border-b border-zinc-100 text-[11px] uppercase text-zinc-400 font-semibold">
               <th className="text-left py-1.5">Classe</th>
               <th className="text-right py-1.5">Atual</th>
               <th className="text-right py-1.5">Meta %</th>
@@ -148,18 +155,24 @@ export function RebalancingCard() {
               {plan.has_targets && <th className="text-right py-1.5">Ação</th>}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
-            {plan.slots.map((s) => {
+          <tbody className="divide-y divide-zinc-50">
+            {plan.slots.map((s, i) => {
               const drift = parseFloat(s.drift_brl);
               const driftPct = parseFloat(s.drift_pct);
               return (
-                <tr key={s.asset_class} className="hover:bg-gray-50/50">
-                  <td className="py-2 font-medium text-gray-800">
+                <motion.tr
+                  key={s.asset_class}
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1], delay: i * 0.04 }}
+                  className="hover:bg-zinc-50/60"
+                >
+                  <td className="py-2 font-medium text-zinc-800">
                     {CLASS_LABELS[s.asset_class] || s.asset_class}
                   </td>
-                  <td className="text-right text-gray-600 py-2">
+                  <td className="text-right text-zinc-500 py-2">
                     {parseFloat(s.current_pct).toFixed(1)}%
-                    <span className="block text-[10px] text-gray-400">{fmtBrl(s.current_value)}</span>
+                    <span className="block text-[10px] text-zinc-400">{fmtBrl(s.current_value)}</span>
                   </td>
                   <td className="text-right py-2">
                     {editing ? (
@@ -170,21 +183,21 @@ export function RebalancingCard() {
                         step="1"
                         value={draft[s.asset_class] ?? ""}
                         onChange={(e) => setDraft((d) => ({ ...d, [s.asset_class]: e.target.value }))}
-                        className="w-16 text-right border rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
+                        className="w-16 text-right border border-zinc-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
                         placeholder="0"
                       />
                     ) : (
-                      <span className={plan.has_targets && parseFloat(s.target_pct) > 0 ? "font-semibold" : "text-gray-400"}>
+                      <span className={plan.has_targets && parseFloat(s.target_pct) > 0 ? "font-semibold" : "text-zinc-400"}>
                         {plan.has_targets && parseFloat(s.target_pct) > 0 ? `${parseFloat(s.target_pct).toFixed(0)}%` : "—"}
                       </span>
                     )}
                   </td>
                   {plan.has_targets && (
                     <td className="text-right py-2">
-                      <span className={drift > 0 ? "text-red-600" : drift < 0 ? "text-emerald-600" : "text-gray-400"}>
+                      <span className={drift > 0 ? "text-red-600" : drift < 0 ? "text-emerald-600" : "text-zinc-400"}>
                         {drift === 0 ? "—" : `${drift > 0 ? "+" : ""}${fmtBrl(drift)}`}
                       </span>
-                      <span className="block text-[10px] text-gray-400">
+                      <span className="block text-[10px] text-zinc-400">
                         {driftPct === 0 ? "" : `${driftPct > 0 ? "+" : ""}${driftPct.toFixed(1)}pp`}
                       </span>
                     </td>
@@ -196,7 +209,7 @@ export function RebalancingCard() {
                       </span>
                     </td>
                   )}
-                </tr>
+                </motion.tr>
               );
             })}
           </tbody>
@@ -204,10 +217,11 @@ export function RebalancingCard() {
       </div>
 
       {plan.has_targets && parseFloat(plan.max_drift_pct) > 5 && (
-        <p className="text-xs text-amber-600 bg-amber-50 rounded px-3 py-1.5">
-          ⚠ Drift máximo de {parseFloat(plan.max_drift_pct).toFixed(1)}pp — carteira fora da meta alvo.
-        </p>
+        <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
+          <Warning size={14} weight="fill" className="text-amber-500 shrink-0" aria-hidden />
+          Drift máximo de {parseFloat(plan.max_drift_pct).toFixed(1)}pp — carteira fora da meta alvo.
+        </div>
       )}
-    </div>
+    </motion.div>
   );
 }

@@ -1,5 +1,7 @@
 "use client";
 import { useState } from "react";
+import { motion } from "framer-motion";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 import { useSortedData } from "@/hooks/useSort";
 import { SortableHeader } from "@/components/ui/SortableHeader";
 import {
@@ -28,7 +30,7 @@ const TX_BADGE: Record<string, string> = {
   sell: "bg-red-100 text-red-600",
   dividend: "bg-blue-100 text-blue-700",
   jscp: "bg-blue-100 text-blue-700",
-  amortization: "bg-gray-100 text-gray-600",
+  amortization: "bg-zinc-100 text-zinc-600",
 };
 
 function fmtDate(d: string) {
@@ -65,8 +67,8 @@ function fmtBRL(v: string | null) {
   return Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-const INPUT_CLS = "w-full rounded-md bg-gray-100 px-3 py-2 text-sm border-2 border-transparent focus:outline-none focus:bg-white focus:border-blue-500 transition-all duration-200 disabled:opacity-50";
-const SELECT_CLS = "w-full rounded-md bg-gray-100 px-3 py-2 text-sm border-2 border-transparent focus:outline-none focus:bg-white focus:border-blue-500 transition-all duration-200";
+const INPUT_CLS = "w-full rounded-md bg-zinc-100 px-3 py-2 text-sm border-2 border-transparent focus:outline-none focus:bg-white focus:border-blue-500 transition-all duration-200 disabled:opacity-50";
+const SELECT_CLS = "w-full rounded-md bg-zinc-100 px-3 py-2 text-sm border-2 border-transparent focus:outline-none focus:bg-white focus:border-blue-500 transition-all duration-200";
 
 interface ModalProps {
   initial?: TransactionResponse;
@@ -116,8 +118,8 @@ function TransactionModal({ initial, onClose, onSave, loading, error }: ModalPro
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-lg border-2 border-gray-200 w-full max-w-lg">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <div className="bg-white rounded-lg border-2 border-zinc-200 w-full max-w-lg">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
           <h2 className="text-base font-bold tracking-tight">
             {isEdit ? "Editar transação" : "Nova transação"}
           </h2>
@@ -201,7 +203,7 @@ function TransactionModal({ initial, onClose, onSave, loading, error }: ModalPro
           </div>
 
           <div className="flex justify-end gap-2 pt-1">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-md bg-gray-100 hover:bg-gray-200 font-medium transition-all duration-200">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-md bg-zinc-100 hover:bg-zinc-200 font-medium transition-all duration-200">
               Cancelar
             </button>
             <button type="submit" disabled={loading} className="px-4 py-2 text-sm rounded-md bg-blue-500 text-white hover:bg-blue-600 font-semibold disabled:opacity-60 transition-all duration-200 hover:scale-[1.02]">
@@ -219,7 +221,7 @@ function DeleteConfirm({ tx, onConfirm, onCancel, loading }: {
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-lg border-2 border-gray-200 w-full max-w-sm p-6 flex flex-col gap-4">
+      <div className="bg-white rounded-lg border-2 border-zinc-200 w-full max-w-sm p-6 flex flex-col gap-4">
         <h3 className="text-base font-bold tracking-tight">Excluir transação?</h3>
         <p className="text-sm text-muted-foreground">
           {TX_TYPE_LABEL[tx.transaction_type] ?? tx.transaction_type} de{" "}
@@ -227,7 +229,7 @@ function DeleteConfirm({ tx, onConfirm, onCancel, loading }: {
           Esta ação não pode ser desfeita.
         </p>
         <div className="flex gap-2 justify-end">
-          <button onClick={onCancel} className="px-4 py-2 text-sm rounded-md bg-gray-100 hover:bg-gray-200 font-medium transition-all duration-200">
+          <button onClick={onCancel} className="px-4 py-2 text-sm rounded-md bg-zinc-100 hover:bg-zinc-200 font-medium transition-all duration-200">
             Cancelar
           </button>
           <button onClick={onConfirm} disabled={loading} className="px-4 py-2 text-sm rounded-md bg-red-500 text-white hover:bg-red-600 font-semibold disabled:opacity-60 transition-all duration-200">
@@ -244,7 +246,7 @@ function BulkDeleteConfirm({ count, onConfirm, onCancel, loading }: {
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-lg border-2 border-gray-200 w-full max-w-sm p-6 flex flex-col gap-4">
+      <div className="bg-white rounded-lg border-2 border-zinc-200 w-full max-w-sm p-6 flex flex-col gap-4">
         <h3 className="text-base font-bold tracking-tight">Excluir {count} transaç{count === 1 ? "ão" : "ões"}?</h3>
         <p className="text-sm text-muted-foreground">
           {count === 1
@@ -253,7 +255,7 @@ function BulkDeleteConfirm({ count, onConfirm, onCancel, loading }: {
           Esta ação não pode ser desfeita.
         </p>
         <div className="flex gap-2 justify-end">
-          <button onClick={onCancel} className="px-4 py-2 text-sm rounded-md bg-gray-100 hover:bg-gray-200 font-medium transition-all duration-200">
+          <button onClick={onCancel} className="px-4 py-2 text-sm rounded-md bg-zinc-100 hover:bg-zinc-200 font-medium transition-all duration-200">
             Cancelar
           </button>
           <button onClick={onConfirm} disabled={loading} className="px-4 py-2 text-sm rounded-md bg-red-500 text-white hover:bg-red-600 font-semibold disabled:opacity-60 transition-all duration-200">
@@ -366,7 +368,7 @@ export function TransactionsContent() {
           {transactions.length > 0 && (
             <button
               onClick={() => exportToCsv(transactions)}
-              className="px-3 py-2 text-sm rounded-md bg-gray-100 hover:bg-gray-200 font-medium transition-all duration-200"
+              className="px-3 py-2 text-sm rounded-md bg-zinc-100 hover:bg-zinc-200 font-medium transition-all duration-200"
               title="Exportar para CSV"
             >
               ↓ CSV
@@ -387,13 +389,13 @@ export function TransactionsContent() {
           placeholder="Filtrar por ticker"
           value={filterTicker}
           onChange={(e) => setFilterTicker(e.target.value.toUpperCase())}
-          className="rounded-md bg-gray-100 px-3 py-1.5 text-sm w-36 border-2 border-transparent focus:outline-none focus:bg-white focus:border-blue-500 transition-all duration-200"
+          className="rounded-md bg-zinc-100 px-3 py-1.5 text-sm w-36 border-2 border-transparent focus:outline-none focus:bg-white focus:border-blue-500 transition-all duration-200"
         />
-        <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="rounded-md bg-gray-100 px-3 py-1.5 text-sm border-2 border-transparent focus:outline-none focus:bg-white focus:border-blue-500 transition-all duration-200">
+        <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="rounded-md bg-zinc-100 px-3 py-1.5 text-sm border-2 border-transparent focus:outline-none focus:bg-white focus:border-blue-500 transition-all duration-200">
           <option value="">Todos os tipos</option>
           {TX_TYPES.map((t) => <option key={t} value={t}>{TX_TYPE_LABEL[t]}</option>)}
         </select>
-        <select value={filterClass} onChange={(e) => setFilterClass(e.target.value)} className="rounded-md bg-gray-100 px-3 py-1.5 text-sm border-2 border-transparent focus:outline-none focus:bg-white focus:border-blue-500 transition-all duration-200">
+        <select value={filterClass} onChange={(e) => setFilterClass(e.target.value)} className="rounded-md bg-zinc-100 px-3 py-1.5 text-sm border-2 border-transparent focus:outline-none focus:bg-white focus:border-blue-500 transition-all duration-200">
           <option value="">Todas as classes</option>
           {ASSET_CLASSES.map((ac) => <option key={ac} value={ac}>{ASSET_LABEL[ac] ?? ac}</option>)}
         </select>
@@ -426,10 +428,10 @@ export function TransactionsContent() {
       )}
 
       {/* Table */}
-      <div className="rounded-lg bg-white overflow-hidden">
+      <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gray-100">
+            <thead className="border-b border-zinc-100">
               <tr>
                 <th className="px-4 py-3 w-10">
                   <input
@@ -440,23 +442,29 @@ export function TransactionsContent() {
                     title="Selecionar tudo"
                   />
                 </th>
-                <SortableHeader col="transaction_date" label="Data" activeCol={sortCol} dir={sortDir} onSort={sortToggle} className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground" />
-                <SortableHeader col="ticker" label="Ticker" activeCol={sortCol} dir={sortDir} onSort={sortToggle} className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground" />
-                <SortableHeader col="transaction_type" label="Tipo" activeCol={sortCol} dir={sortDir} onSort={sortToggle} className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground" />
-                <SortableHeader col="asset_class" label="Classe" activeCol={sortCol} dir={sortDir} onSort={sortToggle} className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground" />
-                <SortableHeader col="quantity" label="Qtd" activeCol={sortCol} dir={sortDir} onSort={sortToggle} className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground" align="right" />
-                <SortableHeader col="unit_price" label="Preço Unit." activeCol={sortCol} dir={sortDir} onSort={sortToggle} className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground" align="right" />
-                <SortableHeader col="total_value" label="Total" activeCol={sortCol} dir={sortDir} onSort={sortToggle} className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground" align="right" />
+                <SortableHeader col="transaction_date" label="Data" activeCol={sortCol} dir={sortDir} onSort={sortToggle} className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400" />
+                <SortableHeader col="ticker" label="Ticker" activeCol={sortCol} dir={sortDir} onSort={sortToggle} className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400" />
+                <SortableHeader col="transaction_type" label="Tipo" activeCol={sortCol} dir={sortDir} onSort={sortToggle} className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400" />
+                <SortableHeader col="asset_class" label="Classe" activeCol={sortCol} dir={sortDir} onSort={sortToggle} className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400" />
+                <SortableHeader col="quantity" label="Qtd" activeCol={sortCol} dir={sortDir} onSort={sortToggle} className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400" align="right" />
+                <SortableHeader col="unit_price" label="Preço Unit." activeCol={sortCol} dir={sortDir} onSort={sortToggle} className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400" align="right" />
+                <SortableHeader col="total_value" label="Total" activeCol={sortCol} dir={sortDir} onSort={sortToggle} className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400" align="right" />
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-zinc-50">
               {isLoading && (
-                <tr><td colSpan={9} className="px-4 py-8 text-center text-muted-foreground text-sm">Carregando...</td></tr>
+                <tr>
+                  <td colSpan={9} className="px-4 py-6">
+                    <div className="space-y-2">
+                      {[0,1,2,3].map((n) => <ShimmerSkeleton key={n} className="h-8 w-full rounded-md" />)}
+                    </div>
+                  </td>
+                </tr>
               )}
               {!isLoading && transactions.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground text-sm">
+                  <td colSpan={9} className="px-4 py-8 text-center text-zinc-400 text-sm">
                     Nenhuma transação encontrada.{" "}
                     <button onClick={() => setShowNew(true)} className="text-blue-500 hover:text-blue-600 font-medium transition-colors">
                       Adicionar a primeira
@@ -464,8 +472,14 @@ export function TransactionsContent() {
                   </td>
                 </tr>
               )}
-              {sortedTxs.map((tx) => { return (
-                <tr key={tx.id} className={`hover:bg-gray-50/50 transition-colors ${selectedIds.has(tx.id) ? "bg-blue-50/40" : ""}`}>
+              {sortedTxs.map((tx, i) => (
+                <motion.tr
+                  key={tx.id}
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1], delay: i * 0.025 }}
+                  className={`hover:bg-zinc-50/60 transition-colors ${selectedIds.has(tx.id) ? "bg-blue-50/40" : ""}`}
+                >
                   <td className="px-4 py-3">
                     <input
                       type="checkbox"
@@ -474,29 +488,29 @@ export function TransactionsContent() {
                       className="rounded cursor-pointer"
                     />
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground tabular-nums">{fmtDate(tx.transaction_date)}</td>
+                  <td className="px-4 py-3 text-zinc-400 tabular-nums">{fmtDate(tx.transaction_date)}</td>
                   <td className="px-4 py-3 font-mono font-semibold">{tx.ticker}</td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold ${TX_BADGE[tx.transaction_type] ?? "bg-gray-100 text-gray-600"}`}>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold ${TX_BADGE[tx.transaction_type] ?? "bg-zinc-100 text-zinc-600"}`}>
                       {TX_TYPE_LABEL[tx.transaction_type] ?? tx.transaction_type}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground text-xs">{ASSET_LABEL[tx.asset_class] ?? tx.asset_class}</td>
+                  <td className="px-4 py-3 text-zinc-400 text-xs">{ASSET_LABEL[tx.asset_class] ?? tx.asset_class}</td>
                   <td className="px-4 py-3 text-right tabular-nums font-medium">{Number(tx.quantity).toLocaleString("pt-BR")}</td>
                   <td className="px-4 py-3 text-right tabular-nums font-medium">{fmtBRL(tx.unit_price)}</td>
                   <td className="px-4 py-3 text-right tabular-nums font-semibold">{fmtBRL(tx.total_value)}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 justify-end">
-                      <button onClick={() => { setMutError(""); setEditing(tx); }} className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded-md hover:bg-gray-100 transition-all duration-200">
+                      <button onClick={() => { setMutError(""); setEditing(tx); }} className="text-xs text-zinc-400 hover:text-zinc-700 px-2 py-1 rounded-md hover:bg-zinc-100 transition-all duration-200">
                         Editar
                       </button>
-                      <button onClick={() => setDeleting(tx)} className="text-xs text-muted-foreground hover:text-red-500 px-2 py-1 rounded-md hover:bg-red-50 transition-all duration-200">
+                      <button onClick={() => setDeleting(tx)} className="text-xs text-zinc-400 hover:text-red-500 px-2 py-1 rounded-md hover:bg-red-50 transition-all duration-200">
                         Excluir
                       </button>
                     </div>
                   </td>
-                </tr>
-              ); })}
+                </motion.tr>
+              ))}
             </tbody>
           </table>
         </div>
