@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { register } from "@/features/auth/api";
-import { Eye, EyeOff, ArrowRight, CheckCircle } from "lucide-react";
+import { Eye, EyeSlash, ArrowRight, CheckCircle } from "@phosphor-icons/react";
 
 export function RegisterForm() {
   const [email, setEmail] = useState("");
@@ -50,14 +50,14 @@ export function RegisterForm() {
     return (
       <div className="text-center space-y-4">
         <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
-          <CheckCircle className="w-6 h-6 text-emerald-600" />
+          <CheckCircle className="w-6 h-6 text-emerald-600" weight="fill" />
         </div>
         <h3 className="text-lg font-bold tracking-tight">Verifique seu email</h3>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-zinc-500">
           Enviamos um link de verificação para <strong>{email}</strong>.
           Clique no link para ativar sua conta.
         </p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-zinc-400">
           Não recebeu?{" "}
           <Link href="/login" className="text-blue-500 font-medium hover:text-blue-600 transition-colors">
             Voltar ao login
@@ -70,7 +70,7 @@ export function RegisterForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1">
-        <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wider text-zinc-400">
           Email
         </label>
         <input
@@ -81,12 +81,12 @@ export function RegisterForm() {
           required
           autoComplete="email"
           placeholder="seu@email.com"
-          className="w-full bg-gray-100 text-gray-900 rounded-md px-4 py-3 text-sm font-medium border-2 border-transparent focus:outline-none focus:bg-white focus:border-blue-500 transition-all duration-200"
+          className="w-full bg-zinc-100 text-zinc-900 rounded-md px-4 py-3 text-sm font-medium border-2 border-transparent focus:outline-none focus:bg-white focus:border-blue-500 transition-all duration-200"
         />
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-wider text-zinc-400">
           Senha
         </label>
         <div className="relative">
@@ -99,20 +99,20 @@ export function RegisterForm() {
             autoComplete="new-password"
             minLength={8}
             placeholder="Mínimo 8 caracteres"
-            className="w-full bg-gray-100 text-gray-900 rounded-md px-4 py-3 pr-11 text-sm font-medium border-2 border-transparent focus:outline-none focus:bg-white focus:border-blue-500 transition-all duration-200"
+            className="w-full bg-zinc-100 text-zinc-900 rounded-md px-4 py-3 pr-11 text-sm font-medium border-2 border-transparent focus:outline-none focus:bg-white focus:border-blue-500 transition-all duration-200"
           />
           <button
             type="button"
             onClick={() => setShowPw(!showPw)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition-colors"
           >
-            {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {showPw ? <EyeSlash className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="confirmPassword" className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <label htmlFor="confirmPassword" className="block text-xs font-semibold uppercase tracking-wider text-zinc-400">
           Confirmar senha
         </label>
         <div className="relative">
@@ -123,14 +123,14 @@ export function RegisterForm() {
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
             autoComplete="new-password"
-            className="w-full bg-gray-100 text-gray-900 rounded-md px-4 py-3 pr-11 text-sm font-medium border-2 border-transparent focus:outline-none focus:bg-white focus:border-blue-500 transition-all duration-200"
+            className="w-full bg-zinc-100 text-zinc-900 rounded-md px-4 py-3 pr-11 text-sm font-medium border-2 border-transparent focus:outline-none focus:bg-white focus:border-blue-500 transition-all duration-200"
           />
           <button
             type="button"
             onClick={() => setShowConfirmPw(!showConfirmPw)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition-colors"
           >
-            {showConfirmPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {showConfirmPw ? <EyeSlash className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
       </div>
@@ -153,7 +153,7 @@ export function RegisterForm() {
         )}
       </button>
 
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="text-center text-sm text-zinc-400">
         Já tem uma conta?{" "}
         <Link href="/login" className="text-blue-500 font-medium hover:text-blue-600 transition-colors">
           Entrar

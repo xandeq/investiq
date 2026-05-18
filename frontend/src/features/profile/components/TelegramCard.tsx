@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { MessageCircle, Link2, Unlink } from "lucide-react";
+import { ChatCircle, Link, LinkBreak } from "@phosphor-icons/react";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 import {
   getTelegramPrefs,
   updateTelegramPrefs,
@@ -22,7 +23,6 @@ interface ServerError {
 
 function getErrorKind(err: unknown): "requires_pro" | "invalid" | "other" {
   const e = err as ServerError & { message?: string; type?: string; code?: string };
-  // apiClient throws LimitError (type="LIMIT", code="REQUIRES_PRO") for 403 with structured detail
   const type = e?.type ?? "";
   const code = e?.code ?? "";
   const msg = (e?.message || "").toLowerCase();
@@ -85,22 +85,22 @@ export function TelegramCard() {
   };
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5" data-testid="telegram-card">
+    <div className="rounded-xl border border-zinc-200 bg-white p-5" data-testid="telegram-card">
       <div className="flex items-center gap-2 mb-4">
-        <MessageCircle className="h-4 w-4 text-blue-500" />
-        <h3 className="text-sm font-semibold text-gray-900">Notificações Telegram</h3>
+        <ChatCircle className="h-4 w-4 text-blue-500" weight="fill" />
+        <h3 className="text-sm font-semibold text-zinc-900">Notificações Telegram</h3>
         {isConnected && (
           <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-            <Link2 className="h-3 w-3" /> Conectado
+            <Link className="h-3 w-3" weight="bold" /> Conectado
           </span>
         )}
       </div>
 
       {isLoading ? (
-        <div className="h-20 rounded-lg bg-gray-100 animate-pulse" data-testid="telegram-loading" />
+        <ShimmerSkeleton className="h-20 rounded-lg" data-testid="telegram-loading" />
       ) : isConnected ? (
         <div className="space-y-3" data-testid="telegram-connected">
-          <p className="text-sm text-gray-700">
+          <p className="text-sm text-zinc-700">
             Recebendo alertas no chat <strong>{maskChatId(data!.telegram_chat_id!)}</strong>
           </p>
           <button
@@ -108,9 +108,9 @@ export function TelegramCard() {
             onClick={handleDisconnect}
             disabled={mutation.isPending}
             data-testid="telegram-disconnect-btn"
-            className="inline-flex items-center gap-2 rounded-md bg-gray-100 px-3 py-2 text-sm font-medium hover:bg-gray-200 disabled:opacity-60 transition-all duration-200"
+            className="inline-flex items-center gap-2 rounded-md bg-zinc-100 px-3 py-2 text-sm font-medium hover:bg-zinc-200 disabled:opacity-60 transition-all duration-200"
           >
-            <Unlink className="h-3.5 w-3.5" />
+            <LinkBreak className="h-3.5 w-3.5" />
             {mutation.isPending ? "Desconectando..." : "Desconectar"}
           </button>
         </div>
@@ -132,7 +132,7 @@ export function TelegramCard() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ex: 721438452"
               data-testid="telegram-chat-id-input"
-              className="flex-1 rounded-md bg-gray-100 px-3 py-2 text-sm border-2 border-transparent focus:outline-none focus:bg-white focus:border-blue-500 transition-all duration-200"
+              className="flex-1 rounded-md bg-zinc-100 px-3 py-2 text-sm border-2 border-transparent focus:outline-none focus:bg-white focus:border-blue-500 transition-all duration-200"
             />
             <button
               type="button"
@@ -154,7 +154,7 @@ export function TelegramCard() {
       )}
 
       {errKind === "requires_pro" && (
-        <p className="mt-3 text-xs text-gray-700 bg-gray-50 rounded-lg px-3 py-2.5" data-testid="telegram-pro-required">
+        <p className="mt-3 text-xs text-zinc-700 bg-zinc-50 rounded-lg px-3 py-2.5" data-testid="telegram-pro-required">
           Notificações Telegram disponíveis no <strong>Plano Pro</strong>.{" "}
           <a href="/planos" className="text-blue-500 hover:underline font-medium">Fazer upgrade</a>
         </p>

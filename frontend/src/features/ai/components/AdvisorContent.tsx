@@ -1,15 +1,15 @@
 "use client";
 import { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import { startAdvisorAnalysis } from "@/features/advisor/api";
 import { usePortfolioHealth } from "@/features/advisor/hooks/usePortfolioHealth";
 import { useAdvisorJob } from "@/features/advisor/hooks/useAdvisorJob";
 import { useSmartScreener } from "@/features/advisor/hooks/useSmartScreener";
 import { usePortfolioEntrySignals, useUniverseEntrySignals } from "@/features/advisor/hooks/useEntrySignals";
 import { PremiumGate } from "./PremiumGate";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 import type { PortfolioHealth, AdvisorAnalysisResult, ComplementaryAsset, EntrySignal } from "@/features/advisor/types";
-
-// ── Health Score helpers ────────────────────────────────────────────────────
 
 function scoreColor(score: number): string {
   if (score >= 80) return "text-emerald-600";
@@ -30,8 +30,6 @@ function fmtBRL(value: string | null): string {
   );
 }
 
-// ── Portfolio Health Section (Phase 23 — ADVI-01) ─────────────────────────
-
 function HealthSection({
   health,
   isLoading,
@@ -43,9 +41,9 @@ function HealthSection({
 }) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 animate-pulse">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="rounded-lg bg-gray-100 h-20" />
+          <ShimmerSkeleton key={i} className="h-20 rounded-lg" />
         ))}
       </div>
     );
@@ -55,8 +53,8 @@ function HealthSection({
 
   if (!health.has_portfolio) {
     return (
-      <div className="rounded-lg bg-gray-50 border border-gray-200 p-5 text-center">
-        <p className="text-sm text-muted-foreground">
+      <div className="rounded-lg bg-zinc-50 border border-zinc-200 p-5 text-center">
+        <p className="text-sm text-zinc-500">
           Nenhuma transação encontrada. Importe sua carteira para ver o diagnóstico de saúde.
         </p>
       </div>
@@ -66,12 +64,12 @@ function HealthSection({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+        <h2 className="text-sm font-bold uppercase tracking-wide text-zinc-400">
           Saúde da Carteira
         </h2>
         <div className="flex items-center gap-3">
           {health.data_as_of && (
-            <span className="text-[11px] text-muted-foreground">
+            <span className="text-[11px] text-zinc-400">
               Dados de {new Date(health.data_as_of).toLocaleDateString("pt-BR")}
             </span>
           )}
@@ -85,9 +83,8 @@ function HealthSection({
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {/* Score */}
-        <div className="rounded-lg border border-gray-200 bg-white p-4 text-center">
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Score</p>
+        <div className="rounded-lg border border-zinc-200 bg-white p-4 text-center">
+          <p className="text-[11px] uppercase tracking-wide text-zinc-400 mb-1">Score</p>
           <p className={`text-3xl font-bold ${scoreColor(health.health_score)}`}>
             {health.health_score}
           </p>
@@ -96,30 +93,27 @@ function HealthSection({
           </p>
         </div>
 
-        {/* Risk */}
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
+        <div className="rounded-lg border border-zinc-200 bg-white p-4">
+          <p className="text-[11px] uppercase tracking-wide text-zinc-400 mb-1">
             Principal Risco
           </p>
-          <p className="text-sm font-medium text-foreground leading-snug">
+          <p className="text-sm font-medium text-zinc-900 leading-snug">
             {health.biggest_risk ?? "Nenhum identificado"}
           </p>
         </div>
 
-        {/* Passive income */}
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
+        <div className="rounded-lg border border-zinc-200 bg-white p-4">
+          <p className="text-[11px] uppercase tracking-wide text-zinc-400 mb-1">
             Renda Mensal
           </p>
           <p className="text-xl font-bold text-emerald-600">
             {fmtBRL(health.passive_income_monthly_brl)}
           </p>
-          <p className="text-[11px] text-muted-foreground mt-1">últ. 12 meses ÷ 12</p>
+          <p className="text-[11px] text-zinc-400 mt-1">últ. 12 meses ÷ 12</p>
         </div>
 
-        {/* Underperformers */}
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
+        <div className="rounded-lg border border-zinc-200 bg-white p-4">
+          <p className="text-[11px] uppercase tracking-wide text-zinc-400 mb-1">
             Queda &gt; 10% no ano
           </p>
           {health.underperformers.length === 0 ? (
@@ -146,8 +140,6 @@ function HealthSection({
   );
 }
 
-// ── AI Diagnosis Section (Phase 24 — ADVI-02) ─────────────────────────────
-
 function BulletCard({
   title,
   items,
@@ -164,7 +156,7 @@ function BulletCard({
       <ul className="space-y-2">
         {items.map((item, i) => (
           <li key={i} className="text-sm flex gap-2">
-            <span className="mt-0.5 shrink-0">•</span>
+            <span className="mt-0.5 shrink-0 text-current opacity-60">•</span>
             <span>{item}</span>
           </li>
         ))}
@@ -176,16 +168,14 @@ function BulletCard({
 function AIDiagnosisSection({ result }: { result: AdvisorAnalysisResult }) {
   return (
     <div className="space-y-4">
-      <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+      <h2 className="text-sm font-bold uppercase tracking-wide text-zinc-400">
         Diagnóstico IA
       </h2>
 
-      {/* Main narrative */}
-      <div className="rounded-lg bg-gray-50 border border-gray-200 p-5">
-        <p className="text-sm text-foreground leading-relaxed">{result.diagnostico}</p>
+      <div className="rounded-lg bg-zinc-50 border border-zinc-200 p-5">
+        <p className="text-sm text-zinc-900 leading-relaxed">{result.diagnostico}</p>
       </div>
 
-      {/* Positives + Concerns grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <BulletCard
           title="Pontos Positivos"
@@ -199,30 +189,26 @@ function AIDiagnosisSection({ result }: { result: AdvisorAnalysisResult }) {
         />
       </div>
 
-      {/* Suggestions */}
       <BulletCard
         title="Sugestões"
         items={result.sugestoes}
         colorClass="bg-blue-50 border-l-4 border-blue-500"
       />
 
-      {/* Next steps */}
       <BulletCard
         title="Próximos Passos"
         items={result.proximos_passos}
-        colorClass="bg-gray-100 border-l-4 border-gray-400"
+        colorClass="bg-zinc-100 border-l-4 border-zinc-400"
       />
 
       {result.disclaimer && (
-        <p className="text-xs text-muted-foreground border-t border-gray-100 pt-3">
+        <p className="text-xs text-zinc-400 border-t border-zinc-100 pt-3">
           {result.disclaimer}
         </p>
       )}
     </div>
   );
 }
-
-// ── Smart Screener Section (Phase 25 — ADVI-03) ───────────────────────────
 
 function SmartScreenerSection({
   assets,
@@ -245,17 +231,17 @@ function SmartScreenerSection({
 
   if (isLoading) {
     return (
-      <div className="rounded-lg border border-gray-200 p-6 space-y-3 animate-pulse">
-        <div className="h-5 bg-gray-100 rounded w-48" />
-        <div className="h-32 bg-gray-100 rounded" />
+      <div className="rounded-lg border border-zinc-200 p-6 space-y-3">
+        <ShimmerSkeleton className="h-5 w-48 rounded" />
+        <ShimmerSkeleton className="h-32 w-full rounded" />
       </div>
     );
   }
 
   if (!assets.length) {
     return (
-      <div className="rounded-lg border border-gray-200 p-5 text-center">
-        <p className="text-sm text-muted-foreground">
+      <div className="rounded-lg border border-zinc-200 p-5 text-center">
+        <p className="text-sm text-zinc-500">
           Nenhum ativo complementar encontrado. Importe sua carteira para ver sugestões
           personalizadas.
         </p>
@@ -266,20 +252,19 @@ function SmartScreenerSection({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+        <h2 className="text-sm font-bold uppercase tracking-wide text-zinc-400">
           Smart Screener
         </h2>
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-[11px] text-zinc-400">
           Ativos de setores não presentes na sua carteira
         </p>
       </div>
 
-      {/* Sector filter */}
       <div className="flex items-center gap-2">
         <select
           value={filterSector}
           onChange={(e) => setFilterSector(e.target.value)}
-          className="text-sm px-3 py-1.5 border border-gray-200 rounded-md bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="text-sm px-3 py-1.5 border border-zinc-200 rounded-md bg-white text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="">Todos os setores ({filtered.length})</option>
           {sectors.map((s) => (
@@ -290,72 +275,55 @@ function SmartScreenerSection({
         </select>
       </div>
 
-      {/* Results table */}
-      <div className="rounded-lg border border-gray-200 overflow-hidden">
+      <div className="rounded-xl border border-zinc-200 overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-200">
+          <thead className="bg-zinc-50 border-b border-zinc-200">
             <tr>
-              <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Ticker
-              </th>
-              <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Setor
-              </th>
-              <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                DY 12m
-              </th>
-              <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Var. 12m
-              </th>
-              <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Preço
-              </th>
+              <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Ticker</th>
+              <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Setor</th>
+              <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-400">DY 12m</th>
+              <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Var. 12m</th>
+              <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Preço</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
-            {filtered.slice(0, 50).map((a) => {
+          <tbody className="divide-y divide-zinc-50">
+            {filtered.slice(0, 50).map((a, i) => {
               const dyPct = a.dy_12m_pct != null ? (a.dy_12m_pct * 100).toFixed(2) : null;
-              const varPct =
-                a.variacao_12m_pct != null ? (a.variacao_12m_pct * 100).toFixed(2) : null;
+              const varPct = a.variacao_12m_pct != null ? (a.variacao_12m_pct * 100).toFixed(2) : null;
               const isPositive = (a.variacao_12m_pct ?? 0) >= 0;
 
               return (
-                <tr key={a.ticker} className="hover:bg-gray-50 transition-colors">
+                <motion.tr
+                  key={a.ticker}
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.22, delay: i * 0.025 }}
+                  className="hover:bg-zinc-50/60 transition-colors"
+                >
                   <td className="px-4 py-2.5">
-                    <a
-                      href={`/stock/${a.ticker}`}
-                      className="font-mono text-blue-600 hover:text-blue-500 hover:underline font-semibold"
-                    >
+                    <a href={`/stock/${a.ticker}`} className="font-mono text-blue-600 hover:text-blue-500 hover:underline font-semibold">
                       {a.ticker}
                     </a>
                   </td>
-                  <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                    {a.sector ?? "—"}
-                  </td>
+                  <td className="px-4 py-2.5 text-xs text-zinc-400">{a.sector ?? "—"}</td>
                   <td className="text-right px-4 py-2.5 text-xs font-medium text-emerald-600">
                     {dyPct != null ? `${dyPct}%` : "—"}
                   </td>
-                  <td
-                    className={`text-right px-4 py-2.5 text-xs font-medium ${
-                      isPositive ? "text-emerald-600" : "text-red-500"
-                    }`}
-                  >
+                  <td className={`text-right px-4 py-2.5 text-xs font-medium ${isPositive ? "text-emerald-600" : "text-red-500"}`}>
                     {varPct != null ? `${isPositive ? "+" : ""}${varPct}%` : "—"}
                   </td>
                   <td className="text-right px-4 py-2.5 text-xs">
-                    {a.preco_atual != null
-                      ? `R$ ${a.preco_atual.toFixed(2)}`
-                      : "—"}
+                    {a.preco_atual != null ? `R$ ${a.preco_atual.toFixed(2)}` : "—"}
                   </td>
-                </tr>
+                </motion.tr>
               );
             })}
           </tbody>
         </table>
 
         {filtered.length > 50 && (
-          <div className="px-4 py-2.5 bg-gray-50 border-t border-gray-200 text-center">
-            <p className="text-[11px] text-muted-foreground">
+          <div className="px-4 py-2.5 bg-zinc-50 border-t border-zinc-200 text-center">
+            <p className="text-[11px] text-zinc-400">
               Mostrando 50 de {filtered.length} resultados
             </p>
           </div>
@@ -365,46 +333,30 @@ function SmartScreenerSection({
   );
 }
 
-// ── Entry Signals Section (Phase 26 — ADVI-04) ──────────────────────────────
-
-interface EntrySignalsSectionProps {
-  portfolioSignals: EntrySignal[];
-  portfolioLoading: boolean;
-  universeSignals: EntrySignal[];
-  universeLoading: boolean;
-}
-
 function SignalTable({ signals }: { signals: EntrySignal[] }) {
   return (
-    <div className="rounded-lg border border-gray-200 overflow-hidden">
+    <div className="rounded-xl border border-zinc-200 overflow-hidden">
       <table className="w-full text-sm">
-        <thead className="bg-gray-50 border-b border-gray-200">
+        <thead className="bg-zinc-50 border-b border-zinc-200">
           <tr>
-            <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Ticker
-            </th>
-            <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Valor Sugerido
-            </th>
-            <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Alvo
-            </th>
-            <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground hidden md:table-cell">
-              Stop
-            </th>
-            <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Sinal
-            </th>
+            <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Ticker</th>
+            <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Valor Sugerido</th>
+            <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Alvo</th>
+            <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-400 hidden md:table-cell">Stop</th>
+            <th className="text-right px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Sinal</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100">
-          {signals.map((signal) => (
-            <tr key={signal.ticker} className="hover:bg-gray-50 transition-colors">
+        <tbody className="divide-y divide-zinc-50">
+          {signals.map((signal, i) => (
+            <motion.tr
+              key={signal.ticker}
+              initial={{ opacity: 0, x: -6 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.22, delay: i * 0.03 }}
+              className="hover:bg-zinc-50/60 transition-colors"
+            >
               <td className="px-4 py-2.5">
-                <a
-                  href={`/stock/${signal.ticker}`}
-                  className="font-mono text-blue-600 hover:text-blue-500 hover:underline font-semibold"
-                >
+                <a href={`/stock/${signal.ticker}`} className="font-mono text-blue-600 hover:text-blue-500 hover:underline font-semibold">
                   {signal.ticker}
                 </a>
               </td>
@@ -418,24 +370,29 @@ function SignalTable({ signals }: { signals: EntrySignal[] }) {
                 -{signal.stop_loss_pct.toFixed(1)}%
               </td>
               <td className="text-right px-4 py-2.5">
-                <span
-                  className={`inline-block text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${
-                    signal.ma_signal === "buy"
-                      ? "bg-emerald-100 text-emerald-700"
-                      : signal.ma_signal === "sell"
-                      ? "bg-red-100 text-red-700"
-                      : "bg-gray-100 text-gray-600"
-                  }`}
-                >
+                <span className={`inline-block text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${
+                  signal.ma_signal === "buy"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : signal.ma_signal === "sell"
+                    ? "bg-red-100 text-red-700"
+                    : "bg-zinc-100 text-zinc-600"
+                }`}>
                   {signal.ma_signal ?? "—"}
                 </span>
               </td>
-            </tr>
+            </motion.tr>
           ))}
         </tbody>
       </table>
     </div>
   );
+}
+
+interface EntrySignalsSectionProps {
+  portfolioSignals: EntrySignal[];
+  portfolioLoading: boolean;
+  universeSignals: EntrySignal[];
+  universeLoading: boolean;
 }
 
 function EntrySignalsSection({
@@ -446,11 +403,10 @@ function EntrySignalsSection({
 }: EntrySignalsSectionProps) {
   return (
     <div className="space-y-6">
-      <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+      <h2 className="text-sm font-bold uppercase tracking-wide text-zinc-400">
         Entry Signals
       </h2>
 
-      {/* Portfolio signals — on-demand */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold">Seus Ativos</h3>
@@ -460,15 +416,15 @@ function EntrySignalsSection({
         </div>
 
         {portfolioLoading && (
-          <div className="rounded-lg border border-gray-200 p-6 animate-pulse">
-            <div className="h-4 bg-gray-100 rounded w-48 mb-2" />
-            <div className="h-4 bg-gray-100 rounded w-32" />
+          <div className="space-y-2">
+            <ShimmerSkeleton className="h-8 w-full rounded" />
+            <ShimmerSkeleton className="h-8 w-full rounded" />
           </div>
         )}
 
         {!portfolioLoading && portfolioSignals.length === 0 && (
-          <div className="rounded-lg border border-gray-200 p-5 text-center">
-            <p className="text-sm text-muted-foreground">
+          <div className="rounded-lg border border-zinc-200 p-5 text-center">
+            <p className="text-sm text-zinc-500">
               Nenhum sinal disponível — sem dados de mercado para seus ativos no momento.
             </p>
           </div>
@@ -479,7 +435,6 @@ function EntrySignalsSection({
         )}
       </div>
 
-      {/* Universe signals — daily batch */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold">Oportunidades (Universo)</h3>
@@ -489,15 +444,15 @@ function EntrySignalsSection({
         </div>
 
         {universeLoading && (
-          <div className="rounded-lg border border-gray-200 p-6 animate-pulse">
-            <div className="h-4 bg-gray-100 rounded w-48 mb-2" />
-            <div className="h-4 bg-gray-100 rounded w-32" />
+          <div className="space-y-2">
+            <ShimmerSkeleton className="h-8 w-full rounded" />
+            <ShimmerSkeleton className="h-8 w-full rounded" />
           </div>
         )}
 
         {!universeLoading && universeSignals.length === 0 && (
-          <div className="rounded-lg border border-gray-200 p-5 text-center">
-            <p className="text-sm text-muted-foreground">
+          <div className="rounded-lg border border-zinc-200 p-5 text-center">
+            <p className="text-sm text-zinc-500">
               Nenhum sinal disponível — batch noturno ainda não executado.
             </p>
           </div>
@@ -507,7 +462,7 @@ function EntrySignalsSection({
           <>
             <SignalTable signals={universeSignals.slice(0, 20)} />
             {universeSignals.length > 20 && (
-              <p className="text-[11px] text-muted-foreground text-center">
+              <p className="text-[11px] text-zinc-400 text-center">
                 Mostrando 20 de {universeSignals.length} sinais
               </p>
             )}
@@ -518,33 +473,24 @@ function EntrySignalsSection({
   );
 }
 
-// ── In-Progress Indicator ─────────────────────────────────────────────────
-
 function AnalysisInProgress() {
   return (
-    <div className="rounded-lg bg-gray-100 p-6 space-y-3">
+    <div className="rounded-xl border border-zinc-200 bg-white p-6 space-y-3">
       <div className="flex items-center gap-3">
-        <span className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-blue-500" />
+        <span className="h-5 w-5 animate-spin rounded-full border-2 border-zinc-200 border-t-blue-500" />
         <span className="text-sm font-semibold">Análise em andamento...</span>
       </div>
-      <p className="text-xs text-muted-foreground">
-        Isso leva ~1-2 minutos. Você pode navegar para outras páginas — o resultado aparecerá aqui
-        quando você voltar.
+      <p className="text-xs text-zinc-400">
+        Isso leva ~1-2 minutos. Você pode navegar para outras páginas — o resultado aparecerá aqui quando você voltar.
       </p>
-      {["Carregando posições e P&L", "Buscando contexto macro", "Processando com IA", "Estruturando diagnóstico"].map(
-        (step) => (
-          <div
-            key={step}
-            className="h-3 bg-gray-200 rounded animate-pulse"
-            style={{ width: `${60 + Math.random() * 30}%` }}
-          />
-        )
-      )}
+      {[75, 55, 80, 65].map((w, i) => (
+        <div key={i} style={{ width: `${w}%` }}>
+          <ShimmerSkeleton className="h-3 w-full rounded" />
+        </div>
+      ))}
     </div>
   );
 }
-
-// ── Main Advisor Component ────────────────────────────────────────────────
 
 function AdvisorMain() {
   const [jobId, setJobId] = useState<string | null>(null);
@@ -594,13 +540,10 @@ function AdvisorMain() {
 
   return (
     <div className="space-y-8">
-      {/* 1. Health Check Card — deterministic, loads immediately (Phase 23) */}
       <HealthSection health={health} isLoading={healthLoading} onRefresh={handleRefreshHealth} />
 
-      {/* 2. AI Diagnosis — shows after analysis completes (Phase 24) */}
       {advisorResult && <AIDiagnosisSection result={advisorResult} />}
 
-      {/* 3. Smart Screener — complementary assets (sectors not in portfolio) (Phase 25) */}
       {health?.has_portfolio && (
         <SmartScreenerSection
           assets={screenerAssets ?? []}
@@ -608,7 +551,6 @@ function AdvisorMain() {
         />
       )}
 
-      {/* 4. Entry Signals — on-demand portfolio + daily universe batch (Phase 26) */}
       <EntrySignalsSection
         portfolioSignals={portfolioSignals ?? []}
         portfolioLoading={portfolioSignalsLoading}
@@ -616,17 +558,14 @@ function AdvisorMain() {
         universeLoading={universeSignalsLoading}
       />
 
-      {/* In-progress state */}
       {isRunning && !advisorResult && <AnalysisInProgress />}
 
-      {/* Analyze CTA */}
       {!advisorResult && (
-        <div className="rounded-lg bg-[#111827] text-white p-8 text-center space-y-4">
+        <div className="rounded-xl bg-zinc-900 text-white p-8 text-center space-y-4">
           <div>
             <h2 className="text-lg font-bold tracking-tight">Análise completa da carteira</h2>
-            <p className="text-sm text-gray-400 mt-1">
-              A IA analisa suas posições, alocação, P&L e contexto macro para gerar um
-              diagnóstico personalizado.
+            <p className="text-sm text-zinc-400 mt-1">
+              A IA analisa suas posições, alocação, P&L e contexto macro para gerar um diagnóstico personalizado.
             </p>
           </div>
           <button
@@ -648,13 +587,12 @@ function AdvisorMain() {
         </div>
       )}
 
-      {/* Re-analyze button when result is shown */}
       {advisorResult && (
         <div className="text-center">
           <button
             onClick={handleAnalyze}
             disabled={isRunning}
-            className="px-5 py-2.5 rounded-md bg-gray-100 text-sm font-medium hover:bg-gray-200 disabled:opacity-50 transition-colors"
+            className="px-5 py-2.5 rounded-md bg-zinc-100 text-sm font-medium hover:bg-zinc-200 disabled:opacity-50 transition-colors"
           >
             {isRunning ? "Atualizando..." : "Atualizar diagnóstico"}
           </button>

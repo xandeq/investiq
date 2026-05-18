@@ -1,7 +1,8 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
-import { Mail, BellOff } from "lucide-react";
+import { Envelope, BellSlash } from "@phosphor-icons/react";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 
 interface EmailPrefs {
   email_digest_enabled: boolean;
@@ -41,21 +42,20 @@ export function EmailPrefsCard() {
   };
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5">
+    <div className="rounded-xl border border-zinc-200 bg-white p-5">
       <div className="flex items-center gap-2 mb-4">
-        <Mail className="h-4 w-4 text-gray-500" />
-        <h3 className="text-sm font-semibold text-gray-900">Preferências de Email</h3>
+        <Envelope className="h-4 w-4 text-zinc-500" weight="fill" />
+        <h3 className="text-sm font-semibold text-zinc-900">Preferências de Email</h3>
       </div>
 
       {isLoading ? (
-        <div className="h-12 rounded-lg bg-gray-100 animate-pulse" />
+        <ShimmerSkeleton className="h-12 rounded-lg" />
       ) : (
         <div className="space-y-3">
-          {/* Weekly digest toggle */}
           <div className="flex items-center justify-between gap-4 py-2">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">Resumo semanal da carteira</p>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-sm font-medium text-zinc-900">Resumo semanal da carteira</p>
+              <p className="text-xs text-zinc-500 mt-0.5">
                 Receba toda segunda-feira um resumo do patrimônio, variação da semana e maiores movimentações.
               </p>
             </div>
@@ -65,7 +65,7 @@ export function EmailPrefsCard() {
               className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent
                 transition-colors duration-200 ease-in-out focus:outline-none
                 disabled:opacity-60 disabled:cursor-not-allowed
-                ${data?.email_digest_enabled ? "bg-blue-500" : "bg-gray-200"}`}
+                ${data?.email_digest_enabled ? "bg-blue-500" : "bg-zinc-200"}`}
               role="switch"
               aria-checked={data?.email_digest_enabled ?? true}
             >
@@ -77,10 +77,9 @@ export function EmailPrefsCard() {
             </button>
           </div>
 
-          {/* Note on price alerts */}
-          <div className="flex items-start gap-2 rounded-lg bg-gray-50 px-3 py-2.5">
-            <BellOff className="h-3.5 w-3.5 text-gray-400 mt-0.5 shrink-0" />
-            <p className="text-xs text-gray-500 leading-relaxed">
+          <div className="flex items-start gap-2 rounded-lg bg-zinc-50 px-3 py-2.5">
+            <BellSlash className="h-3.5 w-3.5 text-zinc-400 mt-0.5 shrink-0" />
+            <p className="text-xs text-zinc-500 leading-relaxed">
               Emails de <strong>alerta de preço</strong> são transacionais e sempre enviados quando um alerta dispara.
               Para remover um alerta, acesse a Watchlist e limpe o campo "Alerta".
             </p>
