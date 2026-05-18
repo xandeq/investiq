@@ -38,6 +38,20 @@ function fmtDate(d: string) {
   return `${day}/${m}/${y}`;
 }
 
+async function downloadAllTransactionsCsv() {
+  const res = await fetch("/api/portfolio/export?content=transactions", {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Export failed");
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `historico_completo_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function exportToCsv(transactions: TransactionResponse[]) {
   const headers = ["Data", "Ticker", "Tipo", "Classe", "Quantidade", "Preço Unit.", "Total", "Corretagem", "IRRF", "Observações"];
   const rows = transactions.map((tx) => [
@@ -369,11 +383,18 @@ export function TransactionsContent() {
             <button
               onClick={() => exportToCsv(transactions)}
               className="px-3 py-2 text-sm rounded-md bg-zinc-100 hover:bg-zinc-200 font-medium transition-all duration-200"
-              title="Exportar para CSV"
+              title="Exportar página atual para CSV"
             >
               ↓ CSV
             </button>
           )}
+          <button
+            onClick={() => downloadAllTransactionsCsv().catch(console.error)}
+            className="px-3 py-2 text-sm rounded-md bg-zinc-100 hover:bg-zinc-200 font-medium transition-all duration-200"
+            title="Exportar histórico completo (todas as transações)"
+          >
+            ↓ Histórico completo
+          </button>
           <button
             onClick={() => { setMutError(""); setShowNew(true); }}
             className="px-4 py-2 text-sm rounded-md bg-blue-500 text-white font-semibold hover:bg-blue-600 hover:scale-105 transition-all duration-200"

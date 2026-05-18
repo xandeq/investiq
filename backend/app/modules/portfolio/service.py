@@ -808,3 +808,69 @@ class PortfolioService:
             total_projected_90d=_sum_projected(90),
             generated_at=now,
         )
+
+    async def export_transactions_csv(
+        self,
+        db: AsyncSession,
+        tenant_id: str,
+    ) -> list[list[str]]:
+        """Return rows (header + data) for transaction history CSV export."""
+        stmt = (
+            select(Transaction)
+            .where(
+                Transaction.tenant_id == tenant_id,
+                Transaction.deleted_at.is_(None),
+            )
+            .order_by(Transaction.transaction_date.asc(), Transaction.created_at.asc())
+        )
+        result = await db.execute(stmt)
+        txs: list[Transaction] = result.scalars().all()
+
+        header = [
+            "Data", "Ticker", "Classe", "Tipo",
+            "Quantidade", "Preço Unitário (R$)", "Total (R$)",
+        ]
+        rows: list[list[str]] = [header]
+        for tx in txs:
+            rows.append([
+                str(tx.transaction_date),
+                tx.ticker,
+                str(tx.asset_class.value) if hasattr(tx.asset_class, "value") else str(tx.asset_class),
+                str(tx.transaction_type.value) if hasattr(tx.transaction_type, "value") else str(tx.transaction_type),
+                str(tx.quantity),
+                str(tx.unit_price),
+                str(tx.total_value),
+            ])
+        return rows
+
+    async def export_positions_csv(
+        self,
+        db: AsyncSession,
+        tenant_id: str,
+    ) -> list[list[str]]:
+        """Return rows (header + data) for current open positions CSV export."""
+        positions = await self.get_positions(db, tenant_id)
+
+        header = [
+            "Ticker", "Classe", "Quantidade", "Custo Médio (R$)",
+            "Preço Atual (R$)", "Valor de Mercado (R$)",
+            "P&L Não Realizado (R$)", "P&L (%)",
+        ]
+        rows: list[list[str]] = [header]
+        for pos in positions:
+            mkt_value = (
+                (pos.current_price * pos.quantity).quantize(Decimal("0.01"))
+                if pos.current_price is not None
+                else None
+            )
+            rows.append([
+                pos.ticker,
+                pos.asset_class,
+                str(pos.quantity),
+                str(pos.cmp.quantize(Decimal("0.0001"))),
+                str(pos.current_price.quantize(Decimal("0.01"))) if pos.current_price else "",
+                str(mkt_value) if mkt_value is not None else "",
+                str(pos.unrealized_pnl.quantize(Decimal("0.01"))) if pos.unrealized_pnl is not None else "",
+                str(pos.unrealized_pnl_pct.quantize(Decimal("0.01"))) + "%" if pos.unrealized_pnl_pct is not None else "",
+            ])
+        return rows

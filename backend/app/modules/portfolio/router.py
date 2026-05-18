@@ -16,8 +16,11 @@ import lazily inside the factory to avoid startup errors when Redis is not
 configured (e.g., test environments with fakeredis).
 """
 
+import csv
+import io
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.middleware import get_authed_db, get_current_tenant_id
@@ -333,3 +336,37 @@ async def get_dividend_calendar(
     when their last recorded dividend was within the past 45 days.
     """
     return await service.get_dividend_calendar(db, tenant_id, days=days)
+
+
+@router.get("/export")
+async def export_portfolio(
+    content: str = Query("transactions", regex="^(transactions|positions)$"),
+    db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+    service: PortfolioService = Depends(_get_service),
+) -> StreamingResponse:
+    """Export portfolio data as CSV.
+
+    content=transactions — full transaction history (default).
+    content=positions    — current open positions with P&L.
+
+    Returns a downloadable CSV file with proper headers.
+    """
+    if content == "positions":
+        rows = await service.export_positions_csv(db, tenant_id)
+        filename = "posicoes.csv"
+    else:
+        rows = await service.export_transactions_csv(db, tenant_id)
+        filename = "transacoes.csv"
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    for row in rows:
+        writer.writerow(row)
+    output.seek(0)
+
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
