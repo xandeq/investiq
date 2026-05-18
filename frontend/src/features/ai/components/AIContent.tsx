@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { CaretDown, CaretUp } from "@phosphor-icons/react";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 import { useQueryClient } from "@tanstack/react-query";
 import { PremiumGate } from "./PremiumGate";
 import { AnalysisRequestForm } from "./AnalysisRequestForm";
@@ -83,8 +84,8 @@ function ExpandedJobResult({ jobId }: { jobId: string }) {
   if (!job?.result) {
     return (
       <div className="mt-3 space-y-2 px-1">
-        <div className="h-4 rounded bg-gray-200 animate-pulse w-3/4" />
-        <div className="h-20 rounded bg-gray-200 animate-pulse" />
+        <ShimmerSkeleton className="h-4 w-3/4 rounded" />
+        <ShimmerSkeleton className="h-20 w-full rounded" />
       </div>
     );
   }
@@ -107,9 +108,7 @@ function JobHistory() {
   if (isLoading) {
     return (
       <div className="space-y-2">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-10 rounded-md bg-gray-100 animate-pulse" />
-        ))}
+        {[0, 1, 2].map((i) => <ShimmerSkeleton key={i} className="h-10 rounded-md" />)}
       </div>
     );
   }
@@ -125,7 +124,7 @@ function JobHistory() {
       {recent.map((job) => {
         const isExpanded = expandedId === job.id;
         return (
-          <div key={job.id} className="rounded-md bg-gray-100 px-4 py-2.5 text-sm">
+          <div key={job.id} className="rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm">
             <div className="flex items-center justify-between">
               <span className="font-semibold">
                 {job.ticker ?? "Macro"}{" "}
@@ -147,7 +146,7 @@ function JobHistory() {
                     onClick={() => setExpandedId(isExpanded ? null : job.id)}
                     className="flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-800 transition-colors"
                   >
-                    {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                    {isExpanded ? <CaretUp className="h-3 w-3" /> : <CaretDown className="h-3 w-3" />}
                     {isExpanded ? "Fechar" : "Ver Análise"}
                   </button>
                 )}
@@ -198,20 +197,20 @@ export function AIContent() {
       <PremiumGate>
         <div className="space-y-6">
           {/* Asset analysis section */}
-          <section className="rounded-lg bg-white p-6">
+          <section className="rounded-xl border border-zinc-200 bg-white p-6">
             <h2 className="text-base font-bold tracking-tight mb-4">Análise de Ativo</h2>
             <AnalysisRequestForm />
           </section>
 
           {/* Macro analysis section */}
-          <section className="rounded-lg bg-white p-6">
+          <section className="rounded-xl border border-zinc-200 bg-white p-6">
             <MacroSection />
           </section>
         </div>
       </PremiumGate>
 
       {/* Job history */}
-      <section className="rounded-lg bg-white p-6">
+      <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <h2 className="text-base font-bold tracking-tight mb-4">Histórico de Análises</h2>
         <JobHistory />
       </section>
