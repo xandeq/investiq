@@ -532,10 +532,10 @@ Por isso, 1 fase: cenários sem retorno projetado (SIM-02) são inúteis; delta 
 - Sem histórico de notificações em v1 (só envio)
 - Rate limit: 1 notificação por sinal por usuário (evitar duplicatas com Redis lock)
 
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
-- [ ] 39-01-PLAN.md — Backend: migration 0038 + User.telegram_chat_id + app/core/telegram.py + GET/PATCH /profile/telegram + notify_users_for_signal Celery task + signal_engine hook + 12 unit tests
+- [x] 39-01-PLAN.md — Backend: migration 0038 + User.telegram_chat_id + app/core/telegram.py + GET/PATCH /profile/telegram + notify_users_for_signal Celery task + signal_engine hook + 12 unit tests
 - [ ] 39-02-PLAN.md — Frontend: TelegramCard.tsx (connect/disconnect states + @userinfobot instructions) + ProfileContent.tsx wiring + profile/api.ts client + Playwright E2E v1.9-telegram-notifications.spec.ts (3 tests)
 
 ---

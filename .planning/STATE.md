@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: - Client-side filtering with useMemo
 status: unknown
-last_updated: "2026-04-19T03:05:40.637Z"
+last_updated: "2026-05-18T00:31:03.719Z"
 progress:
   total_phases: 2
   completed_phases: 2
@@ -19,11 +19,12 @@ See: .planning/PROJECT.md
 
 **Core value:** O usuário controla toda sua carteira em um lugar só, com análise financeira de nível institucional integrada — sem precisar de planilha, sem abrir mil plataformas.
 
-**Current focus:** v1.7 SHIPPED — next milestone TBD
+**Current focus:** Phase 39 — telegram-notifications
 
 ## Current Position
 
-Phase: 28 (Simulador de Alocação) — COMPLETE
+Phase: 39 (telegram-notifications) — EXECUTING
+Plan: 2 of 2
 
 ## Progress Bar
 
@@ -193,6 +194,8 @@ SIM-01 (form → scenarios), SIM-02 (projected returns), SIM-03 (delta) are tigh
 - [Phase 28]: macro?.cdi is the only macro field in useMemo deps — IPCA/SELIC deliberately unused for v1.7 simulador
 - [Phase 28]: Used getPnl().allocation[] as allocation source (not advisor/health.allocation_by_class — field does not exist in shipped PortfolioHealth schema)
 - [Phase 28]: data-testid=scenario-{key} on card buttons for Plan 03 Playwright selectors
+- [Phase 39-telegram-notifications]: trial_ends_at timezone normalization required for SQLite+PostgreSQL compatibility in _is_pro_or_trial
+- [Phase 39-telegram-notifications]: Disconnect (null telegram_chat_id) always allowed for any plan — pro gate only blocks non-null writes
 
 ## Open Questions (resolve in Phase 28)
 
@@ -232,3 +235,4 @@ SIM-01 (form → scenarios), SIM-02 (projected returns), SIM-03 (delta) are tigh
 | Phase 27 P03 | 35 | 3 tasks | 3 files |
 | Phase 28 P01 | 240 | 2 tasks | 5 files |
 | Phase 28 P02 | 15 | 2 tasks | 2 files |
+| Phase 39-telegram-notifications P01 | 1800 | 3 tasks | 7 files |

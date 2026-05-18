@@ -53,9 +53,9 @@
 
 ### Notificações Telegram
 
-- [ ] **TG-01**: Usuário pro pode informar seu Telegram chat_id em `/profile` → seção "Notificações" (instrução de como obter o chat_id via @userinfobot + campo de texto + botão salvar) — campo persiste no banco e reaparece ao recarregar
-- [ ] **TG-02**: Backend envia mensagem Telegram automática para cada usuário pro com `telegram_chat_id` configurado quando um novo sinal de entrada é gerado — mensagem inclui ticker, tipo (compra/venda), preço, grau do sinal e link para a página do ativo
-- [ ] **TG-03**: Usuário pode desconectar o Telegram (limpar o chat_id) via botão "Desconectar" na mesma seção
+- [x] **TG-01**: Usuário pro pode informar seu Telegram chat_id em `/profile` → seção "Notificações" (instrução de como obter o chat_id via @userinfobot + campo de texto + botão salvar) — campo persiste no banco e reaparece ao recarregar
+- [x] **TG-02**: Backend envia mensagem Telegram automática para cada usuário pro com `telegram_chat_id` configurado quando um novo sinal de entrada é gerado — mensagem inclui ticker, tipo (compra/venda), preço, grau do sinal e link para a página do ativo
+- [x] **TG-03**: Usuário pode desconectar o Telegram (limpar o chat_id) via botão "Desconectar" na mesma seção
 
 ## Traceability
 
