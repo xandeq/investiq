@@ -7,10 +7,15 @@ Endpoints:
   PATCH /profile/email-prefs     — update email notification preferences
   GET  /profile/ai-mode          — get AI quality mode ("standard" | "ultra")
   PATCH /profile/ai-mode         — toggle AI quality mode (pro users only)
+  GET  /profile/telegram         — get Telegram chat_id (or null)
+  PATCH /profile/telegram        — set or clear Telegram chat_id (pro-gated for non-null)
 """
 
+import re
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -192,3 +197,95 @@ async def update_ai_mode(
     )
     await db.flush()
     return AIModeResponse(ai_mode=data.ai_mode, plan=user.plan)
+
+
+# ── Telegram notification preferences (Phase 39) ──────────────────────────────
+
+_CHAT_ID_RE = re.compile(r"^-?\d{1,20}$")
+
+
+class TelegramPrefsResponse(BaseModel):
+    telegram_chat_id: str | None
+
+
+class TelegramPrefsUpdate(BaseModel):
+    telegram_chat_id: str | None = None
+
+    @field_validator("telegram_chat_id")
+    @classmethod
+    def _check_chat_id(cls, v: str | None) -> str | None:
+        if v is None or v == "":
+            return None
+        if not _CHAT_ID_RE.match(v):
+            raise ValueError(
+                "telegram_chat_id deve ser um número inteiro (positivo ou negativo) de até 20 dígitos"
+            )
+        return v
+
+
+def _is_pro_or_trial(user: User) -> bool:
+    """Return True if user has pro plan OR active trial OR is admin."""
+    from app.core.config import settings
+    if user.email in settings.ADMIN_EMAILS:
+        return True
+    if user.plan == "pro":
+        return True
+    # Trial elevation: plan=free but trial_ends_at in future.
+    # SQLite stores datetimes as timezone-naive; PostgreSQL (prod) as timezone-aware.
+    # Normalize both to UTC-aware before comparing.
+    if user.trial_ends_at is not None:
+        trial_ends = user.trial_ends_at
+        if trial_ends.tzinfo is None:
+            trial_ends = trial_ends.replace(tzinfo=timezone.utc)
+        if trial_ends > datetime.now(tz=timezone.utc):
+            return True
+    return False
+
+
+@router.get("/telegram", response_model=TelegramPrefsResponse)
+async def get_telegram_prefs(
+    db: AsyncSession = Depends(get_authed_db),
+    current_user: dict = Depends(get_current_user),
+) -> TelegramPrefsResponse:
+    """Return the current Telegram chat_id for the authenticated user (or null)."""
+    result = await db.execute(select(User).where(User.id == current_user["user_id"]))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+    return TelegramPrefsResponse(telegram_chat_id=user.telegram_chat_id)
+
+
+@router.patch("/telegram", response_model=TelegramPrefsResponse)
+async def update_telegram_prefs(
+    data: TelegramPrefsUpdate,
+    db: AsyncSession = Depends(get_authed_db),
+    current_user: dict = Depends(get_current_user),
+) -> TelegramPrefsResponse:
+    """Set or clear the Telegram chat_id.
+
+    - Non-null value: requires pro plan (or active trial / admin email)
+    - Null value: always allowed (TG-03 disconnect, even after plan downgrade)
+    """
+    result = await db.execute(select(User).where(User.id == current_user["user_id"]))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+
+    # Pro gate — only blocks SETTING a value; clearing is always allowed
+    if data.telegram_chat_id is not None and not _is_pro_or_trial(user):
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "REQUIRES_PRO",
+                "message": "Notificações Telegram requerem plano Pro.",
+                "upgrade_url": "/planos",
+            },
+        )
+
+    await db.execute(
+        update(User)
+        .where(User.id == current_user["user_id"])
+        .values(telegram_chat_id=data.telegram_chat_id)
+    )
+    await db.flush()
+    return TelegramPrefsResponse(telegram_chat_id=data.telegram_chat_id)
