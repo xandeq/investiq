@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { CheckCircle2, XCircle, Zap, BarChart3, Clock, Activity } from "lucide-react";
+import { CheckCircle, XCircle, Lightning, ChartBar, Clock, Pulse } from "@phosphor-icons/react";
 
 // --- types ---
 interface ProviderStat { provider: string; calls: number; success_rate: number; avg_duration_ms: number; }
@@ -30,7 +30,7 @@ const PROVIDER_COLORS: Record<string, string> = {
 };
 
 const TIER_COLORS: Record<string, string> = {
-  free: "bg-gray-500/20 text-gray-400 border-gray-500/30",
+  free: "bg-zinc-500/20 text-zinc-400 border-zinc-500/30",
   paid: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
   admin: "bg-amber-500/20 text-amber-400 border-amber-500/30",
 };
@@ -48,11 +48,11 @@ function StatCard({ label, value, sub, icon: Icon, color }: { label: string; val
   return (
     <div className="bg-[#1f2937] rounded-xl border border-white/10 p-5">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs text-gray-400 font-medium">{label}</span>
+        <span className="text-xs text-zinc-400 font-medium">{label}</span>
         <div className={`p-2 rounded-lg ${color}`}><Icon className="h-4 w-4" /></div>
       </div>
       <div className="text-2xl font-bold text-white">{value}</div>
-      {sub && <div className="text-xs text-gray-500 mt-1">{sub}</div>}
+      {sub && <div className="text-xs text-zinc-500 mt-1">{sub}</div>}
     </div>
   );
 }
@@ -87,14 +87,14 @@ export default function AIUsagePage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <Activity className="h-6 w-6 text-amber-400" /> AI Usage
+              <Pulse className="h-6 w-6 text-amber-400" /> AI Usage
             </h1>
-            <p className="text-sm text-gray-400 mt-1">Monitoramento de chamadas LLM por provider e tier</p>
+            <p className="text-sm text-zinc-400 mt-1">Monitoramento de chamadas LLM por provider e tier</p>
           </div>
           <div className="flex items-center gap-1 bg-[#1f2937] rounded-lg border border-white/10 p-1">
             {PERIOD_OPTIONS.map(o => (
               <button key={o.value} onClick={() => setDays(o.value)}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${days === o.value ? "bg-amber-500 text-white" : "text-gray-400 hover:text-white"}`}>
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${days === o.value ? "bg-amber-500 text-white" : "text-zinc-400 hover:text-white"}`}>
                 {o.label}
               </button>
             ))}
@@ -109,10 +109,10 @@ export default function AIUsagePage() {
           <>
             {/* Summary cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <StatCard label="Total de Chamadas" value={stats.total_calls} icon={Zap} color="bg-amber-500/20 text-amber-400" />
-              <StatCard label="Taxa de Sucesso" value={`${stats.success_rate}%`} sub={`${stats.successful_calls} sucessos`} icon={CheckCircle2} color="bg-emerald-500/20 text-emerald-400" />
+              <StatCard label="Total de Chamadas" value={stats.total_calls} icon={Lightning} color="bg-amber-500/20 text-amber-400" />
+              <StatCard label="Taxa de Sucesso" value={`${stats.success_rate}%`} sub={`${stats.successful_calls} sucessos`} icon={CheckCircle} color="bg-emerald-500/20 text-emerald-400" />
               <StatCard label="Duracao Media" value={fmt(stats.avg_duration_ms)} icon={Clock} color="bg-blue-500/20 text-blue-400" />
-              <StatCard label="Falhas" value={stats.failed_calls} icon={XCircle} color={stats.failed_calls > 0 ? "bg-red-500/20 text-red-400" : "bg-gray-500/20 text-gray-400"} />
+              <StatCard label="Falhas" value={stats.failed_calls} icon={XCircle} color={stats.failed_calls > 0 ? "bg-red-500/20 text-red-400" : "bg-zinc-500/20 text-zinc-400"} />
             </div>
 
             {/* Provider & Tier breakdown */}
@@ -120,17 +120,17 @@ export default function AIUsagePage() {
               {/* By Provider */}
               <div className="bg-[#1f2937] rounded-xl border border-white/10 p-5">
                 <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-amber-400" /> Por Provider
+                  <ChartBar className="h-4 w-4 text-amber-400" /> Por Provider
                 </h2>
                 {stats.by_provider.length === 0 ? (
-                  <p className="text-xs text-gray-500">Nenhum dado</p>
+                  <p className="text-xs text-zinc-500">Nenhum dado</p>
                 ) : (
                   <div className="space-y-3">
                     {stats.by_provider.map(p => (
                       <div key={p.provider}>
                         <div className="flex items-center justify-between mb-1">
                           <Badge value={p.provider} colorMap={PROVIDER_COLORS} />
-                          <span className="text-xs text-gray-400">{p.calls} calls · {p.success_rate}% ok · {fmt(p.avg_duration_ms)}</span>
+                          <span className="text-xs text-zinc-400">{p.calls} calls · {p.success_rate}% ok · {fmt(p.avg_duration_ms)}</span>
                         </div>
                         <div className="w-full bg-white/5 rounded-full h-1.5">
                           <div className="bg-amber-500 h-1.5 rounded-full" style={{ width: `${(p.calls / stats.total_calls) * 100}%` }} />
@@ -144,17 +144,17 @@ export default function AIUsagePage() {
               {/* By Tier */}
               <div className="bg-[#1f2937] rounded-xl border border-white/10 p-5">
                 <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-amber-400" /> Por Tier
+                  <ChartBar className="h-4 w-4 text-amber-400" /> Por Tier
                 </h2>
                 {stats.by_tier.length === 0 ? (
-                  <p className="text-xs text-gray-500">Nenhum dado</p>
+                  <p className="text-xs text-zinc-500">Nenhum dado</p>
                 ) : (
                   <div className="space-y-3">
                     {stats.by_tier.map(t => (
                       <div key={t.tier}>
                         <div className="flex items-center justify-between mb-1">
                           <Badge value={t.tier} colorMap={TIER_COLORS} />
-                          <span className="text-xs text-gray-400">{t.calls} calls · {t.success_rate}% ok</span>
+                          <span className="text-xs text-zinc-400">{t.calls} calls · {t.success_rate}% ok</span>
                         </div>
                         <div className="w-full bg-white/5 rounded-full h-1.5">
                           <div className="bg-amber-500 h-1.5 rounded-full" style={{ width: `${(t.calls / stats.total_calls) * 100}%` }} />
@@ -170,31 +170,31 @@ export default function AIUsagePage() {
             <div className="bg-[#1f2937] rounded-xl border border-white/10 overflow-hidden">
               <div className="px-5 py-4 border-b border-white/10">
                 <h2 className="text-sm font-semibold text-white">Chamadas Recentes</h2>
-                <p className="text-xs text-gray-400 mt-0.5">{logs.length} registros nos ultimos {days} dias</p>
+                <p className="text-xs text-zinc-400 mt-0.5">{logs.length} registros nos ultimos {days} dias</p>
               </div>
               {logs.length === 0 ? (
-                <div className="px-5 py-12 text-center text-sm text-gray-500">Nenhuma chamada registrada neste periodo.</div>
+                <div className="px-5 py-12 text-center text-sm text-zinc-500">Nenhuma chamada registrada neste periodo.</div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead className="bg-white/5">
                       <tr>
                         {["Hora", "Tier", "Provider", "Modelo", "Duracao", "Status"].map(h => (
-                          <th key={h} className="px-4 py-3 text-left text-gray-400 font-medium whitespace-nowrap">{h}</th>
+                          <th key={h} className="px-4 py-3 text-left text-zinc-400 font-medium whitespace-nowrap">{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
                       {logs.map(l => (
                         <tr key={l.id} className="hover:bg-white/5 transition-colors">
-                          <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{fmtDate(l.created_at)}</td>
+                          <td className="px-4 py-3 text-zinc-400 whitespace-nowrap">{fmtDate(l.created_at)}</td>
                           <td className="px-4 py-3"><Badge value={l.tier} colorMap={TIER_COLORS} /></td>
                           <td className="px-4 py-3"><Badge value={l.provider} colorMap={PROVIDER_COLORS} /></td>
-                          <td className="px-4 py-3 text-gray-300 font-mono max-w-[200px] truncate" title={l.model}>{l.model}</td>
-                          <td className="px-4 py-3 text-gray-300 whitespace-nowrap">{fmt(l.duration_ms)}</td>
+                          <td className="px-4 py-3 text-zinc-300 font-mono max-w-[200px] truncate" title={l.model}>{l.model}</td>
+                          <td className="px-4 py-3 text-zinc-300 whitespace-nowrap">{fmt(l.duration_ms)}</td>
                           <td className="px-4 py-3">
                             {l.success ? (
-                              <span className="flex items-center gap-1 text-emerald-400"><CheckCircle2 className="h-3.5 w-3.5" /> ok</span>
+                              <span className="flex items-center gap-1 text-emerald-400"><CheckCircle className="h-3.5 w-3.5" /> ok</span>
                             ) : (
                               <span className="flex items-center gap-1 text-red-400" title={l.error ?? ""}><XCircle className="h-3.5 w-3.5" /> erro</span>
                             )}
@@ -208,7 +208,7 @@ export default function AIUsagePage() {
             </div>
           </>
         ) : (
-          <div className="text-center text-gray-500 py-16">Erro ao carregar dados de uso.</div>
+          <div className="text-center text-zinc-500 py-16">Erro ao carregar dados de uso.</div>
         )}
       </div>
     </div>

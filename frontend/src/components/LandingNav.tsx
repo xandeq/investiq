@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Menu, X } from "lucide-react";
+import { List, X } from "@phosphor-icons/react";
 
 export function LandingNav() {
   const [scrolled, setScrolled] = useState(false);
@@ -47,7 +47,7 @@ export function LandingNav() {
           <div className="hidden md:flex items-center gap-3">
             <Link
               href="/login"
-              className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white transition-colors duration-200"
+              className="px-4 py-2 text-sm font-medium text-zinc-300 hover:text-white transition-colors duration-200"
             >
               Entrar
             </Link>
@@ -61,14 +61,14 @@ export function LandingNav() {
 
           {/* Mobile hamburger */}
           <button
-            className="md:hidden p-2 text-gray-300 hover:text-white transition-colors"
+            className="md:hidden p-2 text-zinc-300 hover:text-white transition-colors"
             onClick={() => setMobileOpen((v) => !v)}
             aria-label="Abrir menu"
           >
             {mobileOpen ? (
-              <X className="h-5 w-5" strokeWidth={2} />
+              <X className="h-5 w-5" weight="bold" />
             ) : (
-              <Menu className="h-5 w-5" strokeWidth={2} />
+              <List className="h-5 w-5" weight="bold" />
             )}
           </button>
         </div>
@@ -79,7 +79,7 @@ export function LandingNav() {
             <Link
               href="/login"
               onClick={() => setMobileOpen(false)}
-              className="px-4 py-2.5 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-md transition-colors"
+              className="px-4 py-2.5 text-sm font-medium text-zinc-300 hover:text-white hover:bg-white/10 rounded-md transition-colors"
             >
               Entrar
             </Link>

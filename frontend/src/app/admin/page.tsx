@@ -1,7 +1,7 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { Users, UserCheck, AlertTriangle, TrendingDown, ArrowRightLeft, XCircle } from "lucide-react";
+import { Users, UserCheck, Warning, TrendDown, ArrowsLeftRight, XCircle } from "@phosphor-icons/react";
 import { AppNav } from "@/components/AppNav";
 import { apiClient } from "@/lib/api-client";
 
@@ -31,13 +31,13 @@ function MetricCard({
   return (
     <div className="bg-[#1f2937] rounded-xl border border-white/10 p-5">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">{label}</span>
+        <span className="text-xs font-medium text-zinc-400 uppercase tracking-wide">{label}</span>
         <div className={`p-2 rounded-lg ${color}`}>
           <Icon className="w-4 h-4" />
         </div>
       </div>
       <div className="text-2xl font-bold text-white">{value}</div>
-      {sub && <div className="text-xs text-gray-500 mt-1">{sub}</div>}
+      {sub && <div className="text-xs text-zinc-500 mt-1">{sub}</div>}
     </div>
   );
 }
@@ -63,7 +63,7 @@ export default function AdminDashboardPage() {
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-          <p className="text-gray-400 text-sm mt-1">Métricas de assinantes e saúde da receita</p>
+          <p className="text-zinc-400 text-sm mt-1">Métricas de assinantes e saúde da receita</p>
         </div>
 
         {/* Admin nav tabs */}
@@ -90,7 +90,7 @@ export default function AdminDashboardPage() {
         {isLoading && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {Array.from({ length: 7 }).map((_, i) => (
-              <div key={i} className="bg-[#1f2937] rounded-xl border border-white/10 p-5 animate-pulse h-24" />
+              <div key={i} className="bg-[#1f2937] rounded-xl border border-white/10 p-5 h-24" />
             ))}
           </div>
         )}
@@ -103,7 +103,7 @@ export default function AdminDashboardPage() {
                 label="Usuários Free"
                 value={data.free_users}
                 icon={Users}
-                color="bg-gray-500/20 text-gray-400"
+                color="bg-zinc-500/20 text-zinc-400"
               />
               <MetricCard
                 label="Usuários Pro"
@@ -121,7 +121,7 @@ export default function AdminDashboardPage() {
                 label="Em Atraso"
                 value={data.past_due_subscriptions}
                 sub="past_due no Stripe"
-                icon={AlertTriangle}
+                icon={Warning}
                 color="bg-amber-500/20 text-amber-400"
               />
             </div>
@@ -138,14 +138,14 @@ export default function AdminDashboardPage() {
                 label="Churn Rate"
                 value={`${data.churn_rate_pct}%`}
                 sub="rolling 30d — meta: < 5%"
-                icon={TrendingDown}
+                icon={TrendDown}
                 color={data.churn_rate_pct > 10 ? "bg-red-500/20 text-red-400" : data.churn_rate_pct > 5 ? "bg-amber-500/20 text-amber-400" : "bg-green-500/20 text-green-400"}
               />
               <MetricCard
                 label="Conversões Totais"
                 value={data.total_conversions}
                 sub="checkout.session.completed"
-                icon={ArrowRightLeft}
+                icon={ArrowsLeftRight}
                 color="bg-purple-500/20 text-purple-400"
               />
             </div>
@@ -159,9 +159,9 @@ export default function AdminDashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-semibold text-white">Lista de Assinantes</p>
-                    <p className="text-xs text-gray-400 mt-1">Ver todos os {data.pro_users} usuários pro com status Stripe</p>
+                    <p className="text-xs text-zinc-400 mt-1">Ver todos os {data.pro_users} usuários pro com status Stripe</p>
                   </div>
-                  <span className="text-gray-500 group-hover:text-white transition-colors">→</span>
+                  <span className="text-zinc-500 group-hover:text-white transition-colors">→</span>
                 </div>
               </Link>
               <Link
@@ -171,9 +171,9 @@ export default function AdminDashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-semibold text-white">Uso de IA</p>
-                    <p className="text-xs text-gray-400 mt-1">Logs de chamadas LLM, taxa de sucesso, providers</p>
+                    <p className="text-xs text-zinc-400 mt-1">Logs de chamadas LLM, taxa de sucesso, providers</p>
                   </div>
-                  <span className="text-gray-500 group-hover:text-white transition-colors">→</span>
+                  <span className="text-zinc-500 group-hover:text-white transition-colors">→</span>
                 </div>
               </Link>
             </div>
