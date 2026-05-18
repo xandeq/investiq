@@ -138,6 +138,7 @@ async def close_outcome_endpoint(
     outcome = await close_outcome(
         db,
         outcome_id,
+        tenant_id=tenant_id,
         exit_price=body.exit_price,
         exit_date=body.exit_date,
         status=body.status,

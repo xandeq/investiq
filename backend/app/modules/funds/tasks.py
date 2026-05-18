@@ -50,24 +50,29 @@ def refresh_fund_registry(self):
         conn = _get_db_conn()
         cur = conn.cursor()
         upserted = 0
-        for f in funds:
-            cur.execute("""
-                INSERT INTO fund_info (cnpj, name, admin, fund_class, status, updated_at)
-                VALUES (%s, %s, %s, %s, %s, now())
-                ON CONFLICT (cnpj) DO UPDATE SET
-                    name = EXCLUDED.name,
-                    admin = EXCLUDED.admin,
-                    fund_class = EXCLUDED.fund_class,
-                    status = EXCLUDED.status,
-                    updated_at = now()
-            """, (f["cnpj"], f["name"], f["admin"], f["fund_class"], f["status"]))
-            upserted += 1
+        try:
+            for f in funds:
+                cur.execute("""
+                    INSERT INTO fund_info (cnpj, name, admin, fund_class, status, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, now())
+                    ON CONFLICT (cnpj) DO UPDATE SET
+                        name = EXCLUDED.name,
+                        admin = EXCLUDED.admin,
+                        fund_class = EXCLUDED.fund_class,
+                        status = EXCLUDED.status,
+                        updated_at = now()
+                """, (f["cnpj"], f["name"], f["admin"], f["fund_class"], f["status"]))
+                upserted += 1
 
-        conn.commit()
-        cur.close()
-        conn.close()
-        logger.info("refresh_fund_registry: upserted %d funds", upserted)
-        return {"status": "ok", "upserted": upserted}
+            conn.commit()
+            logger.info("refresh_fund_registry: upserted %d funds", upserted)
+            return {"status": "ok", "upserted": upserted}
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            cur.close()
+            conn.close()
 
     except Exception as exc:
         logger.error("refresh_fund_registry failed: %s", exc)
@@ -86,54 +91,56 @@ def refresh_fund_quotes(self):
     try:
         conn = _get_db_conn()
         cur = conn.cursor()
+        try:
+            # Get all CNPJs currently held (fundo asset class)
+            cur.execute("""
+                SELECT DISTINCT ticker FROM transactions
+                WHERE asset_class = 'fundo'
+                  AND deleted_at IS NULL
+            """)
+            cnpjs = {row[0] for row in cur.fetchall()}
 
-        # Get all CNPJs currently held (fundo asset class)
-        cur.execute("""
-            SELECT DISTINCT ticker FROM transactions
-            WHERE asset_class = 'fundo'
-              AND deleted_at IS NULL
-        """)
-        cnpjs = {row[0] for row in cur.fetchall()}
+            if not cnpjs:
+                logger.info("refresh_fund_quotes: no tracked funds")
+                return {"status": "ok", "funds": 0}
 
-        if not cnpjs:
-            logger.info("refresh_fund_quotes: no tracked funds")
+            quotes = FundsService.fetch_cvm_quotes_for_cnpjs_sync(cnpjs)
+
+            r = _get_redis()
+            updated = 0
+
+            for cnpj, data in quotes.items():
+                nav = data["nav"]
+                dt = data["date"]
+                net_assets = data.get("net_assets", 0.0)
+
+                # Upsert into fund_quotes
+                cur.execute("""
+                    INSERT INTO fund_quotes (id, cnpj, quote_date, nav_per_quota, net_assets_brl, updated_at)
+                    VALUES (gen_random_uuid()::text, %s, %s, %s, %s, now())
+                    ON CONFLICT (cnpj, quote_date) DO UPDATE SET
+                        nav_per_quota = EXCLUDED.nav_per_quota,
+                        net_assets_brl = EXCLUDED.net_assets_brl,
+                        updated_at = now()
+                """, (cnpj, dt, nav, net_assets))
+
+                # Write to Redis (48h TTL — covers weekend gaps)
+                r.setex(
+                    f"fund:nav:{cnpj}",
+                    172800,
+                    json.dumps({"nav": nav, "date": dt, "fetched_at": datetime.now(tz=timezone.utc).isoformat()}),
+                )
+                updated += 1
+
+            conn.commit()
+            logger.info("refresh_fund_quotes: updated %d CNPJs", updated)
+            return {"status": "ok", "updated": updated}
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
             cur.close()
             conn.close()
-            return {"status": "ok", "funds": 0}
-
-        quotes = FundsService.fetch_cvm_quotes_for_cnpjs_sync(cnpjs)
-
-        r = _get_redis()
-        updated = 0
-
-        for cnpj, data in quotes.items():
-            nav = data["nav"]
-            dt = data["date"]
-            net_assets = data.get("net_assets", 0.0)
-
-            # Upsert into fund_quotes
-            cur.execute("""
-                INSERT INTO fund_quotes (id, cnpj, quote_date, nav_per_quota, net_assets_brl, updated_at)
-                VALUES (gen_random_uuid()::text, %s, %s, %s, %s, now())
-                ON CONFLICT (cnpj, quote_date) DO UPDATE SET
-                    nav_per_quota = EXCLUDED.nav_per_quota,
-                    net_assets_brl = EXCLUDED.net_assets_brl,
-                    updated_at = now()
-            """, (cnpj, dt, nav, net_assets))
-
-            # Write to Redis (48h TTL — covers weekend gaps)
-            r.setex(
-                f"fund:nav:{cnpj}",
-                172800,
-                json.dumps({"nav": nav, "date": dt, "fetched_at": datetime.now(tz=timezone.utc).isoformat()}),
-            )
-            updated += 1
-
-        conn.commit()
-        cur.close()
-        conn.close()
-        logger.info("refresh_fund_quotes: updated %d CNPJs", updated)
-        return {"status": "ok", "updated": updated}
 
     except Exception as exc:
         logger.error("refresh_fund_quotes failed: %s", exc)

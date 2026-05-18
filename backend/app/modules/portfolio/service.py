@@ -118,6 +118,7 @@ class PortfolioService:
         # Load all buy + sell transactions ordered chronologically (exclude soft-deleted)
         result = await db.execute(
             select(Transaction).where(
+                Transaction.tenant_id == tenant_id,
                 Transaction.transaction_type.in_(["buy", "sell"]),
                 Transaction.deleted_at.is_(None),
             ).order_by(Transaction.transaction_date)
@@ -218,6 +219,7 @@ class PortfolioService:
         # Realized P&L from sell transactions (gross_profit stored at write time, exclude deleted)
         sell_result = await db.execute(
             select(Transaction).where(
+                Transaction.tenant_id == tenant_id,
                 Transaction.transaction_type == "sell",
                 Transaction.deleted_at.is_(None),
             )
@@ -297,7 +299,10 @@ class PortfolioService:
         params: TransactionListParams,
     ) -> list[Transaction]:
         """Return all non-deleted transactions with optional filters."""
-        stmt = select(Transaction).where(Transaction.deleted_at.is_(None))
+        stmt = select(Transaction).where(
+            Transaction.tenant_id == tenant_id,
+            Transaction.deleted_at.is_(None),
+        )
 
         if params.ticker:
             stmt = stmt.where(Transaction.ticker == params.ticker.upper())
@@ -368,6 +373,7 @@ class PortfolioService:
     async def bulk_delete_transactions(
         self,
         db: AsyncSession,
+        tenant_id: str,
         ids: list[str],
     ) -> int:
         """Soft-delete multiple transactions. Returns count of deleted rows."""
@@ -375,6 +381,7 @@ class PortfolioService:
         result = await db.execute(
             update(Transaction)
             .where(
+                Transaction.tenant_id == tenant_id,
                 Transaction.id.in_(ids),
                 Transaction.deleted_at.is_(None),
             )
@@ -442,6 +449,7 @@ class PortfolioService:
         """Return dividend, JSCP, and amortization transactions ordered by date desc."""
         result = await db.execute(
             select(Transaction).where(
+                Transaction.tenant_id == tenant_id,
                 Transaction.transaction_type.in_(["dividend", "jscp", "amortization"]),
                 Transaction.deleted_at.is_(None),
             ).order_by(Transaction.transaction_date.desc())
@@ -582,74 +590,78 @@ class PortfolioService:
         redis_client=None,
     ) -> RebalancingPlan:
         pnl = await self.get_pnl(db, tenant_id, redis_client)
-        total = float(pnl.total_portfolio_value)
+        total = pnl.total_portfolio_value  # Decimal throughout
 
         # Current allocation by asset class
-        current: dict[str, float] = {}
+        current: dict[str, Decimal] = {}
         for item in pnl.allocation:
-            current[item.asset_class] = float(item.total_value)
+            current[item.asset_class] = item.total_value
 
         targets = await self.get_targets(db, tenant_id)
         has_targets = bool(targets)
 
-        if not has_targets or total == 0:
+        _HUNDRED = Decimal("100")
+        _ZERO = Decimal("0")
+
+        if not has_targets or total == _ZERO:
             # Return current state without targets for display
             slots = []
             for ac, val in sorted(current.items()):
-                cur_pct = (val / total * 100) if total else 0
+                cur_pct = (val / total * _HUNDRED).quantize(Decimal("0.01")) if total else _ZERO
                 slots.append(RebalancingSlot(
                     asset_class=ac,
-                    current_value=Decimal(str(round(val, 2))),
-                    current_pct=Decimal(str(round(cur_pct, 2))),
-                    target_pct=Decimal("0"),
-                    drift_brl=Decimal("0"),
-                    drift_pct=Decimal("0"),
+                    current_value=val.quantize(Decimal("0.01")),
+                    current_pct=cur_pct,
+                    target_pct=_ZERO,
+                    drift_brl=_ZERO,
+                    drift_pct=_ZERO,
                     action="—",
                 ))
             return RebalancingPlan(
-                total_portfolio=Decimal(str(round(total, 2))),
+                total_portfolio=total.quantize(Decimal("0.01")),
                 slots=slots,
                 has_targets=False,
-                max_drift_pct=Decimal("0"),
-                targets_sum_pct=Decimal("0"),
+                max_drift_pct=_ZERO,
+                targets_sum_pct=_ZERO,
             )
 
-        target_map = {t.asset_class: float(t.target_pct) for t in targets}
+        target_map: dict[str, Decimal] = {t.asset_class: t.target_pct for t in targets}
         all_classes = sorted(set(list(current.keys()) + list(target_map.keys())))
 
         slots = []
-        max_drift = 0.0
+        max_drift = _ZERO
         for ac in all_classes:
-            cur_val = current.get(ac, 0.0)
-            cur_pct = (cur_val / total * 100) if total else 0.0
-            tgt_pct = target_map.get(ac, 0.0)
-            tgt_val = total * tgt_pct / 100
-            drift_brl = cur_val - tgt_val
-            drift_pct = cur_pct - tgt_pct
-            if abs(drift_pct) > max_drift:
-                max_drift = abs(drift_pct)
-            if drift_pct > 1.0:
+            cur_val = current.get(ac, _ZERO)
+            cur_pct = (cur_val / total * _HUNDRED).quantize(Decimal("0.01")) if total else _ZERO
+            tgt_pct = target_map.get(ac, _ZERO)
+            tgt_val = (total * tgt_pct / _HUNDRED).quantize(Decimal("0.01"))
+            drift_brl = (cur_val - tgt_val).quantize(Decimal("0.01"))
+            drift_pct = (cur_pct - tgt_pct).quantize(Decimal("0.01"))
+            abs_drift = abs(drift_pct)
+            if abs_drift > max_drift:
+                max_drift = abs_drift
+            if drift_pct > Decimal("1"):
                 action = "vender"
-            elif drift_pct < -1.0:
+            elif drift_pct < Decimal("-1"):
                 action = "comprar"
             else:
                 action = "manter"
             slots.append(RebalancingSlot(
                 asset_class=ac,
-                current_value=Decimal(str(round(cur_val, 2))),
-                current_pct=Decimal(str(round(cur_pct, 2))),
-                target_pct=Decimal(str(round(tgt_pct, 2))),
-                drift_brl=Decimal(str(round(drift_brl, 2))),
-                drift_pct=Decimal(str(round(drift_pct, 2))),
+                current_value=cur_val.quantize(Decimal("0.01")),
+                current_pct=cur_pct,
+                target_pct=tgt_pct.quantize(Decimal("0.01")),
+                drift_brl=drift_brl,
+                drift_pct=drift_pct,
                 action=action,
             ))
 
         targets_sum = sum(t.target_pct for t in targets)
         return RebalancingPlan(
-            total_portfolio=Decimal(str(round(total, 2))),
+            total_portfolio=total.quantize(Decimal("0.01")),
             slots=slots,
             has_targets=True,
-            max_drift_pct=Decimal(str(round(max_drift, 2))),
+            max_drift_pct=max_drift.quantize(Decimal("0.01")),
             targets_sum_pct=targets_sum,
         )
 
@@ -873,6 +885,7 @@ class PortfolioService:
                 str(pos.unrealized_pnl.quantize(Decimal("0.01"))) if pos.unrealized_pnl is not None else "",
                 str(pos.unrealized_pnl_pct.quantize(Decimal("0.01"))) + "%" if pos.unrealized_pnl_pct is not None else "",
             ])
+        return rows
 
     # ──────────────────────────────────────────────────────────────────────────
     # Phase 42: Investment Goals
@@ -939,4 +952,3 @@ class PortfolioService:
         )
         await db.flush()
         return result.rowcount > 0
-        return rows

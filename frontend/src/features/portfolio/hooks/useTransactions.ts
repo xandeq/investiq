@@ -20,10 +20,12 @@ export function useTransactions(filters?: TransactionFilters) {
 
 function invalidatePortfolioQueries(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ["transactions"] });
-  qc.invalidateQueries({ queryKey: ["positions"] });
-  qc.invalidateQueries({ queryKey: ["pnl"] });
   qc.invalidateQueries({ queryKey: ["dashboard"] });
+  // prefix match covers ["portfolio","positions"], ["portfolio","pnl"], ["portfolio","dividends"], etc.
   qc.invalidateQueries({ queryKey: ["portfolio"] });
+  // explicit keys for hooks that don't nest under "portfolio"
+  qc.invalidateQueries({ queryKey: ["dividend-income"] });
+  qc.invalidateQueries({ queryKey: ["dividend-calendar"] });
 }
 
 export function useCreateTransaction() {

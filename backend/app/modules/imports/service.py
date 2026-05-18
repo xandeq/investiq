@@ -235,12 +235,14 @@ class ImportService:
                     detail=f"Cannot confirm job with status '{job.status}'",
                 )
 
-        # Fetch all existing import_hashes for this tenant (ORM query — SQLite compatible)
+        # Fetch all existing import_hashes for this tenant (exclude soft-deleted so
+        # users can re-import after clearing their portfolio)
         from app.modules.portfolio.models import Transaction as _Transaction
         existing_result = await db.execute(
             select(_Transaction.import_hash).where(
                 _Transaction.tenant_id == tenant_id,
                 _Transaction.import_hash.is_not(None),
+                _Transaction.deleted_at.is_(None),
             )
         )
         existing_hashes = {row[0] for row in existing_result.fetchall()}

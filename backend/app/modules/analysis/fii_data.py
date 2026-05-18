@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import logging
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import requests
 
@@ -157,7 +157,7 @@ def _parse_dividends_monthly(
     if not cash_dividends:
         return [], None, None
 
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     twelve_months_ago = now - timedelta(days=365)
 
     # Aggregate by YYYY-MM, limit to last 12 months

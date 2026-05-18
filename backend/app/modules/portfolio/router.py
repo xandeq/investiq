@@ -193,6 +193,7 @@ async def update_transaction(
 async def bulk_delete_transactions(
     body: BulkDeleteRequest,
     db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
     service: PortfolioService = Depends(_get_service),
 ) -> dict:
     """Soft-delete multiple transactions by ID list.
@@ -201,7 +202,7 @@ async def bulk_delete_transactions(
     Returns count of rows actually deleted (excludes already-deleted rows).
     Route declared BEFORE /{transaction_id} so FastAPI matches it first.
     """
-    count = await service.bulk_delete_transactions(db, body.ids)
+    count = await service.bulk_delete_transactions(db, tenant_id, body.ids)
     return {"deleted": count}
 
 

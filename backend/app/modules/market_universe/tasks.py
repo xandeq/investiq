@@ -453,7 +453,7 @@ def refresh_fii_metadata(self) -> None:
             "segmento": segmento,
             "vacancia_financeira": vacancia,
             "num_cotistas": num_cotistas,
-            "updated_at": datetime.utcnow(),
+            "updated_at": datetime.now(timezone.utc),
         }
         batch_rows.append(fii_row)
 

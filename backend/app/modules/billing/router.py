@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
 from app.core.limiter import limiter
-from app.core.middleware import get_authed_db
+from app.core.middleware import get_authed_db, get_current_tenant_id
 from app.core.security import decode_token, get_current_user
 from app.modules.auth.models import User
 from app.modules.billing.schemas import CheckoutResponse, MetricsResponse, PortalResponse, SubscriberInfo, UsageResponse
@@ -54,11 +54,13 @@ async def create_checkout_session(
     user_id = current_user["user_id"]
     idempotency_key = request.headers.get("Idempotency-Key")
 
-    # Check cache: if we've seen this idempotency key before, return cached URL
+    # Check cache: if we've seen this idempotency key before, return cached URL.
+    # Filter by user_id to prevent cross-user checkout URL disclosure.
     if idempotency_key:
         result = await db.execute(
             select(IdempotentCheckoutRequest).where(
-                IdempotentCheckoutRequest.idempotency_key == idempotency_key
+                IdempotentCheckoutRequest.idempotency_key == idempotency_key,
+                IdempotentCheckoutRequest.user_id == user_id,
             )
         )
         cached = result.scalar_one_or_none()
@@ -199,6 +201,7 @@ async def stripe_webhook(
 async def get_usage(
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
 ) -> UsageResponse:
     """Return the current user's usage counters for freemium gates."""
     from datetime import datetime, timezone
@@ -217,11 +220,19 @@ async def get_usage(
     imports_count = await db.scalar(
         select(func.count())
         .select_from(ImportJob)
-        .where(ImportJob.created_at >= start_of_month)
+        .where(
+            ImportJob.tenant_id == tenant_id,
+            ImportJob.created_at >= start_of_month,
+        )
     ) or 0
 
     tx_count = await db.scalar(
-        select(func.count()).select_from(Transaction)
+        select(func.count())
+        .select_from(Transaction)
+        .where(
+            Transaction.tenant_id == tenant_id,
+            Transaction.deleted_at.is_(None),
+        )
     ) or 0
 
     return UsageResponse(

@@ -57,13 +57,17 @@ async def create_outcome(db: AsyncSession, tenant_id: str, data: dict) -> Signal
 async def close_outcome(
     db: AsyncSession,
     outcome_id: str,
+    tenant_id: str,
     exit_price: Decimal,
     exit_date: date | None = None,
     status: str = "closed",
 ) -> SignalOutcome | None:
     """Close an outcome: set exit_price, exit_date, compute R-multiple."""
     result = await db.execute(
-        select(SignalOutcome).where(SignalOutcome.id == outcome_id)
+        select(SignalOutcome).where(
+            SignalOutcome.id == outcome_id,
+            SignalOutcome.tenant_id == tenant_id,
+        )
     )
     outcome = result.scalar_one_or_none()
     if outcome is None:

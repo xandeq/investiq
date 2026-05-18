@@ -98,10 +98,12 @@ def _write_staging_rows(
         )
 
         # Load confirmed transaction hashes for this tenant to flag duplicates at parse time.
+        # Exclude soft-deleted so users can re-import after clearing their portfolio.
         existing_hashes_result = session.execute(
             select(Transaction.import_hash).where(
                 Transaction.tenant_id == tenant_id,
                 Transaction.import_hash.is_not(None),
+                Transaction.deleted_at.is_(None),
             )
         )
         existing_hashes: set[str] = {row[0] for row in existing_hashes_result}

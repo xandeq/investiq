@@ -16,7 +16,8 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.middleware import get_authed_db, get_current_tenant_id
-from app.modules.portfolio.models import Transaction, TransactionType, AssetClass
+from app.modules.portfolio.cmp import build_position_from_history
+from app.modules.portfolio.models import CorporateAction, Transaction, TransactionType, AssetClass
 
 router = APIRouter()
 
@@ -366,30 +367,43 @@ async def ir_tax_loss_harvesting(
     )
     all_txs = result.scalars().all()
 
-    holdings: dict[str, dict] = {}
+    # Group transactions by ticker (skip renda fixa — different tax regime)
+    txs_by_ticker: dict[str, list[Transaction]] = {}
+    ac_by_ticker: dict[str, str] = {}
     for tx in all_txs:
         ticker = tx.ticker.upper()
         ac = tx.asset_class.value if hasattr(tx.asset_class, "value") else str(tx.asset_class)
-        tx_type = tx.transaction_type.value if hasattr(tx.transaction_type, "value") else str(tx.transaction_type)
-
-        # Skip renda fixa — different tax regime
         if ac in ("renda_fixa", "tesouro_direto"):
             continue
+        txs_by_ticker.setdefault(ticker, []).append(tx)
+        ac_by_ticker[ticker] = ac
 
-        cur = holdings.setdefault(ticker, {"qty": Decimal("0"), "avg_cost": Decimal("0"), "asset_class": ac})
+    # Load corporate actions for all held tickers (needed for correct CMP)
+    ca_result = await db.execute(
+        select(CorporateAction)
+        .where(CorporateAction.ticker.in_(list(txs_by_ticker.keys())))
+        .order_by(CorporateAction.action_date)
+    )
+    corporate_actions = ca_result.scalars().all()
+    cas_by_ticker: dict[str, list[CorporateAction]] = {}
+    for ca in corporate_actions:
+        cas_by_ticker.setdefault(ca.ticker.upper(), []).append(ca)
 
-        if tx_type == "buy":
-            new_qty = cur["qty"] + tx.quantity
-            if new_qty > 0:
-                cur["avg_cost"] = (
-                    (cur["qty"] * cur["avg_cost"] + tx.quantity * tx.unit_price) / new_qty
-                ).quantize(Decimal("0.000001"))
-            cur["qty"] = new_qty
-        elif tx_type == "sell":
-            cur["qty"] = max(Decimal("0"), cur["qty"] - tx.quantity)
-
-    # Keep only open positions
-    open_positions = {t: v for t, v in holdings.items() if v["qty"] > Decimal("0")}
+    # Build positions using canonical CMP engine (handles splits, bonuses, reverse splits)
+    open_positions: dict[str, dict] = {}
+    for ticker, ticker_txs in txs_by_ticker.items():
+        ac = ac_by_ticker[ticker]
+        ticker_cas = cas_by_ticker.get(ticker, [])
+        try:
+            pos = build_position_from_history(ticker, ac, ticker_txs, ticker_cas)
+        except ValueError:
+            continue
+        if pos.quantity > Decimal("0"):
+            open_positions[ticker] = {
+                "qty": pos.quantity,
+                "avg_cost": pos.cmp,
+                "asset_class": ac,
+            }
 
     if not open_positions:
         return {

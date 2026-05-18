@@ -12,7 +12,7 @@ Data source: fundamentals dict from data.py (BRAPI).
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -180,7 +180,7 @@ def calculate_dividend_analysis(fundamentals: dict) -> dict:
         missing_fields.append("coverage_ratio")
 
     # ---- f) Consistency score (last 5 years) ----
-    current_year = datetime.now().year
+    current_year = datetime.now(timezone.utc).year
     last_5_years = list(range(current_year, current_year - 5, -1))
     paid_years = sum(1 for y in last_5_years if y in annual_dividends)
     total_years = len(last_5_years)

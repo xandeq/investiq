@@ -16,7 +16,7 @@ IEEE 754 floating-point precision issues.
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
 logger = logging.getLogger(__name__)
@@ -117,7 +117,7 @@ def fetch_macro_indicators() -> dict:
         "cdi": cdi,
         "ipca": ipca,
         "ptax_usd": ptax_usd,
-        "fetched_at": datetime.utcnow().isoformat(),
+        "fetched_at": datetime.now(timezone.utc).isoformat(),
     }
 
 

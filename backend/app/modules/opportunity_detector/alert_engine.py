@@ -128,7 +128,6 @@ def save_opportunity_to_db(report) -> bool:
                 detected_at=datetime.now(timezone.utc),
             )
             session.add(opp)
-            session.commit()
         logger.info("save_opportunity_to_db: persisted %s to detected_opportunities", report.ticker)
         return True
     except Exception as exc:
@@ -196,7 +195,6 @@ def save_in_app_insight(report) -> bool:
                     "now": datetime.now(timezone.utc),
                 },
             )
-            session.commit()
         logger.info("In-app insight saved for %s (tenant=%s)", report.ticker, tenant_id)
         return True
     except Exception as exc:
