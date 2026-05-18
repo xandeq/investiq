@@ -1,5 +1,13 @@
 "use client";
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Robot,
+  ChartLineUp,
+  Crosshair,
+  Briefcase,
+  ChartBar,
+} from "@phosphor-icons/react";
 import { useSwingSignals } from "../hooks/useSwingSignals";
 import { useSwingOperations } from "../hooks/useSwingOperations";
 import { useCopilot } from "../hooks/useCopilot";
@@ -11,12 +19,12 @@ import { StatsSection } from "./StatsSection";
 
 type Tab = "copilot" | "signals" | "radar" | "operations" | "stats";
 
-const TABS: { key: Tab; label: string; icon: string }[] = [
-  { key: "copilot",     label: "🤖 Copiloto",          icon: "" },
-  { key: "signals",    label: "Sinais da Carteira",   icon: "" },
-  { key: "radar",      label: "Radar Swing",           icon: "" },
-  { key: "operations", label: "Minhas Operações",      icon: "" },
-  { key: "stats",      label: "Estatísticas",          icon: "" },
+const TABS: { key: Tab; label: string; Icon: React.ElementType }[] = [
+  { key: "copilot",     label: "Copiloto",          Icon: Robot },
+  { key: "signals",    label: "Sinais da Carteira", Icon: ChartLineUp },
+  { key: "radar",      label: "Radar Swing",        Icon: Crosshair },
+  { key: "operations", label: "Minhas Operações",   Icon: Briefcase },
+  { key: "stats",      label: "Estatísticas",       Icon: ChartBar },
 ];
 
 function formatGeneratedAt(iso: string | undefined | null): string {
@@ -32,9 +40,9 @@ export function SwingTradeContent() {
   const [activeTab, setActiveTab] = useState<Tab>("copilot");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const signalsQuery  = useSwingSignals();
+  const signalsQuery    = useSwingSignals();
   const operationsQuery = useSwingOperations();
-  const copilotQuery  = useCopilot();
+  const copilotQuery    = useCopilot();
 
   const portfolioSignals = signalsQuery.data?.portfolio_signals;
   const radarSignals     = signalsQuery.data?.radar_signals;
@@ -71,102 +79,130 @@ export function SwingTradeContent() {
       stop_price: payload.stop_price,
       notes: payload.notes,
     });
-    // Switch to operations tab so user sees the new entry
     setActiveTab("operations");
   };
 
   return (
     <div className="space-y-4">
-      {/* Page title */}
-      <div className="mb-2">
-        <h1 className="text-2xl font-bold text-gray-900">Swing Trade</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
+      {/* Page header */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        className="mb-2"
+      >
+        <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">Swing Trade</h1>
+        <p className="text-sm text-zinc-500 mt-0.5">
           Copiloto analisa o mercado e entrega decisões prontas — você dá o último clique.
         </p>
-      </div>
+      </motion.div>
 
-      {/* Tab header */}
-      <div className="flex items-center justify-between border-b border-gray-200">
-        <nav className="flex -mb-px overflow-x-auto">
-          {TABS.map((tab) => {
+      {/* Animated tab bar */}
+      <div className="flex items-center justify-between border-b border-zinc-200">
+        <nav className="flex -mb-px overflow-x-auto relative" aria-label="Navegação Swing Trade">
+          {TABS.map((tab, i) => {
             const active = tab.key === activeTab;
+            const { Icon } = tab;
             return (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                className={`relative flex items-center gap-1.5 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors duration-200 ${
                   active
-                    ? tab.key === "copilot"
-                      ? "border-blue-600 text-blue-600"
-                      : "border-blue-600 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    ? "text-blue-600"
+                    : "text-zinc-500 hover:text-zinc-700"
                 }`}
+                style={{ animationDelay: `${i * 40}ms` }}
               >
+                <Icon
+                  size={15}
+                  weight={active ? "fill" : "regular"}
+                  aria-hidden
+                />
                 {tab.label}
+
+                {/* Animated underline indicator */}
+                {active && (
+                  <motion.span
+                    layoutId="tab-indicator"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  />
+                )}
               </button>
             );
           })}
         </nav>
 
         {signalsQuery.data?.generated_at && activeTab !== "copilot" && (
-          <span className="text-[11px] text-gray-400 shrink-0 ml-2">
+          <span className="text-[11px] text-zinc-400 shrink-0 ml-2">
             Atualizado em {formatGeneratedAt(signalsQuery.data.generated_at)}
           </span>
         )}
       </div>
 
-      {/* Error banner (shared across signal-based tabs) */}
+      {/* Error banner */}
       {signalsError && activeTab !== "operations" && activeTab !== "copilot" && (
         <div className="rounded-lg bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
           {signalsError}
         </div>
       )}
 
-      {/* Tab content */}
-      {activeTab === "copilot" && (
-        <CopilotSection
-          swingPicks={copilotQuery.data?.swing_picks ?? []}
-          dividendPlays={copilotQuery.data?.dividend_plays ?? []}
-          universeScanned={copilotQuery.data?.universe_scanned ?? 0}
-          fromCache={copilotQuery.data?.from_cache ?? false}
-          isLoading={copilotQuery.isLoading}
-          error={copilotQuery.data?.error ?? (copilotQuery.error instanceof Error ? copilotQuery.error.message : null)}
-          onCreateOperation={handleCreateFromCopilot}
-          onRefresh={handleRefreshCopilot}
-          isRefreshing={isRefreshing}
-        />
-      )}
+      {/* Tab content with fade-in */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+        >
+          {activeTab === "copilot" && (
+            <CopilotSection
+              swingPicks={copilotQuery.data?.swing_picks ?? []}
+              dividendPlays={copilotQuery.data?.dividend_plays ?? []}
+              universeScanned={copilotQuery.data?.universe_scanned ?? 0}
+              fromCache={copilotQuery.data?.from_cache ?? false}
+              isLoading={copilotQuery.isLoading}
+              error={copilotQuery.data?.error ?? (copilotQuery.error instanceof Error ? copilotQuery.error.message : null)}
+              onCreateOperation={handleCreateFromCopilot}
+              onRefresh={handleRefreshCopilot}
+              isRefreshing={isRefreshing}
+            />
+          )}
 
-      {activeTab === "signals" && (
-        <SignalsSection
-          signals={portfolioSignals}
-          isLoading={signalsQuery.isLoading}
-        />
-      )}
+          {activeTab === "signals" && (
+            <SignalsSection
+              signals={portfolioSignals}
+              isLoading={signalsQuery.isLoading}
+            />
+          )}
 
-      {activeTab === "radar" && (
-        <RadarSection
-          signals={radarSignals}
-          isLoading={signalsQuery.isLoading}
-        />
-      )}
+          {activeTab === "radar" && (
+            <RadarSection
+              signals={radarSignals}
+              isLoading={signalsQuery.isLoading}
+            />
+          )}
 
-      {activeTab === "operations" && (
-        <OperationsSection
-          data={operationsQuery.operations}
-          isLoading={operationsQuery.isLoading}
-          onCreate={(payload) => operationsQuery.createOp(payload)}
-          onClose={(id, exit_price) =>
-            operationsQuery.closeOp({ id, payload: { exit_price } })
-          }
-          onDelete={(id) => operationsQuery.deleteOp(id)}
-          createPending={operationsQuery.createOpPending}
-          closePending={false}
-          deletePending={operationsQuery.deleteOpPending}
-        />
-      )}
+          {activeTab === "operations" && (
+            <OperationsSection
+              data={operationsQuery.operations}
+              isLoading={operationsQuery.isLoading}
+              onCreate={(payload) => operationsQuery.createOp(payload)}
+              onClose={(id, exit_price) =>
+                operationsQuery.closeOp({ id, payload: { exit_price } })
+              }
+              onDelete={(id) => operationsQuery.deleteOp(id)}
+              createPending={operationsQuery.createOpPending}
+              closePending={false}
+              deletePending={operationsQuery.deleteOpPending}
+            />
+          )}
 
-      {activeTab === "stats" && <StatsSection />}
+          {activeTab === "stats" && <StatsSection />}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
