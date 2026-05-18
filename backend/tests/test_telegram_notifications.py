@@ -264,3 +264,50 @@ def test_notify_users_for_signal_continues_on_send_failure():
     # Only the second succeeded
     assert result["notified"] == 1
     assert result["status"] == "ok"
+
+
+# =============================================================================
+# Task 3: scan_and_store_signals dispatches notify_users_for_signal.delay
+# =============================================================================
+
+def test_scan_and_store_signals_dispatches_fanout():
+    """scan_and_store_signals dispatches notify_users_for_signal.delay when new signals found.
+
+    scan_and_store_signals calls asyncio.run(_run_scan_and_store()).
+    We mock _run_scan_and_store to be a coroutine function (side_effect returns a coroutine).
+    """
+    from app.modules.signal_engine.tasks import scan_and_store_signals
+
+    fake_signals = [_SAMPLE_SIGNAL]
+
+    async def _fake_coroutine():
+        return fake_signals
+
+    with patch("app.modules.signal_engine.tasks._run_scan_and_store", side_effect=_fake_coroutine) as mock_scan:
+        with patch("app.modules.signal_engine.tasks._send_telegram_signals") as mock_send_admin:
+            with patch("app.modules.telegram_bot.tasks.notify_users_for_signal") as mock_fanout:
+                mock_fanout.delay = MagicMock()
+                result = scan_and_store_signals()
+
+    # Admin alert sent first
+    mock_send_admin.assert_called_once_with(fake_signals)
+    # Fan-out dispatched exactly once with the signals list
+    mock_fanout.delay.assert_called_once_with(fake_signals)
+    assert result["status"] == "ok"
+
+
+def test_scan_and_store_signals_no_dispatch_on_empty():
+    """scan_and_store_signals does NOT call notify_users_for_signal.delay when no new signals."""
+    from app.modules.signal_engine.tasks import scan_and_store_signals
+
+    async def _fake_coroutine_empty():
+        return []
+
+    with patch("app.modules.signal_engine.tasks._run_scan_and_store", side_effect=_fake_coroutine_empty):
+        with patch("app.modules.telegram_bot.tasks.notify_users_for_signal") as mock_fanout:
+            mock_fanout.delay = MagicMock()
+            result = scan_and_store_signals()
+
+    # Fan-out NOT called when no signals
+    mock_fanout.delay.assert_not_called()
+    assert result["status"] == "ok"

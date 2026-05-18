@@ -101,6 +101,13 @@ def scan_and_store_signals() -> dict:
         new_signals = asyncio.run(_run_scan_and_store())
         if new_signals:
             _send_telegram_signals(new_signals)
+            # Phase 39: fan out to per-user Telegram chat_ids (pro + trial users only)
+            try:
+                from app.modules.telegram_bot.tasks import notify_users_for_signal
+                notify_users_for_signal.delay(new_signals)
+            except Exception as exc:
+                # Never let fan-out failure break the scan itself
+                logger.warning("signal_engine: failed to dispatch notify_users_for_signal: %s", exc)
             logger.info("signal_engine: %d new A+ signal(s) found and alerted", len(new_signals))
         else:
             logger.info("signal_engine: no new A+ signals in this scan")

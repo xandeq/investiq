@@ -117,3 +117,88 @@ def run_bot_polling() -> None:
     application = create_application(token)
     logger.info("Starting Telegram bot in polling mode")
     asyncio.run(application.run_polling(drop_pending_updates=True))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Phase 39: Per-user A+ signal fan-out
+# ─────────────────────────────────────────────────────────────────────────────
+
+from app.core.telegram import send_telegram_notification
+
+
+def _build_signal_message(signals: list[dict]) -> str:
+    """Render an HTML-formatted Telegram message body for one or more A+ signals.
+
+    Format matches the admin alert pattern from signal_engine._send_telegram_signals
+    but adds a per-ticker link to https://investiq.com.br/stock/{ticker}.
+    """
+    lines = ["<b>InvestIQ — Novos Setups A+</b>", ""]
+    for s in signals:
+        ticker = s.get("ticker", "?")
+        setup = s.get("setup") or {}
+        pattern = setup.get("pattern", "N/D")
+        direction = setup.get("direction", "N/D")
+        entry = setup.get("entry", "?")
+        stop = setup.get("stop", "?")
+        target_1 = setup.get("target_1", "?")
+        rr = setup.get("rr", "?")
+        grade = setup.get("grade") or s.get("grade", "A+")
+        link = f"https://investiq.com.br/stock/{ticker}"
+        lines.append(
+            f"<b><a href=\"{link}\">{ticker}</a></b> — {pattern} ({direction}) — Grau {grade}\n"
+            f"  Entrada: R${entry} | Stop: R${stop} | Alvo1: R${target_1} | R/R: {rr}"
+        )
+    return "\n".join(lines)
+
+
+@celery_app.task(name="telegram_bot.notify_users_for_signal")
+def notify_users_for_signal(signals: list[dict]) -> dict:
+    """Fan out A+ signal notifications to all pro users with telegram_chat_id set.
+
+    Called by signal_engine.scan_and_store_signals when new signals are detected.
+    Reads users via sync DB session (Celery worker context — never use asyncpg here).
+    """
+    if not signals:
+        return {"status": "ok", "notified": 0}
+
+    bot_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    if not bot_token:
+        logger.warning("notify_users_for_signal: TELEGRAM_BOT_TOKEN not set")
+        return {"status": "skipped", "notified": 0}
+
+    from sqlalchemy import text as sa_text
+    from app.core.db_sync import get_superuser_sync_db_session
+
+    # Pro plan OR active trial — matches _is_pro_or_trial in profile/router.py
+    query = sa_text(
+        "SELECT telegram_chat_id FROM users "
+        "WHERE telegram_chat_id IS NOT NULL "
+        "  AND telegram_chat_id != '' "
+        "  AND (plan = 'pro' OR (plan = 'free' AND trial_ends_at IS NOT NULL AND trial_ends_at > :now))"
+    )
+    from datetime import datetime, timezone
+    now = datetime.now(tz=timezone.utc)
+
+    try:
+        with get_superuser_sync_db_session() as db:
+            rows = db.execute(query, {"now": now}).fetchall()
+    except Exception as exc:
+        logger.error("notify_users_for_signal: DB query failed: %s", exc)
+        return {"status": "error", "notified": 0, "error": str(exc)}
+
+    chat_ids = [row[0] for row in rows]
+    if not chat_ids:
+        return {"status": "ok", "notified": 0}
+
+    message = _build_signal_message(signals)
+    notified = 0
+    for chat_id in chat_ids:
+        ok = send_telegram_notification(chat_id, message)
+        if ok:
+            notified += 1
+
+    logger.info(
+        "notify_users_for_signal: %d/%d users notified for %d signal(s)",
+        notified, len(chat_ids), len(signals),
+    )
+    return {"status": "ok", "notified": notified}
