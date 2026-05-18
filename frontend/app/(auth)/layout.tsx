@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { ChartBar, Brain, Bell } from "@phosphor-icons/react";
 
