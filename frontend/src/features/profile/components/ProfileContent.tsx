@@ -4,6 +4,7 @@ import { useProfile, useUpsertProfile } from "@/features/profile/hooks/useProfil
 import type { InvestorProfileUpsert } from "@/features/profile/types";
 import { EmailPrefsCard } from "./EmailPrefsCard";
 import { AIModeCard } from "./AIModeCard";
+import { TelegramCard } from "./TelegramCard";
 
 const OBJETIVO_LABELS: Record<string, string> = {
   aposentadoria: "Aposentadoria",
@@ -208,6 +209,7 @@ export function ProfileContent() {
         <ProfileSummary profile={profile} onEdit={handleStartEdit} />
         <AIModeCard />
         <EmailPrefsCard />
+        <TelegramCard />
       </div>
     );
   }
