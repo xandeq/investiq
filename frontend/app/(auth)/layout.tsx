@@ -1,9 +1,21 @@
 import Link from "next/link";
+import { ChartBar, Brain, Bell } from "@phosphor-icons/react";
 
-/**
- * Auth route group layout — split two-column, no top nav.
- * Wraps login, register, verify-email, forgot-password, reset-password pages.
- */
+const FEATURE_LIST = [
+  {
+    Icon: ChartBar,
+    text: "Dashboard com patrimônio e alocação em tempo real",
+  },
+  {
+    Icon: Brain,
+    text: "Copiloto de IA com análise macro e diagnóstico de carteira",
+  },
+  {
+    Icon: Bell,
+    text: "Alertas automáticos de watchlist e insights diários",
+  },
+];
+
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex">
@@ -24,7 +36,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           </div>
           <Link
             href="/tools"
-            className="text-gray-300 hover:text-white text-xs font-medium border border-white/20 hover:border-white/40 px-3 py-1.5 rounded-full transition-colors"
+            className="text-zinc-300 hover:text-white text-xs font-medium border border-white/20 hover:border-white/40 px-3 py-1.5 rounded-full transition-colors"
           >
             Ver ferramentas →
           </Link>
@@ -36,26 +48,25 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <h2 className="text-4xl font-extrabold text-white tracking-tight leading-tight">
               Inteligência institucional<br />para o investidor moderno.
             </h2>
-            <p className="mt-4 text-gray-400 text-base">
+            <p className="mt-4 text-zinc-400 text-base">
               Gerencie sua carteira, acompanhe P&L em tempo real e obtenha análises de IA personalizadas.
             </p>
           </div>
 
           <ul className="space-y-4">
-            {[
-              { icon: "📊", text: "Dashboard com patrimônio e alocação em tempo real" },
-              { icon: "🤖", text: "Copiloto de IA com análise macro e diagnóstico de carteira" },
-              { icon: "🔔", text: "Alertas automáticos de watchlist e insights diários" },
-            ].map(({ icon, text }) => (
+            {FEATURE_LIST.map(({ Icon, text }) => (
               <li key={text} className="flex items-start gap-3">
-                <span className="text-lg mt-0.5">{icon}</span>
-                <span className="text-gray-300 text-sm">{text}</span>
+                <Icon
+                  className="h-5 w-5 text-blue-400 mt-0.5 shrink-0"
+                  weight="duotone"
+                />
+                <span className="text-zinc-300 text-sm">{text}</span>
               </li>
             ))}
           </ul>
         </div>
 
-        <p className="relative z-10 text-gray-600 text-xs">© 2025 InvestIQ. Todos os direitos reservados.</p>
+        <p className="relative z-10 text-zinc-600 text-xs">© 2026 InvestIQ. Todos os direitos reservados.</p>
       </div>
 
       {/* Right column — form */}
@@ -70,7 +81,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           </div>
 
           {/* Form card */}
-          <div className="bg-gray-50 rounded-lg p-8">
+          <div className="bg-zinc-50 rounded-lg p-8">
             {children}
           </div>
         </div>
