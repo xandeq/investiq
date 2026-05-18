@@ -2,8 +2,8 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Eye, EyeSlash, ArrowRight } from "@phosphor-icons/react";
 import { login } from "@/features/auth/api";
-import { Eye, EyeOff, ArrowRight } from "lucide-react";
 
 export function LoginForm() {
   const router = useRouter();
@@ -20,7 +20,6 @@ export function LoginForm() {
     setIsLoading(true);
     try {
       await login(email, password);
-      // Respect ?redirect= param set by middleware when protecting routes
       const redirect = searchParams.get("redirect");
       const destination = redirect && redirect.startsWith("/") ? redirect : "/dashboard";
       router.push(destination);
@@ -39,7 +38,7 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1">
-        <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wider text-zinc-400">
           Email
         </label>
         <input
@@ -50,12 +49,12 @@ export function LoginForm() {
           required
           autoComplete="email"
           placeholder="seu@email.com"
-          className="w-full bg-gray-100 text-gray-900 rounded-md px-4 py-3 text-sm font-medium border-2 border-transparent focus:outline-none focus:bg-white focus:border-blue-500 transition-all duration-200"
+          className="w-full bg-zinc-100 text-zinc-900 rounded-md px-4 py-3 text-sm font-medium border-2 border-transparent focus:outline-none focus:bg-white focus:border-blue-500 transition-all duration-200"
         />
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-wider text-zinc-400">
           Senha
         </label>
         <div className="relative">
@@ -66,14 +65,14 @@ export function LoginForm() {
             onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete="current-password"
-            className="w-full bg-gray-100 text-gray-900 rounded-md px-4 py-3 pr-11 text-sm font-medium border-2 border-transparent focus:outline-none focus:bg-white focus:border-blue-500 transition-all duration-200"
+            className="w-full bg-zinc-100 text-zinc-900 rounded-md px-4 py-3 pr-11 text-sm font-medium border-2 border-transparent focus:outline-none focus:bg-white focus:border-blue-500 transition-all duration-200"
           />
           <button
             type="button"
             onClick={() => setShowPw(!showPw)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition-colors"
           >
-            {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {showPw ? <EyeSlash className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
       </div>
@@ -100,7 +99,7 @@ export function LoginForm() {
         <Link href="/register" className="text-blue-500 font-medium hover:text-blue-600 transition-colors">
           Criar conta
         </Link>
-        <Link href="/forgot-password" className="text-muted-foreground hover:text-foreground transition-colors">
+        <Link href="/forgot-password" className="text-zinc-400 hover:text-zinc-700 transition-colors">
           Esqueci a senha
         </Link>
       </div>
