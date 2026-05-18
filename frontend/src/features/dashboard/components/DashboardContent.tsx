@@ -26,7 +26,7 @@ export function DashboardContent() {
     return (
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-6">
         <div className="flex items-start gap-3">
-          <span className="text-2xl" aria-hidden>⚠️</span>
+          <Warning size={22} weight="fill" className="text-amber-500 shrink-0 mt-0.5" aria-hidden />
           <div className="flex-1">
             <p className="font-semibold text-amber-900">Dados temporariamente indisponíveis</p>
             <p className="text-sm text-amber-700 mt-1">
