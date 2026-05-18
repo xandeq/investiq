@@ -2,16 +2,16 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
-  AlertTriangle,
-  Inbox,
+  Warning,
+  Tray,
   Info,
-  RefreshCw,
-  TrendingDown,
-  TrendingUp,
+  ArrowClockwise,
+  TrendDown,
+  TrendUp,
   Bell,
   Lightbulb,
-  WalletCards,
-} from "lucide-react";
+  Wallet,
+} from "@phosphor-icons/react";
 import { useInbox } from "@/features/advisor/hooks/useInbox";
 import type { InboxCard, InboxCardKind, InboxSeverity } from "@/features/advisor/types";
 import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
@@ -23,15 +23,15 @@ const SEV_STYLES: Record<InboxSeverity, { bg: string; bar: string; iconColor: st
 };
 
 const KIND_ICON: Record<InboxCardKind, React.ElementType> = {
-  concentration_risk:   AlertTriangle,
-  low_diversification:  AlertTriangle,
-  underperformer:       TrendingDown,
+  concentration_risk:   Warning,
+  low_diversification:  Warning,
+  underperformer:       TrendDown,
   no_passive_income:    Lightbulb,
-  opportunity_detected: TrendingUp,
+  opportunity_detected: TrendUp,
   insight:              Info,
   watchlist_alert:      Bell,
-  swing_signal:         TrendingUp,
-  cash_parking:         WalletCards,
+  swing_signal:         TrendUp,
+  cash_parking:         Wallet,
 };
 
 function timeAgo(iso: string): string {
@@ -95,7 +95,7 @@ export function ActionInbox() {
     <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Inbox className="h-4 w-4 text-zinc-400" aria-hidden />
+          <Tray className="h-4 w-4 text-zinc-400" aria-hidden />
           <h3 className="font-semibold text-zinc-900">Próximas ações</h3>
           {data && data.cards.length > 0 && (
             <span className="inline-flex items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold px-2 h-5 min-w-5">
@@ -111,7 +111,7 @@ export function ActionInbox() {
           title="Atualizar"
           aria-label="Atualizar caixa de entrada"
         >
-          <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
+          <ArrowClockwise className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
         </button>
       </div>
 
@@ -144,7 +144,7 @@ export function ActionInbox() {
 
       {!isLoading && !error && data && data.cards.length === 0 && (
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <Inbox className="h-8 w-8 text-zinc-200 mb-2" aria-hidden />
+          <Tray className="h-8 w-8 text-zinc-200 mb-2" aria-hidden />
           <p className="text-sm text-zinc-400">Sem ações pendentes no momento.</p>
           <p className="text-xs text-zinc-300 mt-1">Atualizamos a cada 15 minutos.</p>
         </div>

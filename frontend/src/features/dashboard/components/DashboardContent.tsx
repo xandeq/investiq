@@ -13,7 +13,7 @@ import { SectorAllocationChart } from "./SectorAllocationChart";
 import { DividendCalendarCard } from "./DividendCalendarCard";
 import { DividendRankingCard } from "./DividendRankingCard";
 import { DividendIncomeCard } from "./DividendIncomeCard";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 import Link from "next/link";
 import { OnboardingBanner } from "@/features/onboarding/OnboardingBanner";
 
@@ -114,7 +114,7 @@ export function DashboardContent() {
 
       {/* Row 1: Net Worth */}
       {isLoading ? (
-        <Skeleton className="h-32 w-full rounded-xl" />
+        <ShimmerSkeleton className="h-32 w-full rounded-xl" />
       ) : data ? (
         <NetWorthCard
           netWorth={data.net_worth}
@@ -134,8 +134,8 @@ export function DashboardContent() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {isLoading ? (
           <>
-            <Skeleton className="h-80 rounded-xl" />
-            <Skeleton className="h-80 rounded-xl" />
+            <ShimmerSkeleton className="h-80 rounded-xl" />
+            <ShimmerSkeleton className="h-80 rounded-xl" />
           </>
         ) : data ? (
           <>
@@ -162,7 +162,7 @@ export function DashboardContent() {
 
       {/* Row 4: Recent Transactions */}
       {isLoading ? (
-        <Skeleton className="h-48 w-full rounded-xl" />
+        <ShimmerSkeleton className="h-48 w-full rounded-xl" />
       ) : data ? (
         <RecentTransactions transactions={data.recent_transactions} />
       ) : null}

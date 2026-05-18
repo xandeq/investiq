@@ -1,6 +1,7 @@
 "use client";
 
-import { AlertCircle, RefreshCw, WalletCards } from "lucide-react";
+import { Warning, ArrowClockwise, Wallet } from "@phosphor-icons/react";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 import { useCashParking } from "../hooks/useCashParking";
 import { CashParkingHero } from "./CashParkingHero";
 import { CashParkingTable } from "./CashParkingTable";
@@ -11,8 +12,8 @@ export function CashParkingContent() {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="h-40 rounded-lg bg-gray-100 animate-pulse" />
-        <div className="h-64 rounded-lg bg-gray-100 animate-pulse" />
+        <ShimmerSkeleton className="h-40 rounded-lg" />
+        <ShimmerSkeleton className="h-64 rounded-lg" />
       </div>
     );
   }
@@ -22,7 +23,7 @@ export function CashParkingContent() {
     return (
       <div className="rounded-lg border border-amber-200 bg-amber-50 p-5">
         <div className="flex items-start gap-3">
-          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" aria-hidden />
+          <Warning className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" weight="fill" aria-hidden />
           <div className="min-w-0">
             <h2 className="text-base font-semibold text-amber-950">Caixa indisponível</h2>
             <p className="mt-1 text-sm text-amber-800">{message}</p>
@@ -31,7 +32,7 @@ export function CashParkingContent() {
               className="mt-3 inline-flex items-center gap-2 rounded-md bg-amber-600 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-50"
               disabled={isFetching}
             >
-              <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} aria-hidden />
+              <ArrowClockwise className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} aria-hidden />
               Atualizar
             </button>
           </div>
@@ -50,12 +51,12 @@ export function CashParkingContent() {
       <CashParkingHero data={data} />
 
       {data.warnings.length > 0 && (
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-900">
-            <WalletCards className="h-4 w-4 text-gray-500" aria-hidden />
+        <div className="rounded-xl border border-zinc-200 bg-white p-4">
+          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-zinc-900">
+            <Wallet className="h-4 w-4 text-zinc-500" weight="fill" aria-hidden />
             Avisos
           </div>
-          <ul className="space-y-1 text-sm text-gray-600">
+          <ul className="space-y-1 text-sm text-zinc-600">
             {data.warnings.map((warning) => (
               <li key={warning}>{warning}</li>
             ))}
@@ -65,7 +66,7 @@ export function CashParkingContent() {
 
       <CashParkingTable rows={data.rows} />
 
-      <p className="text-center text-xs text-gray-400">
+      <p className="text-center text-xs text-zinc-400">
         IOF incide sobre rendimento em resgates até 29 dias. IR regressivo aplicado conforme prazo.
       </p>
     </div>

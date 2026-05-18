@@ -1,6 +1,6 @@
 "use client";
 
-import { Info } from "lucide-react";
+import { Info } from "@phosphor-icons/react";
 import type { CashParkingRow } from "../types";
 
 function asNumber(value: string | number | null | undefined): number {
@@ -32,33 +32,33 @@ export function CashParkingTable({ rows }: { rows: CashParkingRow[] }) {
   if (rows.length === 0) return null;
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-      <table className="min-w-full divide-y divide-gray-200 text-sm">
-        <thead className="bg-gray-50">
+    <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white">
+      <table className="min-w-full divide-y divide-zinc-200 text-sm">
+        <thead className="bg-zinc-50">
           <tr>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Rank</th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Alternativa</th>
-            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Taxa bruta</th>
-            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">IOF</th>
-            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">IR</th>
-            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Líquido</th>
-            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Retorno</th>
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">Rank</th>
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">Alternativa</th>
+            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500">Taxa bruta</th>
+            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500">IOF</th>
+            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500">IR</th>
+            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500">Líquido</th>
+            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500">Retorno</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-zinc-100">
           {rows.map((row) => {
             const isTop = row.rank === 1;
             return (
-              <tr key={row.label} className={isTop ? "bg-emerald-50" : "hover:bg-gray-50"}>
+              <tr key={row.label} className={isTop ? "bg-emerald-50" : "hover:bg-zinc-50"}>
                 <td className="px-4 py-3">
                   <span className={`inline-flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-xs font-bold ${
-                    isTop ? "bg-emerald-600 text-white" : "bg-gray-100 text-gray-700"
+                    isTop ? "bg-emerald-600 text-white" : "bg-zinc-100 text-zinc-700"
                   }`}>
                     {row.rank}
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <div className="font-semibold text-gray-900">{displayLabel(row.label)}</div>
+                  <div className="font-semibold text-zinc-900">{displayLabel(row.label)}</div>
                   {row.note && (
                     <div className="mt-1 flex max-w-md items-start gap-1.5 text-xs text-amber-700">
                       <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -66,11 +66,11 @@ export function CashParkingTable({ rows }: { rows: CashParkingRow[] }) {
                     </div>
                   )}
                 </td>
-                <td className="px-4 py-3 text-right text-gray-700">{formatPct(row.gross_annual_pct)} a.a.</td>
-                <td className="px-4 py-3 text-right text-gray-700">{formatPct(row.iof_pct, 100)}</td>
-                <td className="px-4 py-3 text-right text-gray-700">{formatPct(row.ir_pct, 100)}</td>
-                <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatBRL(row.net_value_brl)}</td>
-                <td className={`px-4 py-3 text-right font-semibold ${isTop ? "text-emerald-700" : "text-gray-700"}`}>
+                <td className="px-4 py-3 text-right text-zinc-700">{formatPct(row.gross_annual_pct)} a.a.</td>
+                <td className="px-4 py-3 text-right text-zinc-700">{formatPct(row.iof_pct, 100)}</td>
+                <td className="px-4 py-3 text-right text-zinc-700">{formatPct(row.ir_pct, 100)}</td>
+                <td className="px-4 py-3 text-right font-semibold text-zinc-900">{formatBRL(row.net_value_brl)}</td>
+                <td className={`px-4 py-3 text-right font-semibold ${isTop ? "text-emerald-700" : "text-zinc-700"}`}>
                   {formatPct(row.net_pct)}
                 </td>
               </tr>
