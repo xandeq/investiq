@@ -170,6 +170,26 @@ class DividendIncomeSummary(BaseModel):
     data_available: bool
 
 
+class DividendCalendarEntry(BaseModel):
+    ticker: str
+    asset_class: str
+    label: str
+    ex_div_date: date
+    payment_date: date | None
+    rate_per_share: Decimal
+    quantity: Decimal
+    projected_income: Decimal
+    source: str
+
+
+class DividendCalendarResponse(BaseModel):
+    entries: list[DividendCalendarEntry]
+    total_projected_30d: Decimal
+    total_projected_60d: Decimal
+    total_projected_90d: Decimal
+    generated_at: datetime
+
+
 class TargetAllocationItem(BaseModel):
     asset_class: str
     target_pct: Decimal

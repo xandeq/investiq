@@ -1,31 +1,36 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
+import { Warning } from "@phosphor-icons/react";
 import { apiClient } from "@/lib/api-client";
 import { formatBRL } from "@/lib/formatters";
 import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface DividendEvent {
+interface DividendCalendarEntry {
   ticker: string;
   asset_class: string;
-  payment_date: string;
-  ex_date: string;
+  label: string;
+  ex_div_date: string;
+  payment_date: string | null;
   rate_per_share: string;
   quantity: string;
-  estimated_income: string;
-  label: string;
+  projected_income: string;
+  source: "brapi" | "estimated";
 }
 
 interface DividendCalendarResponse {
-  events: DividendEvent[];
-  data_available: boolean;
+  entries: DividendCalendarEntry[];
+  total_projected_30d: string;
+  total_projected_60d: string;
+  total_projected_90d: string;
+  generated_at: string;
 }
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
-function formatDisplayDate(dateStr: string): string {
+function formatDisplayDate(dateStr: string | null | undefined): string {
   if (!dateStr) return "—";
   const [y, m, d] = dateStr.split("-").map(Number);
   return new Date(y, m - 1, d).toLocaleDateString("pt-BR", {
@@ -34,7 +39,7 @@ function formatDisplayDate(dateStr: string): string {
   });
 }
 
-function isUrgent(dateStr: string): boolean {
+function isUrgent(dateStr: string | null | undefined): boolean {
   if (!dateStr) return false;
   const days = (new Date(dateStr).getTime() - Date.now()) / 86400000;
   return days >= 0 && days <= 14;
@@ -43,8 +48,10 @@ function isUrgent(dateStr: string): boolean {
 // ─── Label pill ───────────────────────────────────────────────────────────────
 
 const LABEL_STYLES: Record<string, string> = {
-  Dividendo: "bg-blue-50 text-blue-700 border-blue-200",
+  DIVIDENDO: "bg-blue-50 text-blue-700 border-blue-200",
   JCP: "bg-violet-50 text-violet-700 border-violet-200",
+  RENDIMENTO: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  Dividendo: "bg-blue-50 text-blue-700 border-blue-200",
   Rendimento: "bg-emerald-50 text-emerald-700 border-emerald-200",
 };
 
@@ -87,83 +94,94 @@ function SkeletonRows() {
 
 export function DividendCalendarCard() {
   const { data, isLoading } = useQuery({
-    queryKey: ["dashboard", "dividend-calendar"],
-    queryFn: () => apiClient<DividendCalendarResponse>("/dashboard/dividend-calendar"),
+    queryKey: ["portfolio", "dividend-calendar"],
+    queryFn: () => apiClient<DividendCalendarResponse>("/portfolio/dividend-calendar?days=90"),
     staleTime: 30 * 60 * 1000,
   });
 
+  const summaryChips = data
+    ? [
+        { label: "Próx. 30d", value: formatBRL(data.total_projected_30d), color: "text-zinc-700" },
+        { label: "Próx. 60d", value: formatBRL(data.total_projected_60d), color: "text-blue-700" },
+        { label: "Próx. 90d", value: formatBRL(data.total_projected_90d), color: "text-emerald-700" },
+      ]
+    : [];
+
   return (
     <div className="rounded-xl border border-zinc-200 bg-white px-5 py-4 shadow-sm">
-      <h2 className="mb-4 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
-        Calendário de Dividendos — próximos 90 dias
-      </h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+          Calendário de Dividendos
+        </h2>
+        <span className="text-[11px] text-zinc-300">próximos 90 dias</span>
+      </div>
 
-      {isLoading && <SkeletonRows />}
-
-      {!isLoading && (!data || !data.data_available || data.events.length === 0) && (
-        <p className="py-4 text-center text-sm text-zinc-400">
-          Nenhum dividendo previsto para os próximos 90 dias
-        </p>
+      {isLoading && (
+        <>
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            {[0, 1, 2].map((i) => <ShimmerSkeleton key={i} className="h-12 rounded-lg" />)}
+          </div>
+          <SkeletonRows />
+        </>
       )}
 
-      {!isLoading && data?.data_available && data.events.length > 0 && (() => {
-        const events = data.events.slice(0, 20);
-        const totalIncome = data.events.reduce(
-          (sum, e) => sum + parseFloat(e.estimated_income || "0"),
-          0
-        );
+      {!isLoading && data && data.entries.length > 0 && (
+        <>
+          {/* Summary chips */}
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            {summaryChips.map(({ label, value, color }, i) => (
+              <motion.div
+                key={label}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] as const, delay: i * 0.05 }}
+                className="rounded-lg bg-zinc-50 border border-zinc-100 px-3 py-2"
+              >
+                <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide">{label}</p>
+                <p className={`text-sm font-extrabold mt-0.5 tabular-nums ${color}`}>{value}</p>
+              </motion.div>
+            ))}
+          </div>
 
-        return (
+          {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-100">
-                  <th className="pb-2.5 pr-4 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
-                    Ticker
-                  </th>
-                  <th className="pb-2.5 pr-4 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
-                    Tipo
-                  </th>
-                  <th className="pb-2.5 pr-4 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
-                    Data Ex
-                  </th>
-                  <th className="pb-2.5 pr-4 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
-                    Pagamento
-                  </th>
-                  <th className="pb-2.5 pr-4 text-right text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
-                    R$/cota
-                  </th>
-                  <th className="pb-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
-                    Estimado
-                  </th>
+                  <th className="pb-2.5 pr-4 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Ticker</th>
+                  <th className="pb-2.5 pr-4 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Tipo</th>
+                  <th className="pb-2.5 pr-4 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Data Ex</th>
+                  <th className="pb-2.5 pr-4 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Pagamento</th>
+                  <th className="pb-2.5 pr-4 text-right text-[11px] font-semibold uppercase tracking-wider text-zinc-400">R$/cota</th>
+                  <th className="pb-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Projetado</th>
                 </tr>
               </thead>
               <tbody>
-                {events.map((event, idx) => {
-                  const urgent = isUrgent(event.payment_date);
+                {data.entries.slice(0, 20).map((entry, idx) => {
+                  const urgent = isUrgent(entry.payment_date);
+                  const estimated = entry.source === "estimated";
                   return (
                     <motion.tr
-                      key={`${event.ticker}-${event.ex_date}-${idx}`}
+                      key={`${entry.ticker}-${entry.ex_div_date}-${idx}`}
                       initial={{ opacity: 0, x: -6 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{
-                        duration: 0.26,
-                        ease: [0.16, 1, 0.3, 1],
-                        delay: idx * 0.03,
-                      }}
+                      transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] as const, delay: idx * 0.03 }}
                       className="border-b border-zinc-50 last:border-0 hover:bg-zinc-50/60 transition-colors"
                     >
                       <td className="py-2.5 pr-4 font-bold font-mono text-zinc-900">
-                        {event.ticker}
+                        {entry.ticker}
+                        {estimated && (
+                          <Warning size={12} weight="fill" className="inline ml-1 text-amber-400" aria-label="estimado" />
+                        )}
                       </td>
                       <td className="py-2.5 pr-4">
-                        <LabelPill label={event.label} />
+                        <LabelPill label={entry.label} />
                       </td>
                       <td className="py-2.5 pr-4 text-zinc-400 tabular-nums">
-                        {formatDisplayDate(event.ex_date)}
+                        {formatDisplayDate(entry.ex_div_date)}
                       </td>
                       <td className={`py-2.5 pr-4 tabular-nums ${urgent ? "font-bold text-amber-600" : "text-zinc-400"}`}>
-                        {formatDisplayDate(event.payment_date)}
+                        {formatDisplayDate(entry.payment_date)}
                         {urgent && (
                           <span className="ml-1.5 inline-block rounded-full bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
                             Em breve
@@ -171,32 +189,25 @@ export function DividendCalendarCard() {
                         )}
                       </td>
                       <td className="py-2.5 pr-4 text-right text-zinc-500 tabular-nums">
-                        {formatBRL(event.rate_per_share)}
+                        {formatBRL(entry.rate_per_share)}
                       </td>
                       <td className="py-2.5 text-right font-medium text-emerald-600 tabular-nums">
-                        {formatBRL(event.estimated_income)}
+                        {formatBRL(entry.projected_income)}
                       </td>
                     </motion.tr>
                   );
                 })}
               </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-zinc-200">
-                  <td
-                    colSpan={5}
-                    className="pt-3 pr-4 text-right text-[11px] font-semibold uppercase tracking-wider text-zinc-400"
-                  >
-                    Total estimado no período
-                  </td>
-                  <td className="pt-3 text-right text-base font-extrabold text-emerald-600 tabular-nums">
-                    {formatBRL(totalIncome)}
-                  </td>
-                </tr>
-              </tfoot>
             </table>
           </div>
-        );
-      })()}
+        </>
+      )}
+
+      {!isLoading && data && data.entries.length === 0 && (
+        <p className="py-6 text-center text-sm text-zinc-400">
+          Nenhum dividendo previsto para os próximos 90 dias
+        </p>
+      )}
     </div>
   );
 }

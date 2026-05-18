@@ -14,8 +14,9 @@ offline use without a running Redis.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,6 +36,8 @@ from app.modules.portfolio.schemas import (
     DividendResponse,
     DividendIncomeMonth,
     DividendIncomeSummary,
+    DividendCalendarEntry,
+    DividendCalendarResponse,
     TargetAllocationItem,
     RebalancingSlot,
     RebalancingPlan,
@@ -648,4 +651,160 @@ class PortfolioService:
             has_targets=True,
             max_drift_pct=Decimal(str(round(max_drift, 2))),
             targets_sum_pct=targets_sum,
+        )
+
+    async def get_dividend_calendar(
+        self,
+        db: AsyncSession,
+        tenant_id: str,
+        days: int = 90,
+    ) -> DividendCalendarResponse:
+        """Fetch upcoming dividends for the tenant's equity/FII positions.
+
+        Fetches BRAPI cashDividends in parallel for all tickers with open positions.
+        For FIIs with no upcoming BRAPI data, estimates the next payment from the
+        last dividend transaction stored in the DB (source="estimated").
+        """
+        from app.modules.market_data.adapters.brapi import BrapiClient
+
+        positions = await self.get_positions(db, tenant_id)
+        eligible = [
+            p for p in positions
+            if p.asset_class in ("acao", "fii") and p.quantity > Decimal("0")
+        ]
+
+        if not eligible:
+            now = datetime.now(tz=timezone.utc)
+            return DividendCalendarResponse(
+                entries=[],
+                total_projected_30d=Decimal("0"),
+                total_projected_60d=Decimal("0"),
+                total_projected_90d=Decimal("0"),
+                generated_at=now,
+            )
+
+        quantity_map: dict[str, Decimal] = {p.ticker: p.quantity for p in eligible}
+        asset_class_map: dict[str, str] = {p.ticker: p.asset_class for p in eligible}
+        tickers = list(quantity_map.keys())
+
+        client = BrapiClient()
+
+        async def _fetch(ticker: str) -> tuple[str, list[dict]]:
+            try:
+                result = await asyncio.to_thread(client.fetch_dividends, ticker)
+                return ticker, result
+            except Exception as exc:
+                logger.warning("get_dividend_calendar: BRAPI fetch failed for %s — %s", ticker, exc)
+                return ticker, []
+
+        raw_results = await asyncio.gather(*[_fetch(t) for t in tickers])
+
+        today = date.today()
+        cutoff = today + timedelta(days=days)
+
+        entries: list[DividendCalendarEntry] = []
+        tickers_with_data: set[str] = set()
+
+        for ticker, cash_dividends in raw_results:
+            quantity = quantity_map[ticker]
+            asset_class = asset_class_map[ticker]
+
+            for div in cash_dividends:
+                ex_date_str = div.get("lastDatePrior") or ""
+                if not ex_date_str:
+                    continue
+                try:
+                    ex_date = date.fromisoformat(ex_date_str[:10])
+                except ValueError:
+                    continue
+
+                if not (today < ex_date <= cutoff):
+                    continue
+
+                pay_date_str = div.get("paymentDate") or ""
+                try:
+                    pay_date: date | None = date.fromisoformat(pay_date_str[:10]) if pay_date_str else None
+                except ValueError:
+                    pay_date = None
+
+                rate = Decimal(str(div.get("rate") or 0))
+                projected = rate * quantity
+                label = str(div.get("label") or "DIVIDENDO").upper()
+
+                entries.append(DividendCalendarEntry(
+                    ticker=ticker,
+                    asset_class=asset_class,
+                    label=label,
+                    ex_div_date=ex_date,
+                    payment_date=pay_date,
+                    rate_per_share=rate,
+                    quantity=quantity,
+                    projected_income=projected,
+                    source="brapi",
+                ))
+                tickers_with_data.add(ticker)
+
+        # FII estimation: for FIIs with no upcoming BRAPI data
+        fii_tickers_without_data = [
+            t for t in tickers
+            if asset_class_map[t] == "fii" and t not in tickers_with_data
+        ]
+
+        if fii_tickers_without_data:
+            stmt = select(Transaction).where(
+                Transaction.tenant_id == tenant_id,
+                Transaction.ticker.in_(fii_tickers_without_data),
+                Transaction.transaction_type == "dividend",
+                Transaction.deleted_at.is_(None),
+            ).order_by(Transaction.ticker, Transaction.transaction_date.desc())
+            result = await db.execute(stmt)
+            last_divs: list[Transaction] = result.scalars().all()
+
+            seen: set[str] = set()
+            for tx in last_divs:
+                ticker = tx.ticker
+                if ticker in seen:
+                    continue
+                seen.add(ticker)
+
+                last_date: date = tx.transaction_date
+                days_since = (today - last_date).days
+                if days_since > 45:
+                    continue
+
+                quantity = quantity_map[ticker]
+                rate = tx.unit_price
+                estimated_ex = last_date + timedelta(days=30)
+
+                if not (today < estimated_ex <= cutoff):
+                    continue
+
+                entries.append(DividendCalendarEntry(
+                    ticker=ticker,
+                    asset_class="fii",
+                    label="RENDIMENTO",
+                    ex_div_date=estimated_ex,
+                    payment_date=None,
+                    rate_per_share=rate,
+                    quantity=quantity,
+                    projected_income=rate * quantity,
+                    source="estimated",
+                ))
+
+        entries.sort(key=lambda e: e.ex_div_date)
+
+        def _sum_projected(within_days: int) -> Decimal:
+            limit = today + timedelta(days=within_days)
+            return sum(
+                (e.projected_income for e in entries if e.ex_div_date <= limit),
+                Decimal("0"),
+            )
+
+        now = datetime.now(tz=timezone.utc)
+        return DividendCalendarResponse(
+            entries=entries,
+            total_projected_30d=_sum_projected(30),
+            total_projected_60d=_sum_projected(60),
+            total_projected_90d=_sum_projected(90),
+            generated_at=now,
         )

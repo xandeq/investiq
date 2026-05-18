@@ -34,6 +34,7 @@ from app.modules.portfolio.schemas import (
     BenchmarkResponse,
     DividendResponse,
     DividendIncomeSummary,
+    DividendCalendarResponse,
     TargetAllocationItem,
     RebalancingPlan,
 )
@@ -314,3 +315,21 @@ async def get_rebalancing_plan(
     Requires targets to be set via PUT /portfolio/targets first.
     """
     return await service.get_rebalancing_plan(db, tenant_id)
+
+
+@router.get("/dividend-calendar", response_model=DividendCalendarResponse)
+async def get_dividend_calendar(
+    days: int = Query(90, ge=30, le=180),
+    db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+    service: PortfolioService = Depends(_get_service),
+) -> DividendCalendarResponse:
+    """Return upcoming dividend events for all open equity/FII positions.
+
+    `days` controls the forward-looking window (30–180, default 90).
+    Each entry includes ex-dividend date, payment date (when available),
+    rate per share, and projected income based on current quantity.
+    FIIs with no BRAPI data get an estimated entry (source="estimated")
+    when their last recorded dividend was within the past 45 days.
+    """
+    return await service.get_dividend_calendar(db, tenant_id, days=days)
