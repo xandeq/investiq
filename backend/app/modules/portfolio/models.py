@@ -184,3 +184,30 @@ class PortfolioTarget(Base):
 
     def __repr__(self) -> str:
         return f"<PortfolioTarget tenant={self.tenant_id} class={self.asset_class} {self.target_pct}%>"
+
+
+class PortfolioGoal(Base):
+    """Investment goal per tenant.
+
+    Tracks a named financial objective with a target amount, optional deadline,
+    and optional asset class. Progress is computed from current_amount vs target_amount.
+    """
+    __tablename__ = "portfolio_goals"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    target_amount: Mapped[Decimal] = mapped_column(Numeric(20, 2), nullable=False)
+    current_amount: Mapped[Decimal] = mapped_column(Numeric(20, 2), nullable=False, default=Decimal("0"))
+    asset_class: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    deadline: Mapped[date | None] = mapped_column(Date, nullable=True)
+    notes: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, server_default=func.now()
+    )
+    updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, onupdate=_utcnow, nullable=True
+    )
+
+    def __repr__(self) -> str:
+        return f"<PortfolioGoal tenant={self.tenant_id} name={self.name!r} target={self.target_amount}>"

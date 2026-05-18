@@ -40,6 +40,9 @@ from app.modules.portfolio.schemas import (
     DividendCalendarResponse,
     TargetAllocationItem,
     RebalancingPlan,
+    GoalCreate,
+    GoalUpdate,
+    GoalResponse,
 )
 from app.modules.portfolio.service import PortfolioService
 
@@ -371,3 +374,96 @@ async def export_portfolio(
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+# ─── Phase 42: Investment Goals ───────────────────────────────────────────────
+
+def _goal_to_response(goal) -> GoalResponse:
+    """Build GoalResponse with computed fields from a PortfolioGoal ORM instance."""
+    from datetime import date
+    from decimal import Decimal
+
+    target = goal.target_amount or Decimal("0")
+    current = goal.current_amount or Decimal("0")
+    progress_pct = (
+        (current / target * Decimal("100")).quantize(Decimal("0.01"))
+        if target > Decimal("0")
+        else Decimal("0")
+    )
+    remaining = (target - current).quantize(Decimal("0.01"))
+
+    months_to_deadline: int | None = None
+    if goal.deadline:
+        today = date.today()
+        delta_months = (
+            (goal.deadline.year - today.year) * 12 + (goal.deadline.month - today.month)
+        )
+        months_to_deadline = max(0, delta_months)
+
+    return GoalResponse(
+        id=goal.id,
+        tenant_id=goal.tenant_id,
+        name=goal.name,
+        target_amount=target,
+        current_amount=current,
+        asset_class=goal.asset_class,
+        deadline=goal.deadline,
+        notes=goal.notes,
+        created_at=goal.created_at,
+        updated_at=goal.updated_at,
+        progress_pct=progress_pct,
+        remaining_amount=remaining,
+        months_to_deadline=months_to_deadline,
+    )
+
+
+@router.get("/goals", response_model=list[GoalResponse])
+async def list_goals(
+    db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+    service: PortfolioService = Depends(_get_service),
+) -> list[GoalResponse]:
+    """Return all investment goals for the authenticated tenant."""
+    goals = await service.list_goals(db, tenant_id)
+    return [_goal_to_response(g) for g in goals]
+
+
+@router.post("/goals", response_model=GoalResponse, status_code=status.HTTP_201_CREATED)
+async def create_goal(
+    data: GoalCreate,
+    db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+    service: PortfolioService = Depends(_get_service),
+) -> GoalResponse:
+    """Create a new investment goal."""
+    goal = await service.create_goal(db, tenant_id, data)
+    return _goal_to_response(goal)
+
+
+@router.patch("/goals/{goal_id}", response_model=GoalResponse)
+async def update_goal(
+    goal_id: str,
+    data: GoalUpdate,
+    db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+    service: PortfolioService = Depends(_get_service),
+) -> GoalResponse:
+    """Partially update an investment goal."""
+    goal = await service.update_goal(db, tenant_id, goal_id, data)
+    if goal is None:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    return _goal_to_response(goal)
+
+
+@router.delete("/goals/{goal_id}", status_code=204)
+async def delete_goal(
+    goal_id: str,
+    db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+    service: PortfolioService = Depends(_get_service),
+) -> Response:
+    """Delete an investment goal."""
+    deleted = await service.delete_goal(db, tenant_id, goal_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    return Response(status_code=204)

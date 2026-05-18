@@ -211,3 +211,41 @@ class RebalancingPlan(BaseModel):
     has_targets: bool
     max_drift_pct: Decimal      # worst single drift in pp
     targets_sum_pct: Decimal    # should be ~100
+
+
+# ─── Phase 42: Investment Goals ───────────────────────────────────────────────
+
+class GoalCreate(BaseModel):
+    name: str
+    target_amount: Decimal
+    current_amount: Decimal = Decimal("0")
+    asset_class: str | None = None
+    deadline: date | None = None
+    notes: str | None = None
+
+
+class GoalUpdate(BaseModel):
+    name: str | None = None
+    target_amount: Decimal | None = None
+    current_amount: Decimal | None = None
+    asset_class: str | None = None
+    deadline: date | None = None
+    notes: str | None = None
+
+
+class GoalResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    tenant_id: str
+    name: str
+    target_amount: Decimal
+    current_amount: Decimal
+    asset_class: str | None
+    deadline: date | None
+    notes: str | None
+    created_at: datetime
+    updated_at: datetime | None
+    progress_pct: Decimal       # computed: current / target * 100
+    remaining_amount: Decimal   # computed: target - current
+    months_to_deadline: int | None  # computed: calendar months from today to deadline

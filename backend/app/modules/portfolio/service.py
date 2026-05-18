@@ -873,4 +873,70 @@ class PortfolioService:
                 str(pos.unrealized_pnl.quantize(Decimal("0.01"))) if pos.unrealized_pnl is not None else "",
                 str(pos.unrealized_pnl_pct.quantize(Decimal("0.01"))) + "%" if pos.unrealized_pnl_pct is not None else "",
             ])
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Phase 42: Investment Goals
+    # ──────────────────────────────────────────────────────────────────────────
+
+    async def list_goals(self, db: AsyncSession, tenant_id: str) -> list:
+        from app.modules.portfolio.models import PortfolioGoal
+        result = await db.execute(
+            select(PortfolioGoal)
+            .where(PortfolioGoal.tenant_id == tenant_id)
+            .order_by(PortfolioGoal.created_at.asc())
+        )
+        return result.scalars().all()
+
+    async def create_goal(self, db: AsyncSession, tenant_id: str, data) -> object:
+        from app.modules.portfolio.models import PortfolioGoal
+        goal = PortfolioGoal(
+            tenant_id=tenant_id,
+            name=data.name,
+            target_amount=data.target_amount,
+            current_amount=data.current_amount,
+            asset_class=data.asset_class,
+            deadline=data.deadline,
+            notes=data.notes,
+        )
+        db.add(goal)
+        await db.flush()
+        return goal
+
+    async def update_goal(self, db: AsyncSession, tenant_id: str, goal_id: str, data) -> object | None:
+        from app.modules.portfolio.models import PortfolioGoal
+        result = await db.execute(
+            select(PortfolioGoal).where(
+                PortfolioGoal.id == goal_id,
+                PortfolioGoal.tenant_id == tenant_id,
+            )
+        )
+        goal = result.scalar_one_or_none()
+        if goal is None:
+            return None
+        if data.name is not None:
+            goal.name = data.name
+        if data.target_amount is not None:
+            goal.target_amount = data.target_amount
+        if data.current_amount is not None:
+            goal.current_amount = data.current_amount
+        if data.asset_class is not None:
+            goal.asset_class = data.asset_class
+        if data.deadline is not None:
+            goal.deadline = data.deadline
+        if data.notes is not None:
+            goal.notes = data.notes
+        await db.flush()
+        return goal
+
+    async def delete_goal(self, db: AsyncSession, tenant_id: str, goal_id: str) -> bool:
+        from app.modules.portfolio.models import PortfolioGoal
+        from sqlalchemy import delete
+        result = await db.execute(
+            delete(PortfolioGoal).where(
+                PortfolioGoal.id == goal_id,
+                PortfolioGoal.tenant_id == tenant_id,
+            )
+        )
+        await db.flush()
+        return result.rowcount > 0
         return rows
