@@ -26,6 +26,7 @@ function invalidatePortfolioQueries(qc: ReturnType<typeof useQueryClient>) {
   // explicit keys for hooks that don't nest under "portfolio"
   qc.invalidateQueries({ queryKey: ["dividend-income"] });
   qc.invalidateQueries({ queryKey: ["dividend-calendar"] });
+  qc.invalidateQueries({ queryKey: ["portfolio", "goals"] });
 }
 
 export function useCreateTransaction() {

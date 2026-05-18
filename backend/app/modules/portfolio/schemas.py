@@ -216,21 +216,21 @@ class RebalancingPlan(BaseModel):
 # ─── Phase 42: Investment Goals ───────────────────────────────────────────────
 
 class GoalCreate(BaseModel):
-    name: str
-    target_amount: Decimal
-    current_amount: Decimal = Decimal("0")
-    asset_class: str | None = None
+    name: str = Field(..., min_length=1, max_length=200)
+    target_amount: Decimal = Field(..., gt=Decimal("0"))
+    current_amount: Decimal = Field(Decimal("0"), ge=Decimal("0"))
+    asset_class: AssetClass | None = None
     deadline: date | None = None
-    notes: str | None = None
+    notes: str | None = Field(None, max_length=2000)
 
 
 class GoalUpdate(BaseModel):
-    name: str | None = None
-    target_amount: Decimal | None = None
-    current_amount: Decimal | None = None
-    asset_class: str | None = None
+    name: str | None = Field(None, min_length=1, max_length=200)
+    target_amount: Decimal | None = Field(None, gt=Decimal("0"))
+    current_amount: Decimal | None = Field(None, ge=Decimal("0"))
+    asset_class: AssetClass | None = None
     deadline: date | None = None
-    notes: str | None = None
+    notes: str | None = Field(None, max_length=2000)
 
 
 class GoalResponse(BaseModel):
@@ -246,6 +246,10 @@ class GoalResponse(BaseModel):
     notes: str | None
     created_at: datetime
     updated_at: datetime | None
-    progress_pct: Decimal       # computed: current / target * 100
-    remaining_amount: Decimal   # computed: target - current
-    months_to_deadline: int | None  # computed: calendar months from today to deadline
+    # computed fields
+    progress_pct: Decimal
+    remaining_amount: Decimal
+    months_to_deadline: int | None
+    monthly_contribution_needed: Decimal | None
+    status: str  # nao_iniciado | em_andamento | em_risco | concluido
+    auto_current_amount: Decimal | None  # portfolio value for goal's asset_class

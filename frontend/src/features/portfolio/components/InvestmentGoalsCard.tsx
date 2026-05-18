@@ -1,59 +1,12 @@
 "use client";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Target, Plus, PencilSimple, Trash, Check, X, CalendarBlank } from "@phosphor-icons/react";
-import { apiClient } from "@/lib/api-client";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Target, Plus, PencilSimple, Trash, Check, X, CalendarBlank, TrendUp } from "@phosphor-icons/react";
 import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 import { formatBRL } from "@/lib/formatters";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface GoalResponse {
-  id: string;
-  name: string;
-  target_amount: string;
-  current_amount: string;
-  asset_class: string | null;
-  deadline: string | null;
-  notes: string | null;
-  progress_pct: string;
-  remaining_amount: string;
-  months_to_deadline: number | null;
-}
-
-interface GoalCreate {
-  name: string;
-  target_amount: string;
-  current_amount: string;
-  asset_class: string | null;
-  deadline: string | null;
-  notes: string | null;
-}
-
-// ─── API helpers ──────────────────────────────────────────────────────────────
-
-async function fetchGoals(): Promise<GoalResponse[]> {
-  return apiClient<GoalResponse[]>("/portfolio/goals");
-}
-
-async function createGoal(data: GoalCreate): Promise<GoalResponse> {
-  return apiClient<GoalResponse>("/portfolio/goals", {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-}
-
-async function updateGoal(id: string, data: Partial<GoalCreate>): Promise<GoalResponse> {
-  return apiClient<GoalResponse>(`/portfolio/goals/${id}`, {
-    method: "PATCH",
-    body: JSON.stringify(data),
-  });
-}
-
-async function deleteGoal(id: string): Promise<void> {
-  await apiClient<void>(`/portfolio/goals/${id}`, { method: "DELETE" });
-}
+import { getGoals, createGoal, updateGoal, deleteGoal } from "@/features/portfolio/api";
+import type { GoalResponse, GoalCreate, GoalUpdate, GoalStatus } from "@/features/portfolio/types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -73,6 +26,20 @@ function progressColor(pct: number): string {
   if (pct >= 40) return "bg-amber-400";
   return "bg-zinc-400";
 }
+
+const STATUS_LABELS: Record<GoalStatus, string> = {
+  nao_iniciado: "Não iniciada",
+  em_andamento: "Em andamento",
+  em_risco: "Em risco",
+  concluido: "Concluída",
+};
+
+const STATUS_CLASSES: Record<GoalStatus, string> = {
+  nao_iniciado: "bg-zinc-100 text-zinc-500 border-zinc-200",
+  em_andamento: "bg-blue-50 text-blue-600 border-blue-100",
+  em_risco: "bg-red-50 text-red-600 border-red-200",
+  concluido: "bg-emerald-50 text-emerald-600 border-emerald-200",
+};
 
 const BLANK_FORM: GoalCreate = {
   name: "",
@@ -112,6 +79,7 @@ function GoalForm({
           value={form.name}
           onChange={(e) => set("name", e.target.value)}
           placeholder="Ex: Reserva de emergência"
+          maxLength={200}
           className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
       </div>
@@ -120,7 +88,7 @@ function GoalForm({
           <label className="block text-xs font-semibold text-zinc-500 mb-1">Valor alvo (R$) *</label>
           <input
             type="number"
-            min="0"
+            min="0.01"
             step="0.01"
             value={form.target_amount}
             onChange={(e) => set("target_amount", e.target.value)}
@@ -156,6 +124,7 @@ function GoalForm({
             value={form.notes ?? ""}
             onChange={(e) => set("notes", e.target.value || null)}
             placeholder="Opcional"
+            maxLength={2000}
             className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
         </div>
@@ -195,7 +164,7 @@ function GoalRow({
 }) {
   const pct = Math.min(100, parseFloat(goal.progress_pct));
   const barColor = progressColor(pct);
-  const isComplete = pct >= 100;
+  const isComplete = goal.status === "concluido";
 
   return (
     <motion.div
@@ -209,7 +178,12 @@ function GoalRow({
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-zinc-900 text-sm truncate">{goal.name}</p>
-          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            {/* Status badge */}
+            <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${STATUS_CLASSES[goal.status]}`}>
+              {STATUS_LABELS[goal.status]}
+            </span>
+            {/* Deadline */}
             {goal.deadline && (
               <span className="flex items-center gap-1 text-[11px] text-zinc-400">
                 <CalendarBlank size={12} />
@@ -217,11 +191,6 @@ function GoalRow({
                 {goal.months_to_deadline !== null && goal.months_to_deadline > 0 && (
                   <span className="ml-1 rounded-full bg-zinc-100 px-1.5 py-0.5 text-zinc-500 font-medium">
                     {goal.months_to_deadline}m
-                  </span>
-                )}
-                {goal.months_to_deadline === 0 && (
-                  <span className="ml-1 rounded-full bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-amber-700 font-medium text-[10px]">
-                    Vencendo
                   </span>
                 )}
               </span>
@@ -264,13 +233,24 @@ function GoalRow({
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] as const }}
           />
         </div>
-        {!isComplete && (
+        {isComplete && (
+          <p className="mt-1 text-[11px] text-emerald-600 font-semibold">Meta atingida!</p>
+        )}
+        {!isComplete && goal.status === "em_risco" && (
+          <p className="mt-1 text-[11px] text-red-500 font-medium">
+            Prazo vencido — faltam {formatBRL(goal.remaining_amount)}
+          </p>
+        )}
+        {!isComplete && goal.status !== "em_risco" && goal.monthly_contribution_needed && (
+          <p className="mt-1 flex items-center gap-1 text-[11px] text-zinc-500 tabular-nums">
+            <TrendUp size={11} className="text-blue-400 shrink-0" />
+            Aporte sugerido: <span className="font-semibold text-zinc-700">{formatBRL(goal.monthly_contribution_needed)}/mês</span>
+          </p>
+        )}
+        {!isComplete && !goal.monthly_contribution_needed && (
           <p className="mt-1 text-[11px] text-zinc-400 tabular-nums">
             Faltam {formatBRL(goal.remaining_amount)}
           </p>
-        )}
-        {isComplete && (
-          <p className="mt-1 text-[11px] text-emerald-600 font-semibold">Meta atingida!</p>
         )}
       </div>
     </motion.div>
@@ -287,7 +267,7 @@ export function InvestmentGoalsCard() {
 
   const { data: goals, isLoading } = useQuery({
     queryKey: ["portfolio", "goals"],
-    queryFn: fetchGoals,
+    queryFn: getGoals,
     staleTime: 60_000,
   });
 
@@ -300,7 +280,7 @@ export function InvestmentGoalsCard() {
   });
 
   const updateMut = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<GoalCreate> }) =>
+    mutationFn: ({ id, data }: { id: string; data: GoalUpdate }) =>
       updateGoal(id, data),
     onSuccess: () => { setEditingId(null); setMutError(""); invalidate(); },
     onError: (e: Error) => setMutError(e.message),
@@ -370,7 +350,7 @@ export function InvestmentGoalsCard() {
         <div className="py-8 text-center">
           <Target size={32} className="mx-auto text-zinc-200 mb-2" />
           <p className="text-sm text-zinc-400">Nenhuma meta cadastrada.</p>
-          <p className="text-xs text-zinc-300 mt-0.5">Clique em "Nova meta" para começar.</p>
+          <p className="text-xs text-zinc-300 mt-0.5">Clique em &quot;Nova meta&quot; para começar.</p>
         </div>
       )}
 

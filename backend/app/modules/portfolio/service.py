@@ -926,18 +926,8 @@ class PortfolioService:
         goal = result.scalar_one_or_none()
         if goal is None:
             return None
-        if data.name is not None:
-            goal.name = data.name
-        if data.target_amount is not None:
-            goal.target_amount = data.target_amount
-        if data.current_amount is not None:
-            goal.current_amount = data.current_amount
-        if data.asset_class is not None:
-            goal.asset_class = data.asset_class
-        if data.deadline is not None:
-            goal.deadline = data.deadline
-        if data.notes is not None:
-            goal.notes = data.notes
+        for field, value in data.model_dump(exclude_unset=True).items():
+            setattr(goal, field, value)
         await db.flush()
         return goal
 

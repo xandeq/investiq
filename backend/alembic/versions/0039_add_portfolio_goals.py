@@ -19,7 +19,11 @@ def upgrade() -> None:
         sa.Column("id", sa.String(36), primary_key=True),
         sa.Column("tenant_id", sa.String(36), nullable=False, index=True),
         sa.Column("name", sa.String(200), nullable=False),
-        sa.Column("target_amount", sa.Numeric(20, 2), nullable=False),
+        sa.Column(
+            "target_amount",
+            sa.Numeric(20, 2),
+            nullable=False,
+        ),
         sa.Column("current_amount", sa.Numeric(20, 2), nullable=False, server_default="0"),
         sa.Column("asset_class", sa.String(50), nullable=True),
         sa.Column("deadline", sa.Date, nullable=True),
@@ -31,8 +35,16 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=True),
+        sa.CheckConstraint("target_amount > 0", name="ck_portfolio_goals_target_positive"),
+    )
+    # Multi-tenant row-level security: superuser queries bypass by design.
+    op.execute("ALTER TABLE portfolio_goals ENABLE ROW LEVEL SECURITY")
+    op.execute(
+        "CREATE POLICY tenant_isolation ON portfolio_goals "
+        "USING (tenant_id = current_setting('rls.tenant_id', true)::text)"
     )
 
 
 def downgrade() -> None:
+    op.execute("DROP POLICY IF EXISTS tenant_isolation ON portfolio_goals")
     op.drop_table("portfolio_goals")

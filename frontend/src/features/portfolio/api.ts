@@ -7,6 +7,9 @@ import type {
   TransactionResponse,
   TransactionCreate,
   TransactionUpdate,
+  GoalResponse,
+  GoalCreate,
+  GoalUpdate,
 } from "@/features/portfolio/types";
 
 export async function getPositions(): Promise<PositionResponse[]> {
@@ -71,4 +74,28 @@ export async function bulkDeleteTransactions(ids: string[]): Promise<{ deleted: 
     method: "DELETE",
     body: JSON.stringify({ ids }),
   });
+}
+
+// ─── Phase 42: Investment Goals ───────────────────────────────────────────────
+
+export async function getGoals(): Promise<GoalResponse[]> {
+  return apiClient<GoalResponse[]>("/portfolio/goals");
+}
+
+export async function createGoal(data: GoalCreate): Promise<GoalResponse> {
+  return apiClient<GoalResponse>("/portfolio/goals", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateGoal(id: string, data: GoalUpdate): Promise<GoalResponse> {
+  return apiClient<GoalResponse>(`/portfolio/goals/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteGoal(id: string): Promise<void> {
+  return apiClient<void>(`/portfolio/goals/${id}`, { method: "DELETE" });
 }

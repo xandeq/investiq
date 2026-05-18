@@ -18,6 +18,7 @@ configured (e.g., test environments with fakeredis).
 
 import csv
 import io
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import Response, StreamingResponse
@@ -379,7 +380,7 @@ async def export_portfolio(
 
 # ─── Phase 42: Investment Goals ───────────────────────────────────────────────
 
-def _goal_to_response(goal) -> GoalResponse:
+def _goal_to_response(goal, auto_current_amount: Decimal | None = None) -> GoalResponse:
     """Build GoalResponse with computed fields from a PortfolioGoal ORM instance."""
     from datetime import date
     from decimal import Decimal
@@ -391,15 +392,28 @@ def _goal_to_response(goal) -> GoalResponse:
         if target > Decimal("0")
         else Decimal("0")
     )
-    remaining = (target - current).quantize(Decimal("0.01"))
+    remaining = max(Decimal("0"), target - current).quantize(Decimal("0.01"))
 
     months_to_deadline: int | None = None
     if goal.deadline:
         today = date.today()
-        delta_months = (
-            (goal.deadline.year - today.year) * 12 + (goal.deadline.month - today.month)
-        )
+        delta_months = (goal.deadline.year - today.year) * 12 + (goal.deadline.month - today.month)
         months_to_deadline = max(0, delta_months)
+
+    # Status
+    if current >= target:
+        goal_status = "concluido"
+    elif months_to_deadline is not None and months_to_deadline == 0 and remaining > Decimal("0"):
+        goal_status = "em_risco"
+    elif current > Decimal("0"):
+        goal_status = "em_andamento"
+    else:
+        goal_status = "nao_iniciado"
+
+    # Monthly contribution: only meaningful when deadline is in the future
+    monthly_contribution_needed: Decimal | None = None
+    if months_to_deadline is not None and months_to_deadline > 0 and remaining > Decimal("0"):
+        monthly_contribution_needed = (remaining / months_to_deadline).quantize(Decimal("0.01"))
 
     return GoalResponse(
         id=goal.id,
@@ -415,6 +429,9 @@ def _goal_to_response(goal) -> GoalResponse:
         progress_pct=progress_pct,
         remaining_amount=remaining,
         months_to_deadline=months_to_deadline,
+        monthly_contribution_needed=monthly_contribution_needed,
+        status=goal_status,
+        auto_current_amount=auto_current_amount,
     )
 
 

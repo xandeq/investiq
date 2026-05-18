@@ -86,3 +86,44 @@ export interface TransactionUpdate {
   notes?: string | null;
   is_exempt?: boolean;
 }
+
+// ─── Phase 42: Investment Goals ───────────────────────────────────────────────
+
+export type GoalStatus = "nao_iniciado" | "em_andamento" | "em_risco" | "concluido";
+
+export interface GoalResponse {
+  id: string;
+  tenant_id: string;
+  name: string;
+  target_amount: string;
+  current_amount: string;
+  asset_class: string | null;
+  deadline: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string | null;
+  progress_pct: string;
+  remaining_amount: string;
+  months_to_deadline: number | null;
+  monthly_contribution_needed: string | null;
+  status: GoalStatus;
+  auto_current_amount: string | null;
+}
+
+export interface GoalCreate {
+  name: string;
+  target_amount: string;
+  current_amount?: string;
+  asset_class?: string | null;
+  deadline?: string | null;
+  notes?: string | null;
+}
+
+export interface GoalUpdate {
+  name?: string;
+  target_amount?: string;
+  current_amount?: string;
+  asset_class?: string | null;
+  deadline?: string | null;
+  notes?: string | null;
+}
