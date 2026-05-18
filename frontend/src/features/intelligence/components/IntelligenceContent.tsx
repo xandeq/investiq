@@ -1,9 +1,10 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
+import { RedditLogo, Newspaper } from "@phosphor-icons/react";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 import { apiClient } from "@/lib/api-client";
-
-// ── Types ───────────────────────────────────────────────────────────────────
 
 interface TickerHeat {
   ticker: string;
@@ -42,8 +43,6 @@ interface NewsFeed {
   items: NewsItem[];
 }
 
-// ── Hooks ───────────────────────────────────────────────────────────────────
-
 function useMarketHeat() {
   return useQuery<MarketHeat>({
     queryKey: ["market-heat"],
@@ -62,10 +61,8 @@ function useNewsFeed() {
   });
 }
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
-
 function scoreToColor(score: number, mentions: number): string {
-  if (mentions === 0) return "bg-gray-100 text-gray-500";
+  if (mentions === 0) return "bg-zinc-100 text-zinc-400";
   if (score > 0.1) return "bg-emerald-100 text-emerald-800 border-emerald-200";
   if (score < -0.1) return "bg-red-100 text-red-800 border-red-200";
   return "bg-amber-50 text-amber-800 border-amber-200";
@@ -94,12 +91,10 @@ function relativeTime(iso: string | null): string {
   return `${Math.floor(h / 24)}d atrás`;
 }
 
-// ── Sub-components ──────────────────────────────────────────────────────────
-
 function SentimentHeatMap({ data }: { data: MarketHeat }) {
   if (data.ticker_count === 0) {
     return (
-      <div className="text-center py-12 text-gray-500 text-sm">
+      <div className="text-center py-12 text-zinc-400 text-sm">
         <p className="font-medium mb-1">Nenhum dado de sentimento disponível ainda.</p>
         <p>A coleta roda a cada 30min durante o pregão. Volte mais tarde.</p>
       </div>
@@ -108,11 +103,14 @@ function SentimentHeatMap({ data }: { data: MarketHeat }) {
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-      {data.tickers.map((t) => {
+      {data.tickers.map((t, i) => {
         const colorClass = scoreToColor(t.score, t.mention_count);
         return (
-          <div
+          <motion.div
             key={t.ticker}
+            initial={{ opacity: 0, scale: 0.94 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2, delay: i * 0.02 }}
             className={`rounded-xl border p-3 flex flex-col gap-1 ${colorClass}`}
             title={`${scoreLabel(t.score)} — ${t.mention_count} menções`}
           >
@@ -122,7 +120,7 @@ function SentimentHeatMap({ data }: { data: MarketHeat }) {
             {t.last_updated && (
               <span className="text-xs opacity-50">{relativeTime(t.last_updated)}</span>
             )}
-          </div>
+          </motion.div>
         );
       })}
     </div>
@@ -132,7 +130,7 @@ function SentimentHeatMap({ data }: { data: MarketHeat }) {
 function RedditRanking({ items }: { items: RedditTop[] }) {
   if (items.length === 0) {
     return (
-      <p className="text-sm text-gray-500 py-4">
+      <p className="text-sm text-zinc-400 py-4">
         Nenhuma menção coletada ainda — coleta inicia durante o pregão.
       </p>
     );
@@ -143,17 +141,23 @@ function RedditRanking({ items }: { items: RedditTop[] }) {
   return (
     <div className="space-y-2">
       {items.map((item, idx) => (
-        <div key={item.ticker} className="flex items-center gap-3">
-          <span className="text-xs w-5 text-gray-400 text-right">{idx + 1}</span>
+        <motion.div
+          key={item.ticker}
+          initial={{ opacity: 0, x: -6 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.2, delay: idx * 0.04 }}
+          className="flex items-center gap-3"
+        >
+          <span className="text-xs w-5 text-zinc-400 text-right">{idx + 1}</span>
           <span className="font-mono font-semibold text-sm w-16">{item.ticker}</span>
-          <div className="flex-1 bg-gray-100 rounded-full h-2">
+          <div className="flex-1 bg-zinc-100 rounded-full h-2">
             <div
               className="bg-orange-400 h-2 rounded-full transition-all"
               style={{ width: `${(item.mentions / max) * 100}%` }}
             />
           </div>
-          <span className="text-xs text-gray-500 w-14 text-right">{item.mentions} posts</span>
-        </div>
+          <span className="text-xs text-zinc-400 w-14 text-right">{item.mentions} posts</span>
+        </motion.div>
       ))}
     </div>
   );
@@ -162,7 +166,7 @@ function RedditRanking({ items }: { items: RedditTop[] }) {
 function NewsFeedList({ items }: { items: NewsItem[] }) {
   if (items.length === 0) {
     return (
-      <p className="text-sm text-gray-500 py-4">
+      <p className="text-sm text-zinc-400 py-4">
         Nenhuma notícia nas últimas 24h. A coleta roda a cada 2h.
       </p>
     );
@@ -173,15 +177,15 @@ function NewsFeedList({ items }: { items: NewsItem[] }) {
       {items.slice(0, 20).map((item, idx) => {
         const sentColor =
           item.sentiment === null
-            ? "text-gray-400"
+            ? "text-zinc-400"
             : item.sentiment > 0
             ? "text-emerald-600"
             : item.sentiment < 0
             ? "text-red-500"
-            : "text-gray-400";
+            : "text-zinc-400";
 
         return (
-          <div key={idx} className="border-b pb-3 last:border-0">
+          <div key={idx} className="border-b border-zinc-50 pb-3 last:border-0">
             <div className="flex items-start gap-2">
               <div className="flex-1 min-w-0">
                 {item.url ? (
@@ -189,29 +193,24 @@ function NewsFeedList({ items }: { items: NewsItem[] }) {
                     href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm font-medium text-gray-900 hover:text-blue-600 leading-snug"
+                    className="text-sm font-medium text-zinc-900 hover:text-blue-600 leading-snug"
                   >
                     {item.headline}
                   </a>
                 ) : (
-                  <span className="text-sm font-medium text-gray-900 leading-snug">
+                  <span className="text-sm font-medium text-zinc-900 leading-snug">
                     {item.headline}
                   </span>
                 )}
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <span className="text-xs text-gray-400">{item.source}</span>
+                  <span className="text-xs text-zinc-400">{item.source}</span>
                   {item.published_at && (
-                    <span className="text-xs text-gray-400">
-                      {relativeTime(item.published_at)}
-                    </span>
+                    <span className="text-xs text-zinc-400">{relativeTime(item.published_at)}</span>
                   )}
                   {item.tickers.length > 0 && (
                     <div className="flex gap-1 flex-wrap">
                       {item.tickers.slice(0, 4).map((t) => (
-                        <span
-                          key={t}
-                          className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-mono"
-                        >
+                        <span key={t} className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-mono">
                           {t}
                         </span>
                       ))}
@@ -233,7 +232,15 @@ function NewsFeedList({ items }: { items: NewsItem[] }) {
   );
 }
 
-// ── Main ─────────────────────────────────────────────────────────────────────
+function HeatMapSkeleton() {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+      {Array.from({ length: 15 }).map((_, i) => (
+        <ShimmerSkeleton key={i} className="h-20 rounded-xl" />
+      ))}
+    </div>
+  );
+}
 
 export function IntelligenceContent() {
   const { data: heat, isLoading: heatLoading, error: heatError } = useMarketHeat();
@@ -241,26 +248,23 @@ export function IntelligenceContent() {
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
-      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Inteligência de Mercado</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1 className="text-2xl font-bold text-zinc-900">Inteligência de Mercado</h1>
+        <p className="text-sm text-zinc-400 mt-1">
           Sentimento social, menções no Reddit e notícias com impacto — atualizado automaticamente.
         </p>
       </div>
 
-      {/* Heat Map */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-gray-800">Mapa de Sentimento — B3</h2>
+          <h2 className="text-lg font-semibold text-zinc-800">Mapa de Sentimento — B3</h2>
           {heat && (
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-zinc-400">
               {heat.ticker_count} ticker{heat.ticker_count !== 1 ? "s" : ""} · últimas {heat.hours}h
             </span>
           )}
         </div>
 
-        {/* Legend */}
         <div className="flex gap-3 mb-3 text-xs flex-wrap">
           <span className="flex items-center gap-1">
             <span className="w-3 h-3 rounded-sm bg-emerald-100 border border-emerald-200 inline-block" />
@@ -275,14 +279,14 @@ export function IntelligenceContent() {
             Negativo
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded-sm bg-gray-100 border inline-block" />
+            <span className="w-3 h-3 rounded-sm bg-zinc-100 border border-zinc-200 inline-block" />
             Sem dados
           </span>
         </div>
 
-        <div className="bg-white rounded-2xl border p-4">
+        <div className="bg-white rounded-2xl border border-zinc-200 p-4">
           {heatLoading ? (
-            <div className="text-sm text-gray-400 py-8 text-center">Carregando...</div>
+            <HeatMapSkeleton />
           ) : heatError ? (
             <div className="text-sm text-red-500 py-4">Erro ao carregar sentimento.</div>
           ) : heat ? (
@@ -291,30 +295,33 @@ export function IntelligenceContent() {
         </div>
       </section>
 
-      {/* Two columns: Reddit + News */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Reddit Top 10 */}
         <section>
-          <h2 className="text-lg font-semibold text-gray-800 mb-3">
-            🔴 Top Mencionados — Reddit
-          </h2>
-          <div className="bg-white rounded-2xl border p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <RedditLogo size={18} className="text-orange-500" weight="fill" />
+            <h2 className="text-lg font-semibold text-zinc-800">Top Mencionados — Reddit</h2>
+          </div>
+          <div className="bg-white rounded-2xl border border-zinc-200 p-4">
             {heatLoading ? (
-              <div className="text-sm text-gray-400 py-4">Carregando...</div>
+              <div className="space-y-3">
+                {[0,1,2,3,4].map(i => <ShimmerSkeleton key={i} className="h-5 w-full rounded" />)}
+              </div>
             ) : heat ? (
               <RedditRanking items={heat.reddit_top10} />
             ) : null}
           </div>
         </section>
 
-        {/* News Feed */}
         <section>
-          <h2 className="text-lg font-semibold text-gray-800 mb-3">
-            📰 Notícias — Últimas 24h
-          </h2>
-          <div className="bg-white rounded-2xl border p-4 max-h-96 overflow-y-auto">
+          <div className="flex items-center gap-2 mb-3">
+            <Newspaper size={18} className="text-zinc-500" weight="fill" />
+            <h2 className="text-lg font-semibold text-zinc-800">Notícias — Últimas 24h</h2>
+          </div>
+          <div className="bg-white rounded-2xl border border-zinc-200 p-4 max-h-96 overflow-y-auto">
             {newsLoading ? (
-              <div className="text-sm text-gray-400 py-4">Carregando...</div>
+              <div className="space-y-3">
+                {[0,1,2,3].map(i => <ShimmerSkeleton key={i} className="h-12 w-full rounded" />)}
+              </div>
             ) : news ? (
               <NewsFeedList items={news.items} />
             ) : null}
