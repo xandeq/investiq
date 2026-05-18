@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Confetti } from "@phosphor-icons/react";
 import { useSubscription } from "@/features/billing/hooks/useSubscription";
 
 export default function SuccessPage() {
@@ -23,7 +24,9 @@ export default function SuccessPage() {
     return (
       <main className="min-h-screen bg-background flex items-center justify-center px-4">
         <div className="text-center space-y-6 max-w-md">
-          <div className="text-5xl">🎉</div>
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-50">
+            <Confetti className="h-8 w-8 text-blue-500" weight="fill" />
+          </div>
           <h1 className="text-2xl font-bold text-foreground">
             Bem-vindo ao Premium!
           </h1>

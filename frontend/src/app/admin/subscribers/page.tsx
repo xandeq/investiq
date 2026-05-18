@@ -15,14 +15,14 @@ export default function AdminSubscribersPage() {
       <div className="container mx-auto px-4 py-8 max-w-5xl">
         <div className="mb-6">
           <h1 className="text-2xl font-bold">Assinantes</h1>
-          <p className="text-gray-400 text-sm mt-1">Lista de usuários com plano pago e status Stripe</p>
+          <p className="text-zinc-400 text-sm mt-1">Lista de usuários com plano pago e status Stripe</p>
         </div>
         <nav className="flex gap-1 mb-8 bg-white/5 rounded-lg p-1 w-fit">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="px-4 py-2 rounded-md text-sm font-medium transition-colors hover:bg-white/20 text-gray-300"
+              className="px-4 py-2 rounded-md text-sm font-medium transition-colors hover:bg-white/20 text-zinc-300"
             >
               {link.label}
             </Link>
