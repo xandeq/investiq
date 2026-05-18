@@ -13,7 +13,7 @@ const ASSET_CLASS_LABELS: Record<string, string> = {
 };
 
 export function DividendHistory() {
-  const { data: dividends, isLoading } = useDividends();
+  const { data: dividends, isLoading, isError, refetch } = useDividends();
   const [yearFilter, setYearFilter] = useState<string>("all");
   const [classFilter, setClassFilter] = useState<string>("all");
 
@@ -45,6 +45,20 @@ export function DividendHistory() {
   );
 
   if (isLoading) return <Skeleton className="h-48 w-full rounded-xl" />;
+
+  if (isError) {
+    return (
+      <div className="rounded-xl border bg-card p-6 flex items-center justify-between gap-2">
+        <p className="text-sm text-zinc-400">Erro ao carregar histórico de dividendos.</p>
+        <button
+          onClick={() => refetch()}
+          className="text-xs text-zinc-500 hover:text-blue-600 transition-colors underline underline-offset-2"
+        >
+          Tentar novamente
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-xl border bg-card p-6">

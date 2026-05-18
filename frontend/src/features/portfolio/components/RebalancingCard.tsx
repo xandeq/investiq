@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Crosshair, PencilSimple, Check, X, Warning } from "@phosphor-icons/react";
+import { Crosshair, PencilSimple, Check, X, Warning, ArrowClockwise } from "@phosphor-icons/react";
 import { apiClient } from "@/lib/api-client";
 import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 
@@ -52,8 +52,9 @@ export function RebalancingCard() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Record<string, string>>({});
+  const [saveError, setSaveError] = useState("");
 
-  const { data: plan, isLoading } = useQuery({
+  const { data: plan, isLoading, isError, refetch } = useQuery({
     queryKey: ["portfolio", "rebalancing-plan"],
     queryFn: () => apiClient<RebalancingPlan>("/portfolio/rebalancing-plan"),
     staleTime: 5 * 60 * 1000,
@@ -72,7 +73,9 @@ export function RebalancingCard() {
       qc.invalidateQueries({ queryKey: ["portfolio", "rebalancing-plan"] });
       qc.invalidateQueries({ queryKey: ["portfolio", "targets"] });
       setEditing(false);
+      setSaveError("");
     },
+    onError: (e: Error) => setSaveError(e.message),
   });
 
   const startEdit = () => {
@@ -89,6 +92,7 @@ export function RebalancingCard() {
     }
     setDraft(initial);
     setEditing(true);
+    setSaveError("");
   };
 
   const saveEdit = () => {
@@ -101,6 +105,25 @@ export function RebalancingCard() {
   const sumTargets = Object.values(draft).reduce((s, v) => s + (parseFloat(v) || 0), 0);
 
   if (isLoading) return <ShimmerSkeleton className="h-40 rounded-xl" />;
+
+  if (isError) {
+    return (
+      <div className="rounded-xl border border-zinc-200 bg-white p-4 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Warning className="h-4 w-4 text-amber-500 shrink-0" />
+          <p className="text-sm text-zinc-500">Erro ao carregar plano de rebalanceamento.</p>
+        </div>
+        <button
+          onClick={() => refetch()}
+          className="flex items-center gap-1 text-xs text-zinc-500 hover:text-blue-600 border border-zinc-200 rounded-md px-2 py-1 hover:border-blue-300 transition-colors"
+        >
+          <ArrowClockwise className="h-3 w-3" />
+          Tentar novamente
+        </button>
+      </div>
+    );
+  }
+
   if (!plan) return null;
 
   return (
@@ -137,6 +160,13 @@ export function RebalancingCard() {
           </div>
         )}
       </div>
+
+      {saveError && (
+        <p className="flex items-center gap-1.5 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+          <Warning className="h-3.5 w-3.5 shrink-0" />
+          {saveError}
+        </p>
+      )}
 
       {!plan.has_targets && !editing && (
         <p className="text-sm text-zinc-400">

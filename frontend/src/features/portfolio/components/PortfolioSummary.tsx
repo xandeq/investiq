@@ -37,7 +37,21 @@ function pnlColor(val: string | null): string {
 }
 
 export function PortfolioSummary() {
-  const { data: pnl, isLoading } = usePnl();
+  const { data: pnl, isLoading, isError, refetch } = usePnl();
+
+  if (isError) {
+    return (
+      <div className="flex items-center justify-between gap-2 rounded-xl border border-zinc-100 bg-white px-5 py-3">
+        <p className="text-sm text-zinc-400">Erro ao carregar resumo do portfólio.</p>
+        <button
+          onClick={() => refetch()}
+          className="text-xs text-zinc-500 hover:text-blue-600 transition-colors underline underline-offset-2"
+        >
+          Tentar novamente
+        </button>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
