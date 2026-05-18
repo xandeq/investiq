@@ -420,3 +420,32 @@ async def test_rls_isolation(db_session, test_engine, fake_redis_async):
             await session_b.rollback()
 
     fastapi_app.dependency_overrides.clear()
+
+
+# ---------------------------------------------------------------------------
+# Regression: M-1 — dividend-income months bound parameter (not interpolated)
+# ---------------------------------------------------------------------------
+
+def test_dividend_income_months_is_bound_parameter():
+    """Verify get_dividend_income passes months as a SQL bound parameter.
+
+    Regression guard: the original code used .replace(':months', str(months))
+    which was SQL string interpolation. The fix uses a proper :months param.
+    This test inspects the SQL text constructed by the service to ensure
+    the literal integer is NOT baked into the SQL string.
+    """
+    import re
+    import inspect
+    from app.modules.portfolio.service import PortfolioService
+
+    source = inspect.getsource(PortfolioService.get_dividend_income)
+    # The fixed code should have ':months' as a named param in the query
+    assert ":months" in source, "get_dividend_income must use :months as a bound parameter"
+    # The old interpolation pattern must not exist
+    assert ".replace(" not in source, (
+        "get_dividend_income must not use .replace() to interpolate months into SQL"
+    )
+    # The params dict passed to execute must include months
+    assert '"months": months' in source or "'months': months" in source or "months: months" in source, (
+        "execute() must receive months in its params dict"
+    )

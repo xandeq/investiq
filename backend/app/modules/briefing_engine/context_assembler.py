@@ -70,7 +70,11 @@ async def get_context_for_ticker(
 
 
 def _fetch_sentiment_sync(ticker: str, hours: int) -> dict[str, Any]:
-    """Sync helper: query sentiment_snapshots via psycopg2."""
+    """Sync helper: query sentiment_snapshots via psycopg2.
+
+    sentiment_snapshots is global market data (no tenant_id). RLS does not
+    apply here — this is intentional shared market intelligence.
+    """
     import psycopg2
 
     result: dict[str, Any] = {"score": None, "reddit_mentions": 0, "sources": []}

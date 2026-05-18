@@ -314,7 +314,10 @@ class ImportService:
 
         # Delete staging rows for this job
         await db.execute(
-            delete(ImportStaging).where(ImportStaging.job_id == job_id)
+            delete(ImportStaging).where(
+                ImportStaging.job_id == job_id,
+                ImportStaging.tenant_id == tenant_id,
+            )
         )
 
         # Update job status
@@ -353,7 +356,10 @@ class ImportService:
 
         # Delete staging rows
         await db.execute(
-            delete(ImportStaging).where(ImportStaging.job_id == job_id)
+            delete(ImportStaging).where(
+                ImportStaging.job_id == job_id,
+                ImportStaging.tenant_id == tenant_id,
+            )
         )
 
         job.status = "cancelled"

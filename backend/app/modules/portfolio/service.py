@@ -482,12 +482,12 @@ class PortfolioService:
             WHERE tenant_id = :tid
               AND transaction_type IN ('dividend', 'jscp', 'amortization')
               AND deleted_at IS NULL
-              AND transaction_date >= (CURRENT_DATE - INTERVAL ':months months')
+              AND transaction_date >= (CURRENT_DATE - (INTERVAL '1 month' * :months))
             GROUP BY month, transaction_type
             ORDER BY month ASC
-            """.replace(":months", str(months))
+            """
         )
-        result = await db.execute(sql, {"tid": tenant_id})
+        result = await db.execute(sql, {"tid": tenant_id, "months": months})
         rows = result.fetchall()
 
         if not rows:

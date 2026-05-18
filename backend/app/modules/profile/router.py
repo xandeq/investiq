@@ -125,11 +125,11 @@ async def update_email_prefs(
 
     - email_digest_enabled: opt in/out of the weekly portfolio digest email
     """
-    await db.execute(
-        update(User)
-        .where(User.id == current_user["user_id"])
-        .values(email_digest_enabled=data.email_digest_enabled)
-    )
+    result = await db.execute(select(User).where(User.id == current_user["user_id"]))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+    user.email_digest_enabled = data.email_digest_enabled
     await db.flush()
     return EmailPrefsResponse(email_digest_enabled=data.email_digest_enabled)
 
