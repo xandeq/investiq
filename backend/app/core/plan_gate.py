@@ -90,7 +90,7 @@ async def require_transaction_slot(plan: str, tenant_id: str, db: AsyncSession) 
     count = await db.scalar(
         select(func.count())
         .select_from(Transaction)
-        .where(Transaction.tenant_id == tenant_id)
+        .where(Transaction.tenant_id == tenant_id, Transaction.deleted_at.is_(None))
     )
     if (count or 0) >= FREE_TRANSACTION_LIMIT:
         logger.info(

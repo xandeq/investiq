@@ -41,7 +41,8 @@ function formatDisplayDate(dateStr: string | null | undefined): string {
 
 function isUrgent(dateStr: string | null | undefined): boolean {
   if (!dateStr) return false;
-  const days = (new Date(dateStr).getTime() - Date.now()) / 86400000;
+  // Append noon to avoid UTC-vs-local midnight offset flipping the date by ±1 day
+  const days = (new Date(dateStr + "T12:00:00").getTime() - Date.now()) / 86400000;
   return days >= 0 && days <= 14;
 }
 

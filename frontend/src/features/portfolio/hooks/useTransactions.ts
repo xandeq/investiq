@@ -18,16 +18,19 @@ export function useTransactions(filters?: TransactionFilters) {
   });
 }
 
+function invalidatePortfolioQueries(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: ["transactions"] });
+  qc.invalidateQueries({ queryKey: ["positions"] });
+  qc.invalidateQueries({ queryKey: ["pnl"] });
+  qc.invalidateQueries({ queryKey: ["dashboard"] });
+  qc.invalidateQueries({ queryKey: ["portfolio"] });
+}
+
 export function useCreateTransaction() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: TransactionCreate) => createTransaction(data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["transactions"] });
-      qc.invalidateQueries({ queryKey: ["positions"] });
-      qc.invalidateQueries({ queryKey: ["pnl"] });
-      qc.invalidateQueries({ queryKey: ["dashboard"] });
-    },
+    onSuccess: () => invalidatePortfolioQueries(qc),
   });
 }
 
@@ -36,12 +39,7 @@ export function useUpdateTransaction() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: TransactionUpdate }) =>
       updateTransaction(id, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["transactions"] });
-      qc.invalidateQueries({ queryKey: ["positions"] });
-      qc.invalidateQueries({ queryKey: ["pnl"] });
-      qc.invalidateQueries({ queryKey: ["dashboard"] });
-    },
+    onSuccess: () => invalidatePortfolioQueries(qc),
   });
 }
 
@@ -49,12 +47,7 @@ export function useDeleteTransaction() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteTransaction(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["transactions"] });
-      qc.invalidateQueries({ queryKey: ["positions"] });
-      qc.invalidateQueries({ queryKey: ["pnl"] });
-      qc.invalidateQueries({ queryKey: ["dashboard"] });
-    },
+    onSuccess: () => invalidatePortfolioQueries(qc),
   });
 }
 
@@ -62,11 +55,6 @@ export function useBulkDeleteTransactions() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (ids: string[]) => bulkDeleteTransactions(ids),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["transactions"] });
-      qc.invalidateQueries({ queryKey: ["positions"] });
-      qc.invalidateQueries({ queryKey: ["pnl"] });
-      qc.invalidateQueries({ queryKey: ["dashboard"] });
-    },
+    onSuccess: () => invalidatePortfolioQueries(qc),
   });
 }

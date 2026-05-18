@@ -380,7 +380,7 @@ class PortfolioService:
             )
             .values(deleted_at=datetime.now(tz=timezone.utc))
         )
-        await db.commit()
+        await db.flush()
         return result.rowcount
 
     async def clear_all_transactions(
@@ -402,7 +402,7 @@ class PortfolioService:
             )
             .values(deleted_at=datetime.now(tz=timezone.utc))
         )
-        await db.commit()
+        await db.flush()
         logger.info("clear_all_transactions: deleted %d rows for tenant %s", result.rowcount, tenant_id)
         return result.rowcount
 
@@ -427,7 +427,7 @@ class PortfolioService:
             )
             .values(deleted_at=datetime.now(tz=timezone.utc))
         )
-        await db.commit()
+        await db.flush()
         logger.info(
             "revert_import: deleted %d rows for job %s tenant %s",
             result.rowcount, import_job_id, tenant_id,
@@ -572,7 +572,7 @@ class PortfolioService:
                 asset_class=item.asset_class,
                 target_pct=item.target_pct,
             ))
-        await db.commit()
+        await db.flush()
         return await self.get_targets(db, tenant_id)
 
     async def get_rebalancing_plan(

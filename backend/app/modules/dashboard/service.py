@@ -124,7 +124,11 @@ class DashboardService:
         # Recent transactions (last 10 buy/sell) — separate DB query (lightweight)
         result = await db.execute(
             select(Transaction)
-            .where(Transaction.transaction_type.in_(["buy", "sell"]))
+            .where(
+                Transaction.tenant_id == tenant_id,
+                Transaction.transaction_type.in_(["buy", "sell"]),
+                Transaction.deleted_at.is_(None),
+            )
             .order_by(Transaction.transaction_date.desc())
             .limit(10)
         )
@@ -140,7 +144,7 @@ class DashboardService:
         ]
 
         # Portfolio timeseries: monthly snapshots from earliest buy to today
-        timeseries = await self._build_timeseries(db, positions)
+        timeseries = await self._build_timeseries(db, tenant_id, positions)
 
         return DashboardSummaryResponse(
             net_worth=net_worth,
@@ -158,6 +162,7 @@ class DashboardService:
     async def _build_timeseries(
         self,
         db: AsyncSession,
+        tenant_id: str,
         positions,
     ) -> list[TimeseriesPoint]:
         """Build portfolio value timeseries for the dashboard chart.
@@ -177,9 +182,9 @@ class DashboardService:
         snap_result = await db.execute(
             _text(
                 "SELECT snapshot_date, total_value FROM portfolio_daily_value "
-                "WHERE snapshot_date >= :since ORDER BY snapshot_date ASC"
+                "WHERE tenant_id = :tid AND snapshot_date >= :since ORDER BY snapshot_date ASC"
             ),
-            {"since": since},
+            {"tid": tenant_id, "since": since},
         )
         snaps = snap_result.fetchall()
 
@@ -193,7 +198,11 @@ class DashboardService:
         # Used for new users whose first Celery snapshot hasn't run yet.
         result = await db.execute(
             select(Transaction)
-            .where(Transaction.transaction_type.in_(["buy", "sell"]))
+            .where(
+                Transaction.tenant_id == tenant_id,
+                Transaction.transaction_type.in_(["buy", "sell"]),
+                Transaction.deleted_at.is_(None),
+            )
             .order_by(Transaction.transaction_date)
         )
         all_txs = result.scalars().all()
@@ -325,6 +334,7 @@ class DashboardService:
                        SUM(CASE WHEN transaction_type = 'sell' THEN quantity ELSE 0 END) AS net_qty
                 FROM transactions
                 WHERE tenant_id = :tid AND transaction_type IN ('buy','sell')
+                  AND deleted_at IS NULL
                 GROUP BY asset_class, ticker
                 HAVING SUM(CASE WHEN transaction_type = 'buy' THEN quantity ELSE 0 END) -
                        SUM(CASE WHEN transaction_type = 'sell' THEN quantity ELSE 0 END) > 0
@@ -417,6 +427,7 @@ class DashboardService:
                 FROM transactions
                 WHERE tenant_id = :tid
                   AND transaction_type IN ('buy', 'sell')
+                  AND deleted_at IS NULL
                 GROUP BY ticker, asset_class
             ),
             latest_snap_date AS (
@@ -483,6 +494,7 @@ class DashboardService:
                    SUM(CASE WHEN transaction_type = 'sell' THEN quantity ELSE 0 END) AS shares
             FROM transactions
             WHERE tenant_id = :tid AND transaction_type IN ('buy', 'sell')
+              AND deleted_at IS NULL
             GROUP BY ticker, asset_class
             HAVING SUM(CASE WHEN transaction_type = 'buy' THEN quantity ELSE 0 END) -
                    SUM(CASE WHEN transaction_type = 'sell' THEN quantity ELSE 0 END) > 0
@@ -572,15 +584,14 @@ class DashboardService:
             ),
             holdings AS (
                 SELECT ticker,
-                    SUM(CASE WHEN transaction_type IN ('buy','dividend','jscp','amortization')
-                              THEN quantity ELSE 0 END)
+                    SUM(CASE WHEN transaction_type = 'buy' THEN quantity ELSE 0 END)
                   - SUM(CASE WHEN transaction_type = 'sell' THEN quantity ELSE 0 END) AS net_qty
                 FROM transactions
                 WHERE tenant_id = :tid
                   AND asset_class IN ('acao','fii','etf','bdr','crypto')
+                  AND deleted_at IS NULL
                 GROUP BY ticker
-                HAVING SUM(CASE WHEN transaction_type IN ('buy','dividend','jscp','amortization')
-                                THEN quantity ELSE 0 END)
+                HAVING SUM(CASE WHEN transaction_type = 'buy' THEN quantity ELSE 0 END)
                      - SUM(CASE WHEN transaction_type = 'sell' THEN quantity ELSE 0 END) > 0
             )
             SELECT h.ticker,

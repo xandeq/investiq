@@ -360,6 +360,7 @@ async def export_portfolio(
         filename = "transacoes.csv"
 
     output = io.StringIO()
+    output.write("﻿")  # UTF-8 BOM — required for Excel on Windows to detect encoding
     writer = csv.writer(output)
     for row in rows:
         writer.writerow(row)
