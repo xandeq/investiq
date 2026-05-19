@@ -148,6 +148,7 @@ def _archive_superseded_job(
 
 def _update_job(
     job_id: str,
+    tenant_id: str,
     status: str,
     result_json: str | None = None,
     error: str | None = None,
@@ -155,6 +156,8 @@ def _update_job(
     """Update AnalysisJob status and optional fields.
 
     Uses superuser session to bypass RLS (same pattern as wizard/tasks.py).
+    tenant_id added as defense-in-depth — job_id is UUID-unforgeable but the
+    extra filter prevents a bad dispatch from touching another tenant's job.
     """
     try:
         now = datetime.now(timezone.utc)
@@ -169,7 +172,10 @@ def _update_job(
         with get_superuser_sync_db_session() as session:
             session.execute(
                 update(AnalysisJob)
-                .where(AnalysisJob.id == job_id)
+                .where(
+                    AnalysisJob.id == job_id,
+                    AnalysisJob.tenant_id == tenant_id,
+                )
                 .values(**values)
             )
     except Exception as exc:
@@ -248,14 +254,14 @@ def run_dcf(
 
     # Step 1: Quota check
     if not _check_and_increment_quota(tenant_id):
-        _update_job(job_id, "failed", error="Analysis quota exhausted")
+        _update_job(job_id, tenant_id, "failed", error="Analysis quota exhausted")
         log_analysis_cost(
             tenant_id, job_id, "dcf", ticker, duration_ms=0, status="failed"
         )
         return
 
     # Step 2: Mark running
-    _update_job(job_id, "running")
+    _update_job(job_id, tenant_id, "running")
     start_time = time.time()
 
     llm_meta: dict = {}
@@ -265,7 +271,7 @@ def run_dcf(
         try:
             fundamentals = fetch_fundamentals(ticker)
         except DataFetchError as exc:
-            _update_job(job_id, "failed", error=f"Data fetch failed: {exc}")
+            _update_job(job_id, tenant_id, "failed", error=f"Data fetch failed: {exc}")
             duration_ms = int((time.time() - start_time) * 1000)
             log_analysis_cost(
                 tenant_id, job_id, "dcf", ticker,
@@ -401,7 +407,7 @@ def run_dcf(
         }
 
         # Step 7: Update job
-        _update_job(job_id, "completed", result_json=json.dumps(result, ensure_ascii=False))
+        _update_job(job_id, tenant_id, "completed", result_json=json.dumps(result, ensure_ascii=False))
         _archive_superseded_job(ticker, tenant_id, "dcf", job_id)
 
         # Step 8: Log cost
@@ -422,7 +428,7 @@ def run_dcf(
     except Exception as exc:
         duration_ms = int((time.time() - start_time) * 1000)
         logger.error("DCF analysis failed for job %s: %s", job_id, exc)
-        _update_job(job_id, "failed", error=str(exc)[:500])
+        _update_job(job_id, tenant_id, "failed", error=str(exc)[:500])
         log_analysis_cost(
             tenant_id,
             job_id,
@@ -456,14 +462,14 @@ def run_earnings(
 
     # Step 1: Quota check
     if not _check_and_increment_quota(tenant_id):
-        _update_job(job_id, "failed", error="Analysis quota exhausted")
+        _update_job(job_id, tenant_id, "failed", error="Analysis quota exhausted")
         log_analysis_cost(
             tenant_id, job_id, "earnings", ticker, duration_ms=0, status="failed"
         )
         return
 
     # Step 2: Mark running
-    _update_job(job_id, "running")
+    _update_job(job_id, tenant_id, "running")
     start_time = time.time()
 
     llm_meta: dict = {}
@@ -473,7 +479,7 @@ def run_earnings(
         try:
             fundamentals = fetch_fundamentals(ticker)
         except DataFetchError as exc:
-            _update_job(job_id, "failed", error=f"Data fetch failed: {exc}")
+            _update_job(job_id, tenant_id, "failed", error=f"Data fetch failed: {exc}")
             duration_ms = int((time.time() - start_time) * 1000)
             log_analysis_cost(
                 tenant_id, job_id, "earnings", ticker,
@@ -539,7 +545,7 @@ def run_earnings(
         }
 
         # Step 7: Update job
-        _update_job(job_id, "completed", result_json=json.dumps(result, ensure_ascii=False))
+        _update_job(job_id, tenant_id, "completed", result_json=json.dumps(result, ensure_ascii=False))
         _archive_superseded_job(ticker, tenant_id, "earnings", job_id)
 
         # Step 8: Log cost
@@ -560,7 +566,7 @@ def run_earnings(
     except Exception as exc:
         duration_ms = int((time.time() - start_time) * 1000)
         logger.error("Earnings analysis failed for job %s: %s", job_id, exc)
-        _update_job(job_id, "failed", error=str(exc)[:500])
+        _update_job(job_id, tenant_id, "failed", error=str(exc)[:500])
         log_analysis_cost(
             tenant_id,
             job_id,
@@ -594,14 +600,14 @@ def run_dividend(
 
     # Step 1: Quota check
     if not _check_and_increment_quota(tenant_id):
-        _update_job(job_id, "failed", error="Analysis quota exhausted")
+        _update_job(job_id, tenant_id, "failed", error="Analysis quota exhausted")
         log_analysis_cost(
             tenant_id, job_id, "dividend", ticker, duration_ms=0, status="failed"
         )
         return
 
     # Step 2: Mark running
-    _update_job(job_id, "running")
+    _update_job(job_id, tenant_id, "running")
     start_time = time.time()
 
     llm_meta: dict = {}
@@ -611,7 +617,7 @@ def run_dividend(
         try:
             fundamentals = fetch_fundamentals(ticker)
         except DataFetchError as exc:
-            _update_job(job_id, "failed", error=f"Data fetch failed: {exc}")
+            _update_job(job_id, tenant_id, "failed", error=f"Data fetch failed: {exc}")
             duration_ms = int((time.time() - start_time) * 1000)
             log_analysis_cost(
                 tenant_id, job_id, "dividend", ticker,
@@ -680,7 +686,7 @@ def run_dividend(
         }
 
         # Step 7: Update job
-        _update_job(job_id, "completed", result_json=json.dumps(result, ensure_ascii=False))
+        _update_job(job_id, tenant_id, "completed", result_json=json.dumps(result, ensure_ascii=False))
         _archive_superseded_job(ticker, tenant_id, "dividend", job_id)
 
         # Step 8: Log cost
@@ -701,7 +707,7 @@ def run_dividend(
     except Exception as exc:
         duration_ms = int((time.time() - start_time) * 1000)
         logger.error("Dividend analysis failed for job %s: %s", job_id, exc)
-        _update_job(job_id, "failed", error=str(exc)[:500])
+        _update_job(job_id, tenant_id, "failed", error=str(exc)[:500])
         log_analysis_cost(
             tenant_id,
             job_id,
@@ -740,14 +746,14 @@ def run_sector(
 
     # Step 1: Quota check
     if not _check_and_increment_quota(tenant_id):
-        _update_job(job_id, "failed", error="Analysis quota exhausted")
+        _update_job(job_id, tenant_id, "failed", error="Analysis quota exhausted")
         log_analysis_cost(
             tenant_id, job_id, "sector", ticker, duration_ms=0, status="failed"
         )
         return
 
     # Step 2: Mark running
-    _update_job(job_id, "running")
+    _update_job(job_id, tenant_id, "running")
     start_time = time.time()
 
     llm_meta: dict = {}
@@ -757,7 +763,7 @@ def run_sector(
         try:
             target_fundamentals = fetch_fundamentals(ticker)
         except DataFetchError as exc:
-            _update_job(job_id, "failed", error=f"Data fetch failed: {exc}")
+            _update_job(job_id, tenant_id, "failed", error=f"Data fetch failed: {exc}")
             duration_ms = int((time.time() - start_time) * 1000)
             log_analysis_cost(
                 tenant_id, job_id, "sector", ticker,
@@ -768,7 +774,7 @@ def run_sector(
         # Step 4: Look up peers from sector mapping
         sector_key = target_fundamentals.get("sector_key")
         if not sector_key:
-            _update_job(job_id, "failed", error="Sector data unavailable for this ticker")
+            _update_job(job_id, tenant_id, "failed", error="Sector data unavailable for this ticker")
             duration_ms = int((time.time() - start_time) * 1000)
             log_analysis_cost(
                 tenant_id, job_id, "sector", ticker,
@@ -878,7 +884,7 @@ def run_sector(
         }
 
         # Step 9: Update job
-        _update_job(job_id, "completed", result_json=json.dumps(result, ensure_ascii=False))
+        _update_job(job_id, tenant_id, "completed", result_json=json.dumps(result, ensure_ascii=False))
         _archive_superseded_job(ticker, tenant_id, "sector", job_id)
 
         # Step 10: Log cost
@@ -899,7 +905,7 @@ def run_sector(
     except Exception as exc:
         duration_ms = int((time.time() - start_time) * 1000)
         logger.error("Sector analysis failed for job %s: %s", job_id, exc)
-        _update_job(job_id, "failed", error=str(exc)[:500])
+        _update_job(job_id, tenant_id, "failed", error=str(exc)[:500])
         log_analysis_cost(
             tenant_id,
             job_id,
@@ -985,14 +991,14 @@ def run_fii_analysis(
 
     # Step 1: Quota check
     if not _check_and_increment_quota(tenant_id):
-        _update_job(job_id, "failed", error="Analysis quota exhausted")
+        _update_job(job_id, tenant_id, "failed", error="Analysis quota exhausted")
         log_analysis_cost(
             tenant_id, job_id, "fii_detail", ticker, duration_ms=0, status="failed"
         )
         return
 
     # Step 2: Mark running
-    _update_job(job_id, "running")
+    _update_job(job_id, tenant_id, "running")
     start_time = time.time()
 
     llm_meta: dict = {}
@@ -1002,7 +1008,7 @@ def run_fii_analysis(
         try:
             fii_data = fetch_fii_data(ticker)
         except DataFetchError as exc:
-            _update_job(job_id, "failed", error=f"Data fetch failed: {exc}")
+            _update_job(job_id, tenant_id, "failed", error=f"Data fetch failed: {exc}")
             duration_ms = int((time.time() - start_time) * 1000)
             log_analysis_cost(
                 tenant_id, job_id, "fii_detail", ticker,
@@ -1075,7 +1081,7 @@ def run_fii_analysis(
         }
 
         # Step 7: Update job
-        _update_job(job_id, "completed", result_json=json.dumps(result, ensure_ascii=False))
+        _update_job(job_id, tenant_id, "completed", result_json=json.dumps(result, ensure_ascii=False))
         _archive_superseded_job(ticker, tenant_id, "fii_detail", job_id)
 
         # Step 8: Log cost
@@ -1096,7 +1102,7 @@ def run_fii_analysis(
     except Exception as exc:
         logger.exception("FII analysis failed unexpectedly: job=%s %s", job_id, exc)
         duration_ms = int((time.time() - start_time) * 1000)
-        _update_job(job_id, "failed", error=str(exc)[:500])
+        _update_job(job_id, tenant_id, "failed", error=str(exc)[:500])
         log_analysis_cost(
             tenant_id, job_id, "fii_detail", ticker,
             duration_ms=duration_ms, status="failed",

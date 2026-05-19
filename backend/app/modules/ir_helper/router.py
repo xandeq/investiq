@@ -106,12 +106,13 @@ async def ir_summary(
             darf_gerado = ir_devido >= DARF_MINIMO
             darf_valor = ir_devido if darf_gerado else Decimal("0")
 
+    _q = Decimal("0.01")
     return {
         "month": month,
-        "total_vendas": float(total_vendas),
-        "lucro_bruto": float(lucro_bruto),
-        "prejuizo_acumulado": float(abs(accumulated_loss)) if accumulated_loss < 0 else 0.0,
-        "lucro_liquido": float(max(lucro_liquido, Decimal(0))),
+        "total_vendas": float(total_vendas.quantize(_q)),
+        "lucro_bruto": float(lucro_bruto.quantize(_q)),
+        "prejuizo_acumulado": float(abs(accumulated_loss).quantize(_q)) if accumulated_loss < 0 else 0.0,
+        "lucro_liquido": float(max(lucro_liquido, Decimal(0)).quantize(_q)),
         "isento": isento,
         "aliquota": float(ALIQUOTA_SWING),
         "ir_devido": float(ir_devido),
@@ -180,11 +181,12 @@ async def ir_history(
                 darf_gerado = ir_devido >= DARF_MINIMO
                 accumulated_loss = Decimal("0")
 
+        _q = Decimal("0.01")
         history.append({
             "month": mk,
-            "total_vendas": float(total_vendas),
-            "lucro_bruto": float(lucro_bruto),
-            "lucro_liquido": float(max(lucro_liquido, Decimal(0))),
+            "total_vendas": float(total_vendas.quantize(_q)),
+            "lucro_bruto": float(lucro_bruto.quantize(_q)),
+            "lucro_liquido": float(max(lucro_liquido, Decimal(0)).quantize(_q)),
             "isento": isento,
             "ir_devido": float(ir_devido),
             "darf_gerado": darf_gerado,

@@ -142,5 +142,5 @@ Retorne APENAS o JSON abaixo, sem nenhum texto adicional:
         raise ValueError("AI returned no stocks. Possibly model did not follow the schema.")
 
     result["disclaimer"] = DISCLAIMER
-    result["generated_at"] = __import__("datetime").datetime.utcnow().isoformat()
+    result["generated_at"] = __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat()
     return result
