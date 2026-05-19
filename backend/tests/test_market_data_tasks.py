@@ -158,12 +158,13 @@ def test_refresh_quotes_writes_redis(fake_redis_sync, mock_brapi_client):
         "ev_ebitda": 4.2,
     }
 
-    with patch.object(BrapiClient, "fetch_quotes", return_value=mock_quotes):
-        with patch.object(BrapiClient, "fetch_ibovespa", return_value=mock_ibov):
-            with patch.object(BrapiClient, "fetch_fundamentals", return_value=mock_fundamentals):
-                # Patch redis.Redis.from_url to return our fakeredis instance
-                with patch("redis.Redis.from_url", return_value=fake_redis_sync):
-                    refresh_quotes.apply()
+    with patch("app.modules.market_data.tasks._get_portfolio_tickers", return_value=set()):
+        with patch.object(BrapiClient, "fetch_quotes", return_value=mock_quotes):
+            with patch.object(BrapiClient, "fetch_ibovespa", return_value=mock_ibov):
+                with patch.object(BrapiClient, "fetch_fundamentals", return_value=mock_fundamentals):
+                    # Patch redis.Redis.from_url to return our fakeredis instance
+                    with patch("redis.Redis.from_url", return_value=fake_redis_sync):
+                        refresh_quotes.apply()
 
     raw = fake_redis_sync.get("market:quote:PETR4")
     assert raw is not None, "market:quote:PETR4 key was not written to Redis"
@@ -174,9 +175,9 @@ def test_refresh_quotes_writes_redis(fake_redis_sync, mock_brapi_client):
     assert data["change"] == 0.50
     assert data["change_pct"] == 1.32
 
-    # Check TTL is approximately 1200 (fakeredis stores TTL)
+    # Check TTL matches _QUOTE_TTL=900 (15 min — BRAPI Pro update frequency)
     ttl = fake_redis_sync.ttl("market:quote:PETR4")
-    assert 1190 <= ttl <= 1200, f"Expected TTL ~1200, got {ttl}"
+    assert 890 <= ttl <= 900, f"Expected TTL ~900, got {ttl}"
 
 
 def test_brapi_client_writes_redis(fake_redis_sync):
@@ -199,11 +200,12 @@ def test_brapi_client_writes_redis(fake_redis_sync):
         "ev_ebitda": None,
     }
 
-    with patch.object(BrapiClient, "fetch_quotes", return_value=mock_quotes):
-        with patch.object(BrapiClient, "fetch_ibovespa", return_value={"symbol": "^BVSP", "regularMarketPrice": 128000.0, "regularMarketChange": 0.0, "regularMarketChangePercent": 0.0}):
-            with patch.object(BrapiClient, "fetch_fundamentals", return_value=mock_fundamentals):
-                with patch("redis.Redis.from_url", return_value=fake_redis_sync):
-                    refresh_quotes.apply()
+    with patch("app.modules.market_data.tasks._get_portfolio_tickers", return_value=set()):
+        with patch.object(BrapiClient, "fetch_quotes", return_value=mock_quotes):
+            with patch.object(BrapiClient, "fetch_ibovespa", return_value={"symbol": "^BVSP", "regularMarketPrice": 128000.0, "regularMarketChange": 0.0, "regularMarketChangePercent": 0.0}):
+                with patch.object(BrapiClient, "fetch_fundamentals", return_value=mock_fundamentals):
+                    with patch("redis.Redis.from_url", return_value=fake_redis_sync):
+                        refresh_quotes.apply()
 
     raw = fake_redis_sync.get("market:quote:VALE3")
     assert raw is not None, "market:quote:VALE3 key was not written"

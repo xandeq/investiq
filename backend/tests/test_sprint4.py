@@ -87,10 +87,10 @@ def _make_synthetic_df(n: int = 70) -> pd.DataFrame:
     })
 
 
-@pytest.mark.skipif(
-    not __import__("importlib").util.find_spec("matplotlib"),
-    reason="matplotlib not installed locally — runs on VPS only",
-)
+_matplotlib_available = importlib.util.find_spec("matplotlib") is not None
+
+
+@pytest.mark.skipif(not _matplotlib_available, reason="matplotlib not installed locally — runs on VPS only")
 def test_generate_chart_png_returns_bytes():
     from app.modules.chart_analyzer.chart_image import generate_chart_png
 
@@ -103,10 +103,7 @@ def test_generate_chart_png_returns_bytes():
     assert result[:4] == b"\x89PNG", "Output should be a valid PNG"
 
 
-@pytest.mark.skipif(
-    not __import__("importlib").util.find_spec("matplotlib"),
-    reason="matplotlib not installed locally — runs on VPS only",
-)
+@pytest.mark.skipif(not _matplotlib_available, reason="matplotlib not installed locally — runs on VPS only")
 def test_generate_chart_png_with_setup():
     from app.modules.chart_analyzer.chart_image import generate_chart_png
 
@@ -125,10 +122,7 @@ def test_generate_chart_png_with_setup():
     assert result[:4] == b"\x89PNG"
 
 
-@pytest.mark.skipif(
-    not __import__("importlib").util.find_spec("matplotlib"),
-    reason="matplotlib not installed locally — runs on VPS only",
-)
+@pytest.mark.skipif(not _matplotlib_available, reason="matplotlib not installed locally — runs on VPS only")
 def test_generate_chart_png_never_raises_on_bad_data():
     """Even with completely bad input, generate_chart_png should return bytes (fallback PNG)."""
     from app.modules.chart_analyzer.chart_image import generate_chart_png

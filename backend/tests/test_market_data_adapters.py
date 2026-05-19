@@ -5,8 +5,11 @@ RED phase tests: written before implementation.
 from __future__ import annotations
 
 import json
+import pytest
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
+
+pytest.importorskip("bcb", reason="bcb not installed locally — runs on VPS only")
 
 import pytest
 import requests
