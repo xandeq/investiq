@@ -143,6 +143,20 @@ class FIIScreenerResponse(BaseModel):
     results: list[FIIRow]
 
 
+class FIIExportParams(FIIScreenerParams):
+    """Params for GET /screener/fiis/export — higher row cap, no pagination."""
+
+    limit: int = Field(2000, ge=1, le=2000)
+    offset: int = Field(0, ge=0)
+
+
+class AcaoExportParams(AcaoScreenerParams):
+    """Params for GET /screener/acoes/export — higher row cap, no pagination."""
+
+    limit: int = Field(2000, ge=1, le=2000)
+    offset: int = Field(0, ge=0)
+
+
 # ---------------------------------------------------------------------------
 # Renda fixa catalog
 # ---------------------------------------------------------------------------

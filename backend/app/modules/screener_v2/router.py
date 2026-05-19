@@ -22,6 +22,7 @@ from app.core.limiter import limiter
 from app.core.middleware import get_authed_db, get_current_tenant_id
 from app.core.security import get_current_user
 from app.modules.screener_v2.schemas import (
+    AcaoExportParams,
     AcaoScreenerParams,
     AcaoScreenerResponse,
     FIIExportParams,
@@ -152,7 +153,7 @@ async def screener_acoes_export(
     import io
     from decimal import Decimal
 
-    params = AcaoScreenerParams(
+    params = AcaoExportParams(
         min_dy=Decimal(str(min_dy)) if min_dy is not None else None,
         max_pl=Decimal(str(max_pl)) if max_pl is not None else None,
         max_pvp=Decimal(str(max_pvp)) if max_pvp is not None else None,
