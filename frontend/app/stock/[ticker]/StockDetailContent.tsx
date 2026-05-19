@@ -12,6 +12,7 @@ import { PremiumGate } from "@/features/ai/components/PremiumGate";
 import { useWatchlist, useAddToWatchlist, useRemoveFromWatchlist } from "@/features/watchlist/hooks/useWatchlist";
 import { useStockQuote } from "@/hooks/useStockQuote";
 import { useFundamentals } from "@/hooks/useFundamentals";
+import { StockPriceChart } from "./StockPriceChart";
 
 interface Props {
   ticker: string;
@@ -150,6 +151,9 @@ export function StockDetailContent({ ticker }: Props) {
 
       {/* CVM Disclaimer — always first */}
       <AnalysisDisclaimer dataTimestamp={dataTimestamp} />
+
+      {/* Price chart — instant from Redis cache */}
+      <StockPriceChart ticker={ticker} />
 
       {/* Quota / start error */}
       {isQuotaError && (
