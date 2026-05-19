@@ -228,14 +228,14 @@ def test_fetch_macro_indicators_returns_required_keys():
 def test_quote_cache_schema():
     """QuoteCache Pydantic model validates correctly."""
     from app.modules.market_data.schemas import QuoteCache
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     q = QuoteCache(
         symbol="PETR4",
         price=Decimal("38.50"),
         change=Decimal("0.50"),
         change_pct=Decimal("1.32"),
-        fetched_at=datetime.utcnow(),
+        fetched_at=datetime.now(timezone.utc),
     )
     assert q.symbol == "PETR4"
     assert q.data_stale is False
@@ -244,14 +244,14 @@ def test_quote_cache_schema():
 def test_macro_cache_schema():
     """MacroCache Pydantic model validates correctly."""
     from app.modules.market_data.schemas import MacroCache
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     m = MacroCache(
         selic=Decimal("13.75"),
         cdi=Decimal("13.65"),
         ipca=Decimal("4.83"),
         ptax_usd=Decimal("5.25"),
-        fetched_at=datetime.utcnow(),
+        fetched_at=datetime.now(timezone.utc),
     )
     assert m.data_stale is False
 
@@ -259,11 +259,11 @@ def test_macro_cache_schema():
 def test_fundamentals_cache_schema():
     """FundamentalsCache allows None fields."""
     from app.modules.market_data.schemas import FundamentalsCache
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     f = FundamentalsCache(
         ticker="PETR4",
-        fetched_at=datetime.utcnow(),
+        fetched_at=datetime.now(timezone.utc),
     )
     assert f.pl is None
     assert f.data_stale is False
@@ -272,7 +272,7 @@ def test_fundamentals_cache_schema():
 def test_historical_cache_schema():
     """HistoricalCache validates with HistoricalPoint list."""
     from app.modules.market_data.schemas import HistoricalCache, HistoricalPoint
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     h = HistoricalCache(
         ticker="PETR4",
@@ -286,7 +286,7 @@ def test_historical_cache_schema():
                 volume=1000000,
             )
         ],
-        fetched_at=datetime.utcnow(),
+        fetched_at=datetime.now(timezone.utc),
     )
     assert len(h.points) == 1
     assert h.data_stale is False

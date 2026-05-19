@@ -102,7 +102,7 @@ def test_macro_watchdog_stale(fake_redis_sync):
     from unittest.mock import patch
     from app.modules.market_data.tasks import check_macro_freshness
 
-    stale_ts = (datetime.utcnow() - timedelta(hours=3)).isoformat()
+    stale_ts = (datetime.now(timezone.utc) - timedelta(hours=3)).isoformat()
     fake_redis_sync.set("market:macro:fetched_at", stale_ts)
 
     with patch("app.modules.market_data.tasks._get_redis", return_value=fake_redis_sync):
@@ -118,7 +118,7 @@ def test_macro_watchdog_ok(fake_redis_sync):
     from unittest.mock import patch
     from app.modules.market_data.tasks import check_macro_freshness
 
-    fresh_ts = (datetime.utcnow() - timedelta(minutes=30)).isoformat()
+    fresh_ts = (datetime.now(timezone.utc) - timedelta(minutes=30)).isoformat()
     fake_redis_sync.set("market:macro:fetched_at", fresh_ts)
 
     with patch("app.modules.market_data.tasks._get_redis", return_value=fake_redis_sync):
