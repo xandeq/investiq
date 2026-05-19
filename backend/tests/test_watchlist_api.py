@@ -183,3 +183,30 @@ async def test_ticker_is_uppercased(authed_client: AsyncClient):
 async def test_unauthenticated_watchlist_returns_401(client: AsyncClient):
     resp = await client.get("/watchlist")
     assert resp.status_code == 401, resp.text
+
+
+# ---------------------------------------------------------------------------
+# WATCH-12: Quotes endpoint includes change_pct field
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_quotes_includes_change_pct(authed_client: AsyncClient, fake_redis_async):
+    import json
+    await fake_redis_async.set(
+        "market:quote:VALE3",
+        json.dumps({
+            "symbol": "VALE3",
+            "regularMarketPrice": 70.00,
+            "regularMarketChange": 1.50,
+            "regularMarketChangePercent": 2.19,
+        }),
+        ex=1200,
+    )
+    await authed_client.post("/watchlist", json={"ticker": "VALE3"})
+    resp = await authed_client.get("/watchlist/quotes")
+    assert resp.status_code == 200, resp.text
+    quotes = resp.json()
+    vale3 = next((q for q in quotes if q["ticker"] == "VALE3"), None)
+    assert vale3 is not None
+    assert "change_pct" in vale3
+    assert vale3["change_pct"] is not None

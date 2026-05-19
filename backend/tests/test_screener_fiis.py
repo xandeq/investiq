@@ -69,3 +69,48 @@ async def test_screener_fiis_export_respects_filters(
     resp = await client.get("/screener/fiis/export?min_dy=7&max_pvp=1.1&segmento=Tijolo")
     assert resp.status_code == 200
     assert "text/csv" in resp.headers.get("content-type", "")
+
+
+# ---------------------------------------------------------------------------
+# Ações screener export tests
+# ---------------------------------------------------------------------------
+
+
+async def test_screener_acoes_requires_auth(client: AsyncClient) -> None:
+    """GET /screener/acoes returns 401 when not authenticated."""
+    resp = await client.get("/screener/acoes")
+    assert resp.status_code == 401
+
+
+async def test_screener_acoes_export_requires_auth(client: AsyncClient) -> None:
+    """GET /screener/acoes/export returns 401 when not authenticated."""
+    resp = await client.get("/screener/acoes/export")
+    assert resp.status_code == 401
+
+
+async def test_screener_acoes_export_returns_csv(
+    client: AsyncClient, email_stub
+) -> None:
+    """GET /screener/acoes/export returns CSV with correct content-type and header row."""
+    await register_verify_and_login(client, email_stub)
+    resp = await client.get("/screener/acoes/export")
+    assert resp.status_code == 200
+    assert "text/csv" in resp.headers.get("content-type", "")
+    assert "attachment" in resp.headers.get("content-disposition", "")
+
+    text = resp.text
+    lines = [line for line in text.splitlines() if line.strip()]
+    assert lines[0].startswith("Ticker")
+    assert "P/L" in lines[0]
+    assert "P/VP" in lines[0]
+    assert "CVM" in lines[-1]
+
+
+async def test_screener_acoes_export_respects_filters(
+    client: AsyncClient, email_stub
+) -> None:
+    """GET /screener/acoes/export accepts filter params without error."""
+    await register_verify_and_login(client, email_stub)
+    resp = await client.get("/screener/acoes/export?min_dy=5&max_pl=20&sector=Financeiro")
+    assert resp.status_code == 200
+    assert "text/csv" in resp.headers.get("content-type", "")
