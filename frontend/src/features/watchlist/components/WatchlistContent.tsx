@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { CheckCircle, Bell, BellSlash } from "@phosphor-icons/react";
 import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
+import { tickerPath } from "@/lib/formatters";
 import { useWatchlistQuotes, useAddToWatchlist, useRemoveFromWatchlist, useUpdateWatchlistItem } from "../hooks/useWatchlist";
 import type { WatchlistQuote } from "../types";
 
@@ -169,7 +170,7 @@ function WatchlistRow({ item, index }: { item: WatchlistQuote; index: number }) 
     >
       <td className="px-4 py-3">
         <div className="flex items-center gap-2 flex-wrap">
-          <Link href={`/stock/${item.ticker}`} className="font-mono font-semibold hover:text-blue-600 transition-colors">
+          <Link href={tickerPath(item.ticker)} className="font-mono font-semibold hover:text-blue-600 transition-colors">
             {item.ticker}
           </Link>
           {item.price_alert_target && <AlertBadge item={item} />}

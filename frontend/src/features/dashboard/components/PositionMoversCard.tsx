@@ -4,6 +4,7 @@ import { TrendUp, TrendDown } from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePositionMovers, type MoverItem } from "@/features/dashboard/hooks/usePositionMovers";
 import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
+import { tickerPath } from "@/lib/formatters";
 
 function fmtBRL(v: string) {
   const n = parseFloat(v);
@@ -23,7 +24,7 @@ function MoverChip({ item, variant }: { item: MoverItem; variant: "gainer" | "lo
 
   return (
     <Link
-      href={`/stock/${item.ticker}`}
+      href={tickerPath(item.ticker)}
       className={`flex items-center justify-between gap-3 px-3 py-2 rounded-lg border transition-colors hover:opacity-80 ${
         isGain
           ? "bg-emerald-50 border-emerald-100"

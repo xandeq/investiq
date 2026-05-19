@@ -2,7 +2,7 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePnl } from "@/features/portfolio/hooks/usePnl";
-import { formatBRL, formatPct } from "@/lib/formatters";
+import { formatBRL, formatPct, tickerPath } from "@/lib/formatters";
 import { useSortedData } from "@/hooks/useSort";
 import { SortableHeader } from "@/components/ui/SortableHeader";
 import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
@@ -112,7 +112,7 @@ export function PnlTable() {
               >
                 <td className="py-2.5 px-3 font-semibold">
                   <Link
-                    href={`/stock/${pos.ticker as string}`}
+                    href={tickerPath(pos.ticker as string)}
                     className="font-mono hover:text-blue-600 transition-colors"
                     title={`Ver análise de ${pos.ticker as string}`}
                   >
