@@ -7,6 +7,7 @@ import {
   Crosshair,
   Briefcase,
   ChartBar,
+  Trophy,
 } from "@phosphor-icons/react";
 import { useSwingSignals } from "../hooks/useSwingSignals";
 import { useSwingOperations } from "../hooks/useSwingOperations";
@@ -16,8 +17,9 @@ import { RadarSection } from "./RadarSection";
 import { OperationsSection } from "./OperationsSection";
 import { CopilotSection } from "./CopilotSection";
 import { StatsSection } from "./StatsSection";
+import { OutcomesSection } from "../../outcome_tracker/components/OutcomesSection";
 
-type Tab = "copilot" | "signals" | "radar" | "operations" | "stats";
+type Tab = "copilot" | "signals" | "radar" | "operations" | "stats" | "resultados";
 
 const TABS: { key: Tab; label: string; Icon: React.ElementType }[] = [
   { key: "copilot",     label: "Copiloto",          Icon: Robot },
@@ -25,6 +27,7 @@ const TABS: { key: Tab; label: string; Icon: React.ElementType }[] = [
   { key: "radar",      label: "Radar Swing",        Icon: Crosshair },
   { key: "operations", label: "Minhas Operações",   Icon: Briefcase },
   { key: "stats",      label: "Estatísticas",       Icon: ChartBar },
+  { key: "resultados", label: "Resultados",         Icon: Trophy },
 ];
 
 function formatGeneratedAt(iso: string | undefined | null): string {
@@ -201,6 +204,8 @@ export function SwingTradeContent() {
           )}
 
           {activeTab === "stats" && <StatsSection />}
+
+          {activeTab === "resultados" && <OutcomesSection />}
         </motion.div>
       </AnimatePresence>
     </div>
