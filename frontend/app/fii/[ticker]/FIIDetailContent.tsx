@@ -10,6 +10,7 @@ import { FIIDYChart } from "@/features/fii_detail/components/FIIDYChart";
 import { FIIPVPChart } from "@/features/fii_detail/components/FIIPVPChart";
 import { FIIPortfolioSection } from "@/features/fii_detail/components/FIIPortfolioSection";
 import { FIIAnalysisCard } from "@/features/fii_detail/components/FIIAnalysisCard";
+import { StockPriceChart } from "@/app/stock/[ticker]/StockPriceChart";
 import type { FIIAnalysisResult, FIIPortfolio } from "@/features/fii_detail/types";
 
 interface Props {
@@ -119,6 +120,9 @@ export function FIIDetailContent({ ticker }: Props) {
         </div>
         <WatchlistToggle ticker={ticker} />
       </div>
+
+      {/* Price chart — instant from Redis cache */}
+      <StockPriceChart ticker={ticker} />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
