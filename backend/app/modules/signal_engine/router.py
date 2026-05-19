@@ -1,9 +1,11 @@
 """FastAPI router for /signals endpoints.
 
 GET  /signals/active            — list active A+ signals from Redis (auth required)
+GET  /signals/calibration       — pattern weights + grade performance stats
 GET  /signals/{ticker}/evaluate — on-demand evaluation for a specific ticker
 POST /signals/sizing            — calculate Kelly fractional position size
 """
+import json
 import logging
 import os
 
@@ -11,13 +13,17 @@ import redis.asyncio as aioredis
 from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.limiter import limiter
+from app.core.middleware import get_authed_db, get_current_tenant_id
 from app.core.security import get_current_user
 from app.modules.chart_analyzer.analyzer import analyze
+from app.modules.signal_engine.calibration import PATTERN_WEIGHTS, MIN_SAMPLES_TO_ADJUST, MIN_SAMPLES_TO_DISABLE
 from app.modules.signal_engine.gates import evaluate_signal
 from app.modules.signal_engine.kelly import calculate_position_size
 from app.modules.signal_engine.scanner import get_active_signals
+from app.modules.outcome_tracker.service import get_stats, get_expectancy_by_pattern
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +82,78 @@ async def list_active_signals(
                 pass
 
     return {"signals": signals, "count": len(signals)}
+
+
+@router.get("/calibration")
+@limiter.limit("10/minute")
+async def get_calibration_stats(
+    request: Request,
+    db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+):
+    """Return pattern calibration stats and grade performance.
+
+    Shows current pattern weights (boosted/disabled/default), per-grade
+    winrate/avg-R, and pattern expectancy — enabling users to see which
+    setups are performing vs underperforming.
+
+    Requires ≥ MIN_SAMPLES_TO_ADJUST closed outcomes per pattern to calibrate.
+    """
+    # Fetch outcome stats (grade breakdown)
+    stats = await get_stats(db, tenant_id)
+    total_closed = stats.get("total_closed", 0)
+
+    # Fetch pattern expectancy from DB
+    pattern_exp = await get_expectancy_by_pattern(db, tenant_id)
+
+    # Read current weights from Redis (fall back to in-memory defaults)
+    redis_client = _get_async_redis()
+    current_weights: dict[str, float] = {}
+    try:
+        if redis_client is not None:
+            raw = await redis_client.get("signal_engine:pattern_weights")
+            if raw:
+                current_weights = json.loads(raw)
+    except Exception:
+        pass
+    finally:
+        if redis_client is not None:
+            try:
+                await redis_client.aclose()
+            except Exception:
+                pass
+
+    if not current_weights:
+        current_weights = dict(PATTERN_WEIGHTS)
+
+    # Build pattern weight status
+    pattern_weights_out = {}
+    for pattern, weight in current_weights.items():
+        if weight == 0.0:
+            w_status = "disabled"
+        elif weight > 1.0:
+            w_status = "boosted"
+        else:
+            w_status = "default"
+        exp_data = pattern_exp.get(pattern)
+        pattern_weights_out[pattern] = {
+            "weight": weight,
+            "status": w_status,
+            "n": exp_data["n"] if exp_data else 0,
+            "expectancy": exp_data["expectancy"] if exp_data else None,
+            "win_rate": exp_data["win_rate"] if exp_data else None,
+        }
+
+    return {
+        "data_sufficient": total_closed >= MIN_SAMPLES_TO_ADJUST,
+        "total_outcomes": total_closed,
+        "thresholds": {
+            "min_to_adjust": MIN_SAMPLES_TO_ADJUST,
+            "min_to_disable": MIN_SAMPLES_TO_DISABLE,
+        },
+        "pattern_weights": pattern_weights_out,
+        "grade_performance": stats.get("grade_breakdown", {}),
+    }
 
 
 @router.get("/{ticker}/evaluate")

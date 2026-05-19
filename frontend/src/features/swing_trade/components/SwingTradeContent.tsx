@@ -8,6 +8,7 @@ import {
   Briefcase,
   ChartBar,
   Trophy,
+  Sliders,
 } from "@phosphor-icons/react";
 import { useSwingSignals } from "../hooks/useSwingSignals";
 import { useSwingOperations } from "../hooks/useSwingOperations";
@@ -18,8 +19,9 @@ import { OperationsSection } from "./OperationsSection";
 import { CopilotSection } from "./CopilotSection";
 import { StatsSection } from "./StatsSection";
 import { OutcomesSection } from "../../outcome_tracker/components/OutcomesSection";
+import { CalibrationSection } from "../../signal_engine/components/CalibrationSection";
 
-type Tab = "copilot" | "signals" | "radar" | "operations" | "stats" | "resultados";
+type Tab = "copilot" | "signals" | "radar" | "operations" | "stats" | "resultados" | "calibracao";
 
 const TABS: { key: Tab; label: string; Icon: React.ElementType }[] = [
   { key: "copilot",     label: "Copiloto",          Icon: Robot },
@@ -28,6 +30,7 @@ const TABS: { key: Tab; label: string; Icon: React.ElementType }[] = [
   { key: "operations", label: "Minhas Operações",   Icon: Briefcase },
   { key: "stats",      label: "Estatísticas",       Icon: ChartBar },
   { key: "resultados", label: "Resultados",         Icon: Trophy },
+  { key: "calibracao", label: "Calibração",         Icon: Sliders },
 ];
 
 function formatGeneratedAt(iso: string | undefined | null): string {
@@ -206,6 +209,8 @@ export function SwingTradeContent() {
           {activeTab === "stats" && <StatsSection />}
 
           {activeTab === "resultados" && <OutcomesSection />}
+
+          {activeTab === "calibracao" && <CalibrationSection />}
         </motion.div>
       </AnimatePresence>
     </div>

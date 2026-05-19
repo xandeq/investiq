@@ -345,7 +345,7 @@ async def get_dividend_calendar(
 
 @router.get("/export")
 async def export_portfolio(
-    content: str = Query("transactions", regex="^(transactions|positions)$"),
+    content: str = Query("transactions", pattern="^(transactions|positions)$"),
     db: AsyncSession = Depends(get_authed_db),
     tenant_id: str = Depends(get_current_tenant_id),
     service: PortfolioService = Depends(_get_service),
