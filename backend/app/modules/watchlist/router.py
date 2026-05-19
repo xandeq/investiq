@@ -144,6 +144,7 @@ async def get_watchlist_quotes(
                 "price_alert_target": str(item.price_alert_target) if item.price_alert_target else None,
                 "alert_triggered_at": item.alert_triggered_at.isoformat() if item.alert_triggered_at else None,
                 "price": str(quote.price) if quote and not quote.data_stale else None,
+                "change_pct": str(quote.change_pct) if quote and not quote.data_stale else None,
                 "data_stale": quote.data_stale if quote else True,
                 "pl": str(fundamentals.pl) if fundamentals and not fundamentals.data_stale and fundamentals.pl else None,
                 "dy": str(fundamentals.dy) if fundamentals and not fundamentals.data_stale and fundamentals.dy else None,

@@ -13,6 +13,7 @@ export interface WatchlistQuote {
   price_alert_target: string | null;
   alert_triggered_at: string | null;
   price: string | null;
+  change_pct: string | null;
   data_stale: boolean;
   pl: string | null;
   dy: string | null;

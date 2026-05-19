@@ -17,6 +17,14 @@ function fmtPct(v: string | null) {
   return `${Number(v).toFixed(2)}%`;
 }
 
+function changeBadge(v: string | null) {
+  if (!v) return <span className="text-zinc-400 text-xs">—</span>;
+  const n = parseFloat(v);
+  if (isNaN(n)) return <span className="text-zinc-400 text-xs">—</span>;
+  const color = n >= 0 ? "text-emerald-600" : "text-red-500";
+  return <span className={`text-xs font-semibold tabular-nums ${color}`}>{n >= 0 ? "+" : ""}{n.toFixed(2)}%</span>;
+}
+
 function AddForm() {
   const [ticker, setTicker] = useState("");
   const addMut = useAddToWatchlist();
@@ -161,13 +169,18 @@ function WatchlistRow({ item, index }: { item: WatchlistQuote; index: number }) 
     >
       <td className="px-4 py-3">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-mono font-semibold">{item.ticker}</span>
+          <Link href={`/stock/${item.ticker}`} className="font-mono font-semibold hover:text-blue-600 transition-colors">
+            {item.ticker}
+          </Link>
           {item.price_alert_target && <AlertBadge item={item} />}
         </div>
         {item.notes && <p className="text-xs text-zinc-400 mt-0.5">{item.notes}</p>}
       </td>
       <td className="px-4 py-3 text-right tabular-nums font-medium">
         {item.data_stale ? <span className="text-xs text-zinc-400">N/D</span> : fmtBRL(item.price)}
+      </td>
+      <td className="px-4 py-3 text-right">
+        {item.data_stale ? <span className="text-zinc-400 text-xs">—</span> : changeBadge(item.change_pct)}
       </td>
       <td className="px-4 py-3 text-right tabular-nums text-zinc-400">{fmtPct(item.dy)}</td>
       <td className="px-4 py-3 text-right tabular-nums text-zinc-400">{item.pl ?? "—"}</td>
@@ -216,6 +229,7 @@ export function WatchlistContent() {
               <tr>
                 <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400">Ticker</th>
                 <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400">Preço</th>
+                <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400">Var.</th>
                 <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400">DY</th>
                 <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400">P/L</th>
                 <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400">P/VP</th>
@@ -226,7 +240,7 @@ export function WatchlistContent() {
             <tbody className="divide-y divide-zinc-50">
               {isLoading && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-4">
+                  <td colSpan={8} className="px-4 py-4">
                     <div className="space-y-2">
                       {[0,1,2].map((n) => <ShimmerSkeleton key={n} className="h-8 w-full rounded-md" />)}
                     </div>
@@ -235,7 +249,7 @@ export function WatchlistContent() {
               )}
               {!isLoading && quotes.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-zinc-400 text-sm">
+                  <td colSpan={8} className="px-4 py-8 text-center text-zinc-400 text-sm">
                     Sua watchlist está vazia. Adicione um ticker acima.
                   </td>
                 </tr>
