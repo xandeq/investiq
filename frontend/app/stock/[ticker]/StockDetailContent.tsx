@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { Eye, EyeSlash } from "@phosphor-icons/react";
 import { useStockAnalysis } from "@/features/analysis/hooks/useStockAnalysis";
 import { AnalysisDisclaimer } from "@/features/analysis/components/AnalysisDisclaimer";
 import { DCFSection } from "@/features/analysis/components/DCFSection";
@@ -8,6 +9,7 @@ import { DividendSection } from "@/features/analysis/components/DividendSection"
 import { SectorSection } from "@/features/analysis/components/SectorSection";
 import { NarrativeSection } from "@/features/analysis/components/NarrativeSection";
 import { PremiumGate } from "@/features/ai/components/PremiumGate";
+import { useWatchlist, useAddToWatchlist, useRemoveFromWatchlist } from "@/features/watchlist/hooks/useWatchlist";
 
 interface Props {
   ticker: string;
@@ -27,6 +29,29 @@ function earliestTimestamp(timestamps: (string | undefined)[]): string | undefin
   const valid = timestamps.filter(Boolean) as string[];
   if (valid.length === 0) return undefined;
   return valid.sort()[0];
+}
+
+function WatchlistToggle({ ticker }: { ticker: string }) {
+  const { data: items = [] } = useWatchlist();
+  const inWatchlist = items.some((w: { ticker: string }) => w.ticker === ticker);
+  const addMut = useAddToWatchlist();
+  const removeMut = useRemoveFromWatchlist();
+  const pending = addMut.isPending || removeMut.isPending;
+  return (
+    <button
+      disabled={pending}
+      onClick={() => inWatchlist ? removeMut.mutate(ticker) : addMut.mutate({ ticker })}
+      title={inWatchlist ? "Remover da watchlist" : "Adicionar à watchlist"}
+      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors disabled:opacity-50 ${
+        inWatchlist
+          ? "border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-100"
+          : "border-zinc-200 text-zinc-500 hover:border-blue-300 hover:text-blue-500 hover:bg-blue-50"
+      }`}
+    >
+      {inWatchlist ? <Eye size={14} weight="fill" /> : <EyeSlash size={14} />}
+      {inWatchlist ? "Watchlist" : "Monitorar"}
+    </button>
+  );
 }
 
 export function StockDetailContent({ ticker }: Props) {
@@ -63,9 +88,12 @@ export function StockDetailContent({ ticker }: Props) {
         </Link>
       </div>
 
-      <div>
-        <h1 className="text-2xl font-bold">{ticker}</h1>
-        <p className="text-muted-foreground">Análise Fundamentalista</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">{ticker}</h1>
+          <p className="text-muted-foreground">Análise Fundamentalista</p>
+        </div>
+        <WatchlistToggle ticker={ticker} />
       </div>
 
       {/* CVM Disclaimer — always first */}

@@ -1,6 +1,8 @@
 "use client";
 import Link from "next/link";
+import { Eye, EyeSlash } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
+import { useWatchlist, useAddToWatchlist, useRemoveFromWatchlist } from "@/features/watchlist/hooks/useWatchlist";
 import { getFIIScreenerRanked } from "@/features/fii_screener/api";
 import { useFIIAnalysis } from "@/features/fii_detail/hooks/useFIIAnalysis";
 import { FIIDYChart } from "@/features/fii_detail/components/FIIDYChart";
@@ -11,6 +13,29 @@ import type { FIIAnalysisResult, FIIPortfolio } from "@/features/fii_detail/type
 
 interface Props {
   ticker: string;
+}
+
+function WatchlistToggle({ ticker }: { ticker: string }) {
+  const { data: items = [] } = useWatchlist();
+  const inWatchlist = items.some((w: { ticker: string }) => w.ticker === ticker);
+  const addMut = useAddToWatchlist();
+  const removeMut = useRemoveFromWatchlist();
+  const pending = addMut.isPending || removeMut.isPending;
+  return (
+    <button
+      disabled={pending}
+      onClick={() => inWatchlist ? removeMut.mutate(ticker) : addMut.mutate({ ticker })}
+      title={inWatchlist ? "Remover da watchlist" : "Adicionar à watchlist"}
+      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors disabled:opacity-50 ${
+        inWatchlist
+          ? "border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-100"
+          : "border-zinc-200 text-zinc-500 hover:border-blue-300 hover:text-blue-500 hover:bg-blue-50"
+      }`}
+    >
+      {inWatchlist ? <Eye size={14} weight="fill" /> : <EyeSlash size={14} />}
+      {inWatchlist ? "Watchlist" : "Monitorar"}
+    </button>
+  );
 }
 
 export function FIIDetailContent({ ticker }: Props) {
@@ -58,16 +83,19 @@ export function FIIDetailContent({ ticker }: Props) {
       </div>
 
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">{ticker}</h1>
-        {fiiRow?.short_name && (
-          <p className="text-muted-foreground">{fiiRow.short_name}</p>
-        )}
-        {fiiRow?.segmento && (
-          <span className="inline-block mt-1 px-2 py-0.5 bg-muted rounded text-xs">
-            {fiiRow.segmento}
-          </span>
-        )}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">{ticker}</h1>
+          {fiiRow?.short_name && (
+            <p className="text-muted-foreground">{fiiRow.short_name}</p>
+          )}
+          {fiiRow?.segmento && (
+            <span className="inline-block mt-1 px-2 py-0.5 bg-muted rounded text-xs">
+              {fiiRow.segmento}
+            </span>
+          )}
+        </div>
+        <WatchlistToggle ticker={ticker} />
       </div>
 
       {/* KPI Cards */}
