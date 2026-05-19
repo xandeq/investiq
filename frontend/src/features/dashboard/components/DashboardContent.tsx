@@ -13,6 +13,7 @@ import { SectorAllocationChart } from "./SectorAllocationChart";
 import { DividendCalendarCard } from "./DividendCalendarCard";
 import { DividendRankingCard } from "./DividendRankingCard";
 import { DividendIncomeCard } from "./DividendIncomeCard";
+import { MonthlyReturnHeatmap } from "./MonthlyReturnHeatmap";
 import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 import Link from "next/link";
 import { OnboardingBanner } from "@/features/onboarding/OnboardingBanner";
@@ -159,6 +160,9 @@ export function DashboardContent() {
 
       {/* Row 3f: Dividend Income History */}
       <DividendIncomeCard />
+
+      {/* Row 3g: Monthly Return Heatmap */}
+      <MonthlyReturnHeatmap />
 
       {/* Row 4: Recent Transactions */}
       {isLoading ? (

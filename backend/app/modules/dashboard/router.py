@@ -1,8 +1,9 @@
 """Dashboard API router.
 
 Endpoints:
-  GET /dashboard/summary           — consolidated portfolio summary (P&L, allocation, timeseries)
-  GET /dashboard/portfolio-history — EOD portfolio value history for historical chart
+  GET /dashboard/summary                — consolidated portfolio summary (P&L, allocation, timeseries)
+  GET /dashboard/portfolio-history      — EOD portfolio value history for historical chart
+  GET /dashboard/monthly-performance    — month-by-month return % heatmap data
 
 Uses get_authed_db (RLS-scoped session) — same pattern as portfolio router.
 _get_redis is a separate dependency so tests can override it independently.
@@ -99,6 +100,66 @@ async def get_portfolio_history(
         for r in rows
     ]
     return {"range": range, "points": points}
+
+
+@router.get("/monthly-performance")
+async def get_monthly_performance(
+    years: int = Query(3, ge=1, le=5),
+    db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+) -> dict:
+    """Return month-by-month portfolio return percentages for a heatmap.
+
+    Response:
+      {
+        "months": [
+          {"year": 2026, "month": 1, "return_pct": 3.45, "start_value": "14000.00", "end_value": "14482.00"},
+          ...
+        ]
+      }
+
+    Each month's return is computed from the first and last data point in that
+    calendar month. Months with fewer than 2 data points are skipped (insufficient data).
+    """
+    since = date.today().replace(day=1) - timedelta(days=365 * years)
+
+    result = await db.execute(
+        text(
+            "SELECT snapshot_date, total_value "
+            "FROM portfolio_daily_value "
+            "WHERE tenant_id = :tid AND snapshot_date >= :since "
+            "ORDER BY snapshot_date ASC"
+        ),
+        {"tid": tenant_id, "since": since},
+    )
+    rows = result.fetchall()
+
+    # Group by (year, month)
+    from collections import defaultdict
+    monthly: dict[tuple[int, int], list[tuple]] = defaultdict(list)
+    for snap_date, total_value in rows:
+        monthly[(snap_date.year, snap_date.month)].append((snap_date, float(total_value)))
+
+    months_out = []
+    for (year, month), points in sorted(monthly.items()):
+        if len(points) < 2:
+            continue
+        start_val = points[0][1]
+        end_val = points[-1][1]
+        if start_val <= 0:
+            continue
+        ret_pct = round(((end_val - start_val) / start_val) * 100, 2)
+        months_out.append(
+            {
+                "year": year,
+                "month": month,
+                "return_pct": ret_pct,
+                "start_value": f"{start_val:.2f}",
+                "end_value": f"{end_val:.2f}",
+            }
+        )
+
+    return {"months": months_out}
 
 
 @router.get("/risk-metrics", response_model=RiskMetricsResponse)
