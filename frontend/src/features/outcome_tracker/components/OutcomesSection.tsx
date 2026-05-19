@@ -3,19 +3,22 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useOutcomes, useCreateOutcome, useCloseOutcome } from "../hooks/useOutcomes";
 import { useOutcomeStats } from "../hooks/useOutcomeStats";
+import { useExpectancy } from "../hooks/useExpectancy";
 import { OutcomeStatsBar } from "./OutcomeStatsBar";
 import { OutcomesTable } from "./OutcomesTable";
 import { RegisterOutcomeForm } from "./RegisterOutcomeForm";
 import { CloseOutcomeModal } from "./CloseOutcomeModal";
+import { ExpectancyChart } from "./ExpectancyChart";
 import type { OutcomeClosePayload, SignalOutcome } from "../types";
 
 export function OutcomesSection() {
   const [closingOutcome, setClosingOutcome] = useState<SignalOutcome | null>(null);
 
-  const outcomesQuery = useOutcomes();
-  const statsQuery    = useOutcomeStats();
-  const createMut     = useCreateOutcome();
-  const closeMut      = useCloseOutcome();
+  const outcomesQuery    = useOutcomes();
+  const statsQuery       = useOutcomeStats();
+  const expectancyQuery  = useExpectancy();
+  const createMut        = useCreateOutcome();
+  const closeMut         = useCloseOutcome();
 
   const outcomes = outcomesQuery.data?.outcomes ?? [];
 
@@ -39,6 +42,11 @@ export function OutcomesSection() {
           stats={statsQuery.data}
           isLoading={statsQuery.isLoading}
         />
+      )}
+
+      {/* Expectancy by pattern (only when there are patterns with data) */}
+      {(expectancyQuery.data?.expectancy?.length ?? 0) > 0 && (
+        <ExpectancyChart data={expectancyQuery.data!.expectancy} />
       )}
 
       {/* Error banner */}
