@@ -115,7 +115,7 @@ class TestStartAllAnalysisTypes:
             for resp in [resp_dcf, resp_earnings, resp_dividend, resp_sector]:
                 assert resp.json()["status"] == "pending"
 
-        asyncio.get_event_loop().run_until_complete(_run())
+        asyncio.run(_run())
 
 
 # ---------------------------------------------------------------------------
@@ -175,7 +175,7 @@ class TestGetPendingJob:
             assert data["status"] == "pending"
             assert data["result"] is None  # no result yet
 
-        asyncio.get_event_loop().run_until_complete(_run())
+        asyncio.run(_run())
 
 
 # ---------------------------------------------------------------------------
@@ -246,7 +246,7 @@ class TestGetCompletedJob:
             assert data["result"]["ticker"] == "VALE3"
             assert "narrative" in data["result"]
 
-        asyncio.get_event_loop().run_until_complete(_run())
+        asyncio.run(_run())
 
 
 # ---------------------------------------------------------------------------
@@ -304,7 +304,7 @@ class TestTenantIsolation:
                 f"Expected 404 for tenant isolation, got {get_resp.status_code}: {get_resp.text}"
             )
 
-        asyncio.get_event_loop().run_until_complete(_run())
+        asyncio.run(_run())
 
 
 # ---------------------------------------------------------------------------
@@ -346,7 +346,7 @@ class TestQuotaExceeded:
             assert data["detail"]["quota_used"] == 50
             assert data["detail"]["quota_limit"] == 50
 
-        asyncio.get_event_loop().run_until_complete(_run())
+        asyncio.run(_run())
 
     def test_quota_exceeded_for_all_endpoints(self, client, email_stub):
         """All 4 endpoints enforce quota and return 403 with QUOTA_EXCEEDED code."""
@@ -385,7 +385,7 @@ class TestQuotaExceeded:
                     )
                     assert resp.json()["detail"]["code"] == "QUOTA_EXCEEDED"
 
-        asyncio.get_event_loop().run_until_complete(_run())
+        asyncio.run(_run())
 
 
 # ---------------------------------------------------------------------------
@@ -438,7 +438,7 @@ class TestResponseShape:
                 f"Disclaimer should contain 'CVM', got: {data['disclaimer']}"
             )
 
-        asyncio.get_event_loop().run_until_complete(_run())
+        asyncio.run(_run())
 
     def test_analysis_id_is_uuid(self, client, email_stub):
         """GET /analysis/{job_id} response.analysis_id must be a valid UUID."""
@@ -485,7 +485,7 @@ class TestResponseShape:
             except (ValueError, AttributeError) as exc:
                 pytest.fail(f"analysis_id is not a valid UUID: {data['analysis_id']} — {exc}")
 
-        asyncio.get_event_loop().run_until_complete(_run())
+        asyncio.run(_run())
 
     def test_get_nonexistent_job_returns_404(self, client, email_stub):
         """GET /analysis/{random_uuid} returns 404 when job does not exist."""
@@ -506,4 +506,4 @@ class TestResponseShape:
                 f"Expected 404 for unknown job_id, got {get_resp.status_code}"
             )
 
-        asyncio.get_event_loop().run_until_complete(_run())
+        asyncio.run(_run())
