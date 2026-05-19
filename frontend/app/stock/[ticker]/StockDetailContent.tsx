@@ -11,6 +11,7 @@ import { NarrativeSection } from "@/features/analysis/components/NarrativeSectio
 import { PremiumGate } from "@/features/ai/components/PremiumGate";
 import { useWatchlist, useAddToWatchlist, useRemoveFromWatchlist } from "@/features/watchlist/hooks/useWatchlist";
 import { useStockQuote } from "@/hooks/useStockQuote";
+import { useFundamentals } from "@/hooks/useFundamentals";
 
 interface Props {
   ticker: string;
@@ -30,6 +31,34 @@ function earliestTimestamp(timestamps: (string | undefined)[]): string | undefin
   const valid = timestamps.filter(Boolean) as string[];
   if (valid.length === 0) return undefined;
   return valid.sort()[0];
+}
+
+function FundamentalsRow({ ticker }: { ticker: string }) {
+  const { data: f } = useFundamentals(ticker);
+  if (!f || f.data_stale) return null;
+
+  const items = [
+    { label: "P/L", value: f.pl ? parseFloat(f.pl).toFixed(1) : null },
+    { label: "P/VP", value: f.pvp ? parseFloat(f.pvp).toFixed(2) : null },
+    { label: "DY", value: f.dy ? `${parseFloat(f.dy).toFixed(1)}%` : null },
+    { label: "EV/EBITDA", value: f.ev_ebitda ? parseFloat(f.ev_ebitda).toFixed(1) : null },
+  ].filter((item) => item.value !== null);
+
+  if (items.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap gap-2 mt-3">
+      {items.map((item) => (
+        <div
+          key={item.label}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-50 border border-zinc-200 text-xs"
+        >
+          <span className="text-zinc-400 font-medium">{item.label}</span>
+          <span className="font-semibold text-zinc-800 tabular-nums">{item.value}</span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function LivePriceChip({ ticker }: { ticker: string }) {
@@ -114,6 +143,7 @@ export function StockDetailContent({ ticker }: Props) {
             <p className="text-muted-foreground">Análise Fundamentalista</p>
             <LivePriceChip ticker={ticker} />
           </div>
+          <FundamentalsRow ticker={ticker} />
         </div>
         <WatchlistToggle ticker={ticker} />
       </div>
