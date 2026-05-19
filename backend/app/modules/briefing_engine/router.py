@@ -13,11 +13,15 @@ from datetime import datetime, timezone, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi import status as http_status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.db import get_db
 from app.core.limiter import limiter
 from app.core.middleware import get_current_tenant_id
 from app.core.security import get_current_user
+from app.modules.auth.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -80,19 +84,21 @@ async def force_generate_briefing(
 @limiter.limit("2/minute")
 async def send_test_briefing(
     request: Request,
-    current_user=Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Trigger morning briefing to Telegram immediately (admin only).
 
     Builds the full report and sends it via Telegram — same as the 08h30 beat task.
     """
-    if not current_user or current_user.get("email") not in settings.ADMIN_EMAILS:
+    db_result = await db.execute(select(User).where(User.id == current_user["user_id"]))
+    user = db_result.scalar_one_or_none()
+    if not user or user.email not in settings.ADMIN_EMAILS:
         raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Admin only")
 
     from app.modules.telegram_bot.tasks import send_morning_briefing
-    result = send_morning_briefing.delay()
-    task_id = result.id
-    return {"status": "queued", "task_id": task_id, "message": "Morning briefing queued for Telegram delivery"}
+    task = send_morning_briefing.delay()
+    return {"status": "queued", "task_id": task.id, "message": "Morning briefing queued for Telegram delivery"}
 
 
 @router.get("/sentiment")
