@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { CheckCircle, Bell, BellSlash } from "@phosphor-icons/react";
 import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 import { tickerPath } from "@/lib/formatters";
+import { useSortedData } from "@/hooks/useSort";
+import { SortableHeader } from "@/components/ui/SortableHeader";
 import { useWatchlistQuotes, useAddToWatchlist, useRemoveFromWatchlist, useUpdateWatchlistItem } from "../hooks/useWatchlist";
 import type { WatchlistQuote } from "../types";
 
@@ -218,6 +220,7 @@ function WatchlistRow({ item, index }: { item: WatchlistQuote; index: number }) 
 
 export function WatchlistContent() {
   const { data: quotes = [], isLoading } = useWatchlistQuotes();
+  const { sorted, col, dir, toggle } = useSortedData(quotes, "ticker", "asc");
 
   return (
     <div className="space-y-4">
@@ -234,12 +237,12 @@ export function WatchlistContent() {
           <table className="w-full text-sm">
             <thead className="border-b border-zinc-100">
               <tr>
-                <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400">Ticker</th>
-                <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400">Preço</th>
-                <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400">Var.</th>
-                <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400">DY</th>
-                <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400">P/L</th>
-                <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400">P/VP</th>
+                <SortableHeader col="ticker" label="Ticker" activeCol={col} dir={dir} onSort={toggle} className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400" />
+                <SortableHeader col="price" label="Preço" activeCol={col} dir={dir} onSort={toggle} className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400" align="right" />
+                <SortableHeader col="change_pct" label="Var." activeCol={col} dir={dir} onSort={toggle} className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400" align="right" />
+                <SortableHeader col="dy" label="DY" activeCol={col} dir={dir} onSort={toggle} className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400" align="right" />
+                <SortableHeader col="pl" label="P/L" activeCol={col} dir={dir} onSort={toggle} className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400" align="right" />
+                <SortableHeader col="pvp" label="P/VP" activeCol={col} dir={dir} onSort={toggle} className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400" align="right" />
                 <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-400">Alerta</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -261,7 +264,7 @@ export function WatchlistContent() {
                   </td>
                 </tr>
               )}
-              {quotes.map((q, i) => (
+              {sorted.map((q, i) => (
                 <WatchlistRow key={q.ticker} item={q} index={i} />
               ))}
             </tbody>
