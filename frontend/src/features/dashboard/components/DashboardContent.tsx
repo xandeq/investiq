@@ -14,6 +14,8 @@ import { DividendCalendarCard } from "./DividendCalendarCard";
 import { DividendRankingCard } from "./DividendRankingCard";
 import { DividendIncomeCard } from "./DividendIncomeCard";
 import { MonthlyReturnHeatmap } from "./MonthlyReturnHeatmap";
+import { GoalsProgressCard } from "./GoalsProgressCard";
+import { PositionMoversCard } from "./PositionMoversCard";
 import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 import Link from "next/link";
 import { OnboardingBanner } from "@/features/onboarding/OnboardingBanner";
@@ -131,6 +133,9 @@ export function DashboardContent() {
       {/* Row 2: Macro Indicators */}
       <MacroIndicators />
 
+      {/* Row 2b: Position Movers — today's top gainers/losers from portfolio */}
+      <PositionMoversCard />
+
       {/* Row 3: Charts — side by side on lg, stacked on mobile */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {isLoading ? (
@@ -163,6 +168,9 @@ export function DashboardContent() {
 
       {/* Row 3g: Monthly Return Heatmap */}
       <MonthlyReturnHeatmap />
+
+      {/* Row 3h: Investment Goals Progress */}
+      <GoalsProgressCard />
 
       {/* Row 4: Recent Transactions */}
       {isLoading ? (

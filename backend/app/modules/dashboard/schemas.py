@@ -100,3 +100,16 @@ class DividendEventItem(BaseModel):
 class DividendCalendarResponse(BaseModel):
     events: list[DividendEventItem]
     data_available: bool     # False if brapi returned nothing
+
+
+class MoverItem(BaseModel):
+    ticker: str
+    change_pct: Decimal      # daily % change (from Redis quote)
+    pnl_impact: Decimal      # quantity × change_per_share (in BRL)
+    current_price: Decimal
+
+
+class PositionMoversResponse(BaseModel):
+    gainers: list[MoverItem]
+    losers: list[MoverItem]
+    data_stale: bool         # True when Redis quotes are missing

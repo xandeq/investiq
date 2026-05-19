@@ -1,5 +1,6 @@
 "use client";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { usePnl } from "@/features/portfolio/hooks/usePnl";
 import { formatBRL, formatPct } from "@/lib/formatters";
 import { useSortedData } from "@/hooks/useSort";
@@ -109,7 +110,15 @@ export function PnlTable() {
                 transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1], delay: i * 0.03 }}
                 className="border-b border-zinc-50 last:border-0 hover:bg-zinc-50/60 transition-colors"
               >
-                <td className="py-2.5 px-3 font-semibold">{pos.ticker as string}</td>
+                <td className="py-2.5 px-3 font-semibold">
+                  <Link
+                    href={`/stock/${pos.ticker as string}`}
+                    className="font-mono hover:text-blue-600 transition-colors"
+                    title={`Ver análise de ${pos.ticker as string}`}
+                  >
+                    {pos.ticker as string}
+                  </Link>
+                </td>
                 <td className="py-2.5 px-3 text-zinc-400 text-xs">
                   {ASSET_CLASS_LABELS[pos.asset_class as string] ?? (pos.asset_class as string)}
                 </td>

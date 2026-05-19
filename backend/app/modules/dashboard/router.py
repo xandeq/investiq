@@ -4,12 +4,14 @@ Endpoints:
   GET /dashboard/summary                — consolidated portfolio summary (P&L, allocation, timeseries)
   GET /dashboard/portfolio-history      — EOD portfolio value history for historical chart
   GET /dashboard/monthly-performance    — month-by-month return % heatmap data
+  GET /dashboard/position-movers        — today's top gainers and losers from the portfolio
 
 Uses get_authed_db (RLS-scoped session) — same pattern as portfolio router.
 _get_redis is a separate dependency so tests can override it independently.
 """
 
 from datetime import date, timedelta
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select, text
@@ -18,12 +20,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.middleware import get_authed_db, get_current_tenant_id
 from app.modules.dashboard.schemas import (
     DashboardSummaryResponse,
+    MoverItem,
+    PositionMoversResponse,
     RiskMetricsResponse,
     SectorAllocationResponse,
     DividendCalendarResponse,
     DividendRankingResponse,
 )
 from app.modules.dashboard.service import DashboardService
+from app.modules.market_data.service import MarketDataService
 
 router = APIRouter()
 
@@ -231,3 +236,72 @@ async def get_dividend_calendar(
     Returns empty list gracefully if brapi is unavailable.
     """
     return await service.get_dividend_calendar(db, tenant_id)
+
+
+@router.get("/position-movers", response_model=PositionMoversResponse)
+async def get_position_movers(
+    db: AsyncSession = Depends(get_authed_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+    redis=Depends(_get_redis),
+) -> PositionMoversResponse:
+    """Return today's top 3 gainers and losers from the user's portfolio.
+
+    Each mover shows:
+      - change_pct: daily % change from Redis quote
+      - pnl_impact: quantity × daily_change_per_share (BRL impact on portfolio)
+      - current_price: latest price from Redis
+
+    Returns data_stale=True when Redis has no quotes (cache cold start).
+    Positions with quantity ≤ 0 or no Redis quote are excluded.
+    """
+    # Compute net quantity per ticker from buy/sell transactions
+    result = await db.execute(
+        text(
+            "SELECT ticker, "
+            "SUM(CASE WHEN transaction_type = 'buy' THEN quantity ELSE -quantity END) AS net_qty "
+            "FROM transactions "
+            "WHERE tenant_id = :tid "
+            "  AND transaction_type IN ('buy', 'sell') "
+            "  AND deleted_at IS NULL "
+            "GROUP BY ticker "
+            "HAVING SUM(CASE WHEN transaction_type = 'buy' THEN quantity ELSE -quantity END) > 0"
+        ),
+        {"tid": tenant_id},
+    )
+    rows = result.fetchall()
+
+    if not rows:
+        return PositionMoversResponse(gainers=[], losers=[], data_stale=True)
+
+    tickers = [r[0] for r in rows]
+    qty_map: dict[str, Decimal] = {r[0]: Decimal(str(r[1])) for r in rows}
+
+    # Batch-fetch quotes from Redis (single MGET round-trip)
+    market_svc = MarketDataService(redis)
+    quotes = await market_svc.get_quotes_batch(tickers)
+
+    movers: list[MoverItem] = []
+    all_stale = True
+
+    for ticker, quote in quotes.items():
+        if quote.data_stale or ticker not in qty_map:
+            continue
+        all_stale = False
+        qty = qty_map[ticker]
+        pnl_impact = qty * quote.change
+        movers.append(MoverItem(
+            ticker=ticker,
+            change_pct=quote.change_pct,
+            pnl_impact=pnl_impact,
+            current_price=quote.price,
+        ))
+
+    movers.sort(key=lambda m: m.pnl_impact, reverse=True)
+    gainers = [m for m in movers if m.pnl_impact >= Decimal("0")][:3]
+    losers = [m for m in reversed(movers) if m.pnl_impact < Decimal("0")][:3]
+
+    return PositionMoversResponse(
+        gainers=gainers,
+        losers=losers,
+        data_stale=all_stale,
+    )

@@ -226,3 +226,55 @@ async def test_monthly_performance_shape_with_seeded_data(
         assert isinstance(m["month"], int)
         assert 1 <= m["month"] <= 12
         assert isinstance(m["return_pct"], float)
+
+
+async def test_position_movers_requires_auth(client: AsyncClient) -> None:
+    """GET /dashboard/position-movers returns 401 when unauthenticated."""
+    resp = await client.get("/dashboard/position-movers")
+    assert resp.status_code == 401
+
+
+async def test_position_movers_empty_portfolio(
+    client: AsyncClient, email_stub
+) -> None:
+    """GET /dashboard/position-movers returns empty movers for user with no transactions."""
+    await register_verify_and_login(client, email_stub, email="movers_empty@test.com")
+    resp = await client.get("/dashboard/position-movers")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "gainers" in data
+    assert "losers" in data
+    assert "data_stale" in data
+    assert data["gainers"] == []
+    assert data["losers"] == []
+    assert data["data_stale"] is True
+
+
+async def test_position_movers_shape_with_positions(
+    client: AsyncClient, email_stub
+) -> None:
+    """GET /dashboard/position-movers returns correct schema with seeded positions.
+
+    fakeredis starts empty so data_stale=True; gainers and losers are empty
+    because no quotes are available. Validates the response envelope shape.
+    """
+    await register_verify_and_login(client, email_stub, email="movers_seeded@test.com")
+    await _seed_transaction(client, "VALE3")
+    await _seed_transaction(client, "PETR4")
+
+    resp = await client.get("/dashboard/position-movers")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "gainers" in data
+    assert "losers" in data
+    assert "data_stale" in data
+    # fakeredis has no quotes — data_stale must be True, movers empty
+    assert data["data_stale"] is True
+    assert isinstance(data["gainers"], list)
+    assert isinstance(data["losers"], list)
+    # Each mover (if present) must have required fields
+    for mover in data["gainers"] + data["losers"]:
+        assert "ticker" in mover
+        assert "change_pct" in mover
+        assert "pnl_impact" in mover
+        assert "current_price" in mover
