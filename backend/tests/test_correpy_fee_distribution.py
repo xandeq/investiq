@@ -6,8 +6,11 @@ total_value rather than being duplicated on every row.
 """
 from __future__ import annotations
 
+import pytest
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
+
+pytest.importorskip("correpy", reason="correpy not installed locally — runs on VPS only")
 
 
 def test_brokerage_fee_distributed_proportionally():
