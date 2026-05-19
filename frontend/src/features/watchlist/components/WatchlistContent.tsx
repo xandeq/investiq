@@ -192,10 +192,16 @@ function WatchlistRow({ item, index }: { item: WatchlistQuote; index: number }) 
       <td className="px-4 py-3">
         <div className="flex items-center gap-1 justify-end">
           <Link
+            href={tickerPath(item.ticker)}
+            className="text-xs text-zinc-400 hover:text-blue-500 px-2 py-1 rounded-md hover:bg-blue-50 transition-all duration-200"
+          >
+            Ver
+          </Link>
+          <Link
             href={`/ai?ticker=${item.ticker}`}
             className="text-xs text-zinc-400 hover:text-blue-500 px-2 py-1 rounded-md hover:bg-blue-50 transition-all duration-200"
           >
-            Analisar
+            IA
           </Link>
           <button
             onClick={() => removeMut.mutate(item.ticker)}
