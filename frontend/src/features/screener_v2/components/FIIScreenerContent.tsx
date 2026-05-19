@@ -1,7 +1,10 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
+import { Eye, EyeSlash } from "@phosphor-icons/react";
 import { useFIIScreener } from "../hooks/useFIIScreener";
 import type { FIIRow, FIIScreenerParams } from "../types";
+import { useWatchlist, useAddToWatchlist, useRemoveFromWatchlist } from "@/features/watchlist/hooks/useWatchlist";
 
 const SEGMENTOS = ["Tijolo", "Papel", "Híbrido", "FoF", "Agro"];
 const PAGE_SIZE = 50;
@@ -34,12 +37,37 @@ function changeBadge(val: string | null) {
   return <span className={`font-medium ${color}`}>{n >= 0 ? "+" : ""}{n.toFixed(2)}%</span>;
 }
 
-function FIITableRow({ row }: { row: FIIRow }) {
+function FIIWatchlistButton({ ticker, inWatchlist }: { ticker: string; inWatchlist: boolean }) {
+  const addMut = useAddToWatchlist();
+  const removeMut = useRemoveFromWatchlist();
+  const pending = addMut.isPending || removeMut.isPending;
+  return (
+    <button
+      disabled={pending}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (inWatchlist) removeMut.mutate(ticker);
+        else addMut.mutate({ ticker });
+      }}
+      title={inWatchlist ? "Remover da watchlist" : "Adicionar à watchlist"}
+      className={`p-1.5 rounded-md transition-colors disabled:opacity-50 ${
+        inWatchlist ? "text-blue-500 hover:bg-blue-50" : "text-zinc-300 hover:text-blue-400 hover:bg-blue-50"
+      }`}
+    >
+      {inWatchlist ? <Eye size={14} weight="fill" /> : <EyeSlash size={14} />}
+    </button>
+  );
+}
+
+function FIITableRow({ row, watchlistTickers }: { row: FIIRow; watchlistTickers: Set<string> }) {
+  const inWatchlist = watchlistTickers.has(row.ticker);
   return (
     <tr className="border-b border-zinc-100 hover:bg-zinc-50 transition-colors">
       <td className="py-3 px-4">
-        <div className="font-mono font-bold text-sm">{row.ticker}</div>
-        <div className="text-xs text-zinc-500 truncate max-w-[140px]">{row.short_name ?? "—"}</div>
+        <Link href={`/fii/${row.ticker}`} className="group">
+          <div className="font-mono font-bold text-sm group-hover:text-blue-600 transition-colors">{row.ticker}</div>
+          <div className="text-xs text-zinc-500 truncate max-w-[140px]">{row.short_name ?? "—"}</div>
+        </Link>
       </td>
       <td className="py-3 px-4">{segmentoBadge(row.segmento)}</td>
       <td className="py-3 px-4 text-sm font-semibold">
@@ -53,6 +81,9 @@ function FIITableRow({ row }: { row: FIIRow }) {
       </td>
       <td className="py-3 px-4 text-sm">
         {row.num_cotistas ? row.num_cotistas.toLocaleString("pt-BR") : "—"}
+      </td>
+      <td className="py-3 px-2">
+        <FIIWatchlistButton ticker={row.ticker} inWatchlist={inWatchlist} />
       </td>
     </tr>
   );
@@ -77,6 +108,9 @@ export function FIIScreenerContent() {
     setApplied({});
     setOffset(0);
   }
+
+  const { data: watchlistItems = [] } = useWatchlist();
+  const watchlistTickers = new Set(watchlistItems.map((w: { ticker: string }) => w.ticker));
 
   const total = data?.total ?? 0;
   const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
@@ -208,13 +242,14 @@ export function FIIScreenerContent() {
                   <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-600">P/VP</th>
                   <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-600">Vacância</th>
                   <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-600">Cotistas</th>
+                  <th className="py-3 px-2 text-xs font-semibold text-zinc-600" />
                 </tr>
               </thead>
               <tbody>
                 {isLoading
                   ? Array.from({ length: 8 }).map((_, i) => (
                       <tr key={i} className="border-b border-zinc-100">
-                        {Array.from({ length: 8 }).map((_, j) => (
+                        {Array.from({ length: 9 }).map((_, j) => (
                           <td key={j} className="py-3 px-4">
                             <div className="h-4 bg-zinc-100 rounded" />
                           </td>
@@ -222,11 +257,11 @@ export function FIIScreenerContent() {
                       </tr>
                     ))
                   : data?.results.map((row) => (
-                      <FIITableRow key={`${row.ticker}`} row={row} />
+                      <FIITableRow key={`${row.ticker}`} row={row} watchlistTickers={watchlistTickers} />
                     ))}
                 {!isLoading && data?.results.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="py-12 text-center text-sm text-zinc-500">
+                    <td colSpan={9} className="py-12 text-center text-sm text-zinc-500">
                       Nenhum FII encontrado com os filtros aplicados
                     </td>
                   </tr>

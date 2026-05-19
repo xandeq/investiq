@@ -1,9 +1,12 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
+import { Eye, EyeSlash } from "@phosphor-icons/react";
 import { useAcoesScreener } from "../hooks/useAcoesScreener";
 import type { AcaoRow, AcaoScreenerParams } from "../types";
 import { useSortedData } from "@/hooks/useSort";
 import { SortableHeader } from "@/components/ui/SortableHeader";
+import { useWatchlist, useAddToWatchlist, useRemoveFromWatchlist } from "@/features/watchlist/hooks/useWatchlist";
 
 const SECTORS = [
   "Financeiro", "Energia", "Tecnologia", "Consumo", "Saúde",
@@ -34,12 +37,40 @@ function changeBadge(val: string | null) {
   return <span className={`font-medium ${color}`}>{n >= 0 ? "+" : ""}{n.toFixed(2)}%</span>;
 }
 
-function AcaoTableRow({ row }: { row: AcaoRow }) {
+function WatchlistButton({ ticker, inWatchlist }: { ticker: string; inWatchlist: boolean }) {
+  const addMut = useAddToWatchlist();
+  const removeMut = useRemoveFromWatchlist();
+  const pending = addMut.isPending || removeMut.isPending;
+
+  return (
+    <button
+      disabled={pending}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (inWatchlist) removeMut.mutate(ticker);
+        else addMut.mutate({ ticker });
+      }}
+      title={inWatchlist ? "Remover da watchlist" : "Adicionar à watchlist"}
+      className={`p-1.5 rounded-md transition-colors disabled:opacity-50 ${
+        inWatchlist
+          ? "text-blue-500 hover:bg-blue-50"
+          : "text-zinc-300 hover:text-blue-400 hover:bg-blue-50"
+      }`}
+    >
+      {inWatchlist ? <Eye size={14} weight="fill" /> : <EyeSlash size={14} />}
+    </button>
+  );
+}
+
+function AcaoTableRow({ row, watchlistTickers }: { row: AcaoRow; watchlistTickers: Set<string> }) {
+  const inWatchlist = watchlistTickers.has(row.ticker);
   return (
     <tr className="border-b border-zinc-100 hover:bg-zinc-50 transition-colors">
       <td className="py-3 px-4">
-        <div className="font-mono font-bold text-sm">{row.ticker}</div>
-        <div className="text-xs text-zinc-500 truncate max-w-[140px]">{row.short_name ?? "—"}</div>
+        <Link href={`/stock/${row.ticker}`} className="group">
+          <div className="font-mono font-bold text-sm group-hover:text-blue-600 transition-colors">{row.ticker}</div>
+          <div className="text-xs text-zinc-500 truncate max-w-[140px]">{row.short_name ?? "—"}</div>
+        </Link>
       </td>
       <td className="py-3 px-4 text-xs text-zinc-600">{row.sector ?? "—"}</td>
       <td className="py-3 px-4 text-sm font-semibold">
@@ -51,6 +82,9 @@ function AcaoTableRow({ row }: { row: AcaoRow }) {
       <td className="py-3 px-4 text-sm">{fmt(row.pvp)}</td>
       <td className="py-3 px-4 text-sm">{fmt(row.ev_ebitda)}</td>
       <td className="py-3 px-4 text-xs text-zinc-500">{fmtBRL(row.market_cap)}</td>
+      <td className="py-3 px-2">
+        <WatchlistButton ticker={row.ticker} inWatchlist={inWatchlist} />
+      </td>
     </tr>
   );
 }
@@ -66,6 +100,8 @@ export function AcoesScreenerContent() {
   const { sorted: sortedAcoes, col, dir, toggle } = useSortedData(
     data?.results ?? [],
   );
+  const { data: watchlistItems = [] } = useWatchlist();
+  const watchlistTickers = new Set(watchlistItems.map((w: { ticker: string }) => w.ticker));
 
   function applyFilters() {
     setOffset(0);
@@ -215,13 +251,14 @@ export function AcoesScreenerContent() {
                   <SortableHeader col="pvp" label="P/VP" activeCol={col} dir={dir} onSort={toggle} className="text-left py-3 px-4 text-xs font-semibold text-zinc-600" />
                   <SortableHeader col="ev_ebitda" label="EV/EBITDA" activeCol={col} dir={dir} onSort={toggle} className="text-left py-3 px-4 text-xs font-semibold text-zinc-600" />
                   <SortableHeader col="market_cap" label="Market Cap" activeCol={col} dir={dir} onSort={toggle} className="text-left py-3 px-4 text-xs font-semibold text-zinc-600" />
+                  <th className="py-3 px-2 text-xs font-semibold text-zinc-600" />
                 </tr>
               </thead>
               <tbody>
                 {isLoading
                   ? Array.from({ length: 8 }).map((_, i) => (
                       <tr key={i} className="border-b border-zinc-100">
-                        {Array.from({ length: 9 }).map((_, j) => (
+                        {Array.from({ length: 10 }).map((_, j) => (
                           <td key={j} className="py-3 px-4">
                             <div className="h-4 bg-zinc-100 rounded" />
                           </td>
@@ -229,11 +266,11 @@ export function AcoesScreenerContent() {
                       </tr>
                     ))
                   : sortedAcoes.map((row) => (
-                      <AcaoTableRow key={`${row.ticker}-${row.snapshot_date}`} row={row} />
+                      <AcaoTableRow key={`${row.ticker}-${row.snapshot_date}`} row={row} watchlistTickers={watchlistTickers} />
                     ))}
                 {!isLoading && data?.results.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="py-12 text-center text-sm text-zinc-500">
+                    <td colSpan={10} className="py-12 text-center text-sm text-zinc-500">
                       Nenhuma ação encontrada com os filtros aplicados
                     </td>
                   </tr>
