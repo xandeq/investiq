@@ -26,6 +26,7 @@ export function useCreateOutcome() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: OUTCOMES_KEY });
       qc.invalidateQueries({ queryKey: ["outcome-stats"] });
+      qc.invalidateQueries({ queryKey: ["outcome-expectancy"] });
     },
   });
 }
@@ -38,6 +39,7 @@ export function useCloseOutcome() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: OUTCOMES_KEY });
       qc.invalidateQueries({ queryKey: ["outcome-stats"] });
+      qc.invalidateQueries({ queryKey: ["outcome-expectancy"] });
     },
   });
 }
