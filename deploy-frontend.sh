@@ -12,16 +12,9 @@
 
 set -euo pipefail
 
-PLINK="/c/Program Files/PuTTY/plink"
-# Load only VPS secrets from ~/.claude/.secrets.env (safe parsing)
-if [[ -f "$HOME/.claude/.secrets.env" ]]; then
-  VPS_HOST=$(grep "^VPS_HOST=" "$HOME/.claude/.secrets.env" | cut -d'=' -f2)
-  VPS_USER=$(grep "^VPS_USER=" "$HOME/.claude/.secrets.env" | cut -d'=' -f2)
-  VPS_PASSWORD=$(grep "^VPS_PASSWORD=" "$HOME/.claude/.secrets.env" | cut -d'=' -f2)
-else
-  echo "ERROR: ~/.claude/.secrets.env not found" >&2
-  exit 1
-fi
+SSH_KEY="$HOME/.ssh/id_ed25519_vps"
+VPS_HOST="185.173.110.180"
+VPS_USER="root"
 CONTAINER="financas-frontend-1"
 FRONTEND_DIR="/d/claude-code/investiq/frontend"
 
@@ -39,7 +32,7 @@ done
 
 # Helper: run command on VPS
 vps() {
-  "$PLINK" -batch -pw "$VPS_PASSWORD" "${VPS_USER}@${VPS_HOST}" "$@"
+  ssh -o StrictHostKeyChecking=accept-new -i "$SSH_KEY" "${VPS_USER}@${VPS_HOST}" "$@"
 }
 
 echo ""
@@ -84,7 +77,7 @@ vps "rm -rf /tmp/fe-deploy && mkdir -p /tmp/fe-deploy/standalone"
 # Container CMD is: node .next/standalone/server.js — files must be at /app/.next/standalone/
 info "  Uploading .next/standalone (excluding node_modules — keeps Alpine Linux binaries)..."
 (cd .next/standalone && tar czf - --exclude='./node_modules' .) | \
-  "$PLINK" -batch -pw "$VPS_PASSWORD" "${VPS_USER}@${VPS_HOST}" \
+  ssh -o StrictHostKeyChecking=accept-new -i "$SSH_KEY" "${VPS_USER}@${VPS_HOST}" \
   "tar xzf - -C /tmp/fe-deploy/standalone"
 
 success "Upload complete."

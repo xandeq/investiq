@@ -6,16 +6,9 @@
 
 set -euo pipefail
 
-PLINK="/c/Program Files/PuTTY/plink"
-# Load only VPS secrets from ~/.claude/.secrets.env (safe parsing)
-if [[ -f "$HOME/.claude/.secrets.env" ]]; then
-  VPS_HOST=$(grep "^VPS_HOST=" "$HOME/.claude/.secrets.env" | cut -d'=' -f2)
-  VPS_USER=$(grep "^VPS_USER=" "$HOME/.claude/.secrets.env" | cut -d'=' -f2)
-  VPS_PASSWORD=$(grep "^VPS_PASSWORD=" "$HOME/.claude/.secrets.env" | cut -d'=' -f2)
-else
-  echo "ERROR: ~/.claude/.secrets.env not found" >&2
-  exit 1
-fi
+SSH_KEY="$HOME/.ssh/id_ed25519_vps"
+VPS_HOST="185.173.110.180"
+VPS_USER="root"
 CONTAINER="financas-backend-1"
 WORKER_CONTAINER="financas-celery-worker-1"
 BEAT_CONTAINER="financas-celery-beat-1"
@@ -33,7 +26,7 @@ for arg in "$@"; do
 done
 
 vps() {
-  "$PLINK" -batch -pw "$VPS_PASSWORD" "${VPS_USER}@${VPS_HOST}" "$@"
+  ssh -o StrictHostKeyChecking=accept-new -i "$SSH_KEY" "${VPS_USER}@${VPS_HOST}" "$@"
 }
 
 echo ""
@@ -47,7 +40,7 @@ info "Step 1/3: Uploading backend/app and alembic/versions to VPS..."
 cd "$PROJECT_DIR/backend"
 
 (tar czf - app/ alembic/) | \
-  "$PLINK" -batch -pw "$VPS_PASSWORD" "${VPS_USER}@${VPS_HOST}" \
+  ssh -o StrictHostKeyChecking=accept-new -i "$SSH_KEY" "${VPS_USER}@${VPS_HOST}" \
   "mkdir -p /tmp/be-deploy && tar xzf - -C /tmp/be-deploy"
 
 success "Upload complete."
