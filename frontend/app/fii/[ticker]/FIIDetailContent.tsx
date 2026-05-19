@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Eye, EyeSlash } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useWatchlist, useAddToWatchlist, useRemoveFromWatchlist } from "@/features/watchlist/hooks/useWatchlist";
+import { useStockQuote } from "@/hooks/useStockQuote";
 import { getFIIScreenerRanked } from "@/features/fii_screener/api";
 import { useFIIAnalysis } from "@/features/fii_detail/hooks/useFIIAnalysis";
 import { FIIDYChart } from "@/features/fii_detail/components/FIIDYChart";
@@ -13,6 +14,24 @@ import type { FIIAnalysisResult, FIIPortfolio } from "@/features/fii_detail/type
 
 interface Props {
   ticker: string;
+}
+
+function LivePriceChip({ ticker }: { ticker: string }) {
+  const { data: quote } = useStockQuote(ticker);
+  if (!quote || quote.data_stale) return null;
+  const price = parseFloat(quote.price);
+  const pct = parseFloat(quote.change_pct);
+  const positive = pct >= 0;
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <span className="font-semibold tabular-nums">
+        {price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+      </span>
+      <span className={`tabular-nums font-medium ${positive ? "text-emerald-600" : "text-red-500"}`}>
+        {positive ? "+" : ""}{pct.toFixed(2)}%
+      </span>
+    </div>
+  );
 }
 
 function WatchlistToggle({ ticker }: { ticker: string }) {
@@ -86,9 +105,12 @@ export function FIIDetailContent({ ticker }: Props) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">{ticker}</h1>
-          {fiiRow?.short_name && (
-            <p className="text-muted-foreground">{fiiRow.short_name}</p>
-          )}
+          <div className="flex items-center gap-3 mt-1 flex-wrap">
+            {fiiRow?.short_name && (
+              <p className="text-muted-foreground">{fiiRow.short_name}</p>
+            )}
+            <LivePriceChip ticker={ticker} />
+          </div>
           {fiiRow?.segmento && (
             <span className="inline-block mt-1 px-2 py-0.5 bg-muted rounded text-xs">
               {fiiRow.segmento}

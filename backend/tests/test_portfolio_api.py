@@ -449,3 +449,141 @@ def test_dividend_income_months_is_bound_parameter():
     assert '"months": months' in source or "'months': months" in source or "months: months" in source, (
         "execute() must receive months in its params dict"
     )
+
+
+# ---------------------------------------------------------------------------
+# Target allocation + rebalancing plan
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_targets_get_empty(client, email_stub):
+    """GET /portfolio/targets returns empty list for new user."""
+    await register_verify_and_login(client, email_stub)
+    resp = await client.get("/portfolio/targets")
+    assert resp.status_code == 200, resp.text
+    assert resp.json() == []
+
+
+@pytest.mark.asyncio
+async def test_targets_requires_auth(client):
+    """GET /portfolio/targets returns 401 when unauthenticated."""
+    resp = await client.get("/portfolio/targets")
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_targets_put_and_get(client, email_stub):
+    """PUT /portfolio/targets replaces targets; subsequent GET returns them."""
+    await register_verify_and_login(client, email_stub)
+    payload = [
+        {"asset_class": "acao", "target_pct": "60"},
+        {"asset_class": "fii", "target_pct": "30"},
+        {"asset_class": "renda_fixa", "target_pct": "10"},
+    ]
+    resp = await client.put("/portfolio/targets", json=payload)
+    assert resp.status_code == 200, resp.text
+    saved = resp.json()
+    classes = {item["asset_class"] for item in saved}
+    assert "acao" in classes
+    assert "fii" in classes
+
+    # GET must return the same targets
+    resp2 = await client.get("/portfolio/targets")
+    assert resp2.status_code == 200, resp2.text
+    classes2 = {item["asset_class"] for item in resp2.json()}
+    assert classes == classes2
+
+
+@pytest.mark.asyncio
+async def test_rebalancing_plan_requires_auth(client):
+    """GET /portfolio/rebalancing-plan returns 401 when unauthenticated."""
+    resp = await client.get("/portfolio/rebalancing-plan")
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_rebalancing_plan_no_targets(client, email_stub):
+    """GET /portfolio/rebalancing-plan returns valid shape even when no targets set."""
+    await register_verify_and_login(client, email_stub)
+    resp = await client.get("/portfolio/rebalancing-plan")
+    assert resp.status_code == 200, resp.text
+    data = resp.json()
+    assert "total_portfolio" in data
+    assert "slots" in data
+    assert "has_targets" in data
+    assert "max_drift_pct" in data
+    assert "targets_sum_pct" in data
+    assert isinstance(data["slots"], list)
+    assert data["has_targets"] is False
+
+
+@pytest.mark.asyncio
+async def test_rebalancing_plan_with_targets(client, email_stub):
+    """GET /portfolio/rebalancing-plan returns slots with has_targets=True when targets are set
+    and the portfolio has at least one open position (total > 0)."""
+    await register_verify_and_login(client, email_stub, email="rebal_targets@test.com")
+    # Seed a buy transaction so total_portfolio > 0 (required for has_targets=True)
+    await client.post("/portfolio/transactions", json={
+        "ticker": "VALE3",
+        "asset_class": "acao",
+        "transaction_type": "buy",
+        "transaction_date": "2025-06-01",
+        "quantity": "10",
+        "unit_price": "70.00",
+    })
+    await client.put("/portfolio/targets", json=[
+        {"asset_class": "acao", "target_pct": "70"},
+        {"asset_class": "fii", "target_pct": "30"},
+    ])
+    resp = await client.get("/portfolio/rebalancing-plan")
+    assert resp.status_code == 200, resp.text
+    data = resp.json()
+    assert data["has_targets"] is True
+    assert len(data["slots"]) >= 1
+    # Each slot must have required fields
+    for slot in data["slots"]:
+        assert "asset_class" in slot
+        assert "current_value" in slot
+        assert "target_pct" in slot
+        assert "action" in slot
+
+
+# ---------------------------------------------------------------------------
+# Portfolio dividend calendar
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_portfolio_dividend_calendar_requires_auth(client):
+    """GET /portfolio/dividend-calendar returns 401 when unauthenticated."""
+    resp = await client.get("/portfolio/dividend-calendar")
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_portfolio_dividend_calendar_empty(client, email_stub):
+    """GET /portfolio/dividend-calendar returns valid shape for new user with no positions."""
+    await register_verify_and_login(client, email_stub)
+    resp = await client.get("/portfolio/dividend-calendar")
+    assert resp.status_code == 200, resp.text
+    data = resp.json()
+    assert "entries" in data
+    assert "total_projected_30d" in data
+    assert "total_projected_60d" in data
+    assert "total_projected_90d" in data
+    assert "generated_at" in data
+    assert isinstance(data["entries"], list)
+
+
+@pytest.mark.asyncio
+async def test_portfolio_dividend_calendar_days_param(client, email_stub):
+    """GET /portfolio/dividend-calendar accepts days query param (30-180)."""
+    await register_verify_and_login(client, email_stub)
+    for days in (30, 90, 180):
+        resp = await client.get(f"/portfolio/dividend-calendar?days={days}")
+        assert resp.status_code == 200, f"days={days}: {resp.text}"
+
+    # Out-of-range days must be rejected
+    resp_bad = await client.get("/portfolio/dividend-calendar?days=200")
+    assert resp_bad.status_code == 422

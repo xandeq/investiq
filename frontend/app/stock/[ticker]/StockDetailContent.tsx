@@ -10,6 +10,7 @@ import { SectorSection } from "@/features/analysis/components/SectorSection";
 import { NarrativeSection } from "@/features/analysis/components/NarrativeSection";
 import { PremiumGate } from "@/features/ai/components/PremiumGate";
 import { useWatchlist, useAddToWatchlist, useRemoveFromWatchlist } from "@/features/watchlist/hooks/useWatchlist";
+import { useStockQuote } from "@/hooks/useStockQuote";
 
 interface Props {
   ticker: string;
@@ -29,6 +30,24 @@ function earliestTimestamp(timestamps: (string | undefined)[]): string | undefin
   const valid = timestamps.filter(Boolean) as string[];
   if (valid.length === 0) return undefined;
   return valid.sort()[0];
+}
+
+function LivePriceChip({ ticker }: { ticker: string }) {
+  const { data: quote } = useStockQuote(ticker);
+  if (!quote || quote.data_stale) return null;
+  const price = parseFloat(quote.price);
+  const pct = parseFloat(quote.change_pct);
+  const positive = pct >= 0;
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <span className="font-semibold tabular-nums">
+        {price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+      </span>
+      <span className={`tabular-nums font-medium ${positive ? "text-emerald-600" : "text-red-500"}`}>
+        {positive ? "+" : ""}{pct.toFixed(2)}%
+      </span>
+    </div>
+  );
 }
 
 function WatchlistToggle({ ticker }: { ticker: string }) {
@@ -91,7 +110,10 @@ export function StockDetailContent({ ticker }: Props) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">{ticker}</h1>
-          <p className="text-muted-foreground">Análise Fundamentalista</p>
+          <div className="flex items-center gap-3 mt-1">
+            <p className="text-muted-foreground">Análise Fundamentalista</p>
+            <LivePriceChip ticker={ticker} />
+          </div>
         </div>
         <WatchlistToggle ticker={ticker} />
       </div>

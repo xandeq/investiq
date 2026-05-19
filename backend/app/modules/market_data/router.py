@@ -22,7 +22,7 @@ Cache miss behavior:
 from fastapi import APIRouter, Depends
 
 from app.core.middleware import get_authed_db
-from app.modules.market_data.schemas import FundamentalsCache, HistoricalCache, MacroCache
+from app.modules.market_data.schemas import FundamentalsCache, HistoricalCache, MacroCache, QuoteCache
 from app.modules.market_data.service import MarketDataService
 
 router = APIRouter()
@@ -68,6 +68,19 @@ async def get_fundamentals(
     If data_stale=True, the cache has not been populated for this ticker.
     """
     return await service.get_fundamentals(ticker)
+
+
+@router.get("/quote/{ticker}", response_model=QuoteCache)
+async def get_quote(
+    ticker: str,
+    service: MarketDataService = Depends(_get_market_service),
+    _authed_db=Depends(get_authed_db),
+) -> QuoteCache:
+    """Return current B3 quote (price, change, change_pct) from Redis cache.
+
+    If data_stale=True the Celery quote job has not yet populated this ticker.
+    """
+    return await service.get_quote(ticker)
 
 
 @router.get("/historical/{ticker}", response_model=HistoricalCache)

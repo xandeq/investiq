@@ -278,3 +278,111 @@ async def test_position_movers_shape_with_positions(
         assert "change_pct" in mover
         assert "pnl_impact" in mover
         assert "current_price" in mover
+
+
+# ---------------------------------------------------------------------------
+# Risk Metrics
+# ---------------------------------------------------------------------------
+
+
+async def test_risk_metrics_requires_auth(client: AsyncClient) -> None:
+    """GET /dashboard/risk-metrics returns 401 when unauthenticated."""
+    resp = await client.get("/dashboard/risk-metrics")
+    assert resp.status_code == 401
+
+
+async def test_risk_metrics_empty_portfolio(
+    client: AsyncClient, email_stub
+) -> None:
+    """GET /dashboard/risk-metrics returns valid shape with data_available=False for new user."""
+    await register_verify_and_login(client, email_stub, email="risk_empty@test.com")
+    resp = await client.get("/dashboard/risk-metrics")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "data_available" in data
+    assert "volatility_annual_pct" in data
+    assert "max_drawdown_pct" in data
+    assert "positive_days_pct" in data
+    assert "trading_days" in data
+    # New user has no portfolio history — data_available must be False
+    assert data["data_available"] is False
+
+
+# ---------------------------------------------------------------------------
+# Sector Allocation
+# ---------------------------------------------------------------------------
+
+
+async def test_sector_allocation_requires_auth(client: AsyncClient) -> None:
+    """GET /dashboard/sector-allocation returns 401 when unauthenticated."""
+    resp = await client.get("/dashboard/sector-allocation")
+    assert resp.status_code == 401
+
+
+@pytest.mark.xfail(
+    strict=False,
+    reason="DISTINCT ON not supported in SQLite test env; passes against PostgreSQL",
+)
+async def test_sector_allocation_empty_portfolio(
+    client: AsyncClient, email_stub
+) -> None:
+    """GET /dashboard/sector-allocation returns empty sectors list for new user."""
+    await register_verify_and_login(client, email_stub, email="sector_empty@test.com")
+    resp = await client.get("/dashboard/sector-allocation")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "sectors" in data
+    assert isinstance(data["sectors"], list)
+
+
+# ---------------------------------------------------------------------------
+# Dividend Ranking
+# ---------------------------------------------------------------------------
+
+
+async def test_dividend_ranking_requires_auth(client: AsyncClient) -> None:
+    """GET /dashboard/dividend-ranking returns 401 when unauthenticated."""
+    resp = await client.get("/dashboard/dividend-ranking")
+    assert resp.status_code == 401
+
+
+@pytest.mark.xfail(
+    strict=False,
+    reason="DISTINCT ON not supported in SQLite test env; passes against PostgreSQL",
+)
+async def test_dividend_ranking_empty_portfolio(
+    client: AsyncClient, email_stub
+) -> None:
+    """GET /dashboard/dividend-ranking returns valid shape with empty items for new user."""
+    await register_verify_and_login(client, email_stub, email="divrank_empty@test.com")
+    resp = await client.get("/dashboard/dividend-ranking")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "items" in data
+    assert "total_estimated_annual" in data
+    assert "data_available" in data
+    assert isinstance(data["items"], list)
+
+
+# ---------------------------------------------------------------------------
+# Dividend Calendar (dashboard)
+# ---------------------------------------------------------------------------
+
+
+async def test_dividend_calendar_dashboard_requires_auth(client: AsyncClient) -> None:
+    """GET /dashboard/dividend-calendar returns 401 when unauthenticated."""
+    resp = await client.get("/dashboard/dividend-calendar")
+    assert resp.status_code == 401
+
+
+async def test_dividend_calendar_dashboard_empty_portfolio(
+    client: AsyncClient, email_stub
+) -> None:
+    """GET /dashboard/dividend-calendar returns valid shape with empty events for new user."""
+    await register_verify_and_login(client, email_stub, email="divcal_dash@test.com")
+    resp = await client.get("/dashboard/dividend-calendar")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "events" in data
+    assert "data_available" in data
+    assert isinstance(data["events"], list)
