@@ -1,8 +1,9 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { Eye, EyeSlash } from "@phosphor-icons/react";
+import { Eye, EyeSlash, DownloadSimple } from "@phosphor-icons/react";
 import { useAcoesScreener } from "../hooks/useAcoesScreener";
+import { exportAcoesScreenerCSV } from "../api";
 import type { AcaoRow, AcaoScreenerParams } from "../types";
 import { useSortedData } from "@/hooks/useSort";
 import { SortableHeader } from "@/components/ui/SortableHeader";
@@ -94,6 +95,7 @@ export function AcoesScreenerContent() {
   const [applied, setApplied] = useState<AcaoScreenerParams>({});
   const [offset, setOffset] = useState(0);
   const [excludePortfolio, setExcludePortfolio] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const params: AcaoScreenerParams = { ...applied, limit: PAGE_SIZE, offset, exclude_portfolio: excludePortfolio };
   const { data, isLoading, isFetching, error } = useAcoesScreener(params);
@@ -112,6 +114,25 @@ export function AcoesScreenerContent() {
     setFilters({});
     setApplied({});
     setOffset(0);
+  }
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const blob = await exportAcoesScreenerCSV({ ...applied, exclude_portfolio: excludePortfolio });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `acoes-screener-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      // silent — don't break the UI for a failed export
+    } finally {
+      setExporting(false);
+    }
   }
 
   const total = data?.total ?? 0;
@@ -206,6 +227,15 @@ export function AcoesScreenerContent() {
               className="px-4 py-2 rounded-md text-sm text-zinc-600 border border-zinc-200 hover:bg-zinc-50 transition-colors"
             >
               Limpar
+            </button>
+            <button
+              onClick={handleExport}
+              disabled={exporting || isLoading}
+              title="Exportar resultados filtrados como CSV"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm text-zinc-600 border border-zinc-200 hover:bg-zinc-50 transition-colors disabled:opacity-50"
+            >
+              <DownloadSimple size={14} weight="bold" aria-hidden />
+              {exporting ? "Exportando..." : "Exportar CSV"}
             </button>
             <button
               onClick={applyFilters}

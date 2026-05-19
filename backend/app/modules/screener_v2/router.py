@@ -24,6 +24,7 @@ from app.core.security import get_current_user
 from app.modules.screener_v2.schemas import (
     AcaoScreenerParams,
     AcaoScreenerResponse,
+    FIIExportParams,
     FIIScreenerParams,
     FIIScreenerResponse,
     FixedIncomeCatalogResponse,
@@ -113,6 +114,95 @@ async def screener_acoes(
         limit=limit,
         offset=offset,
         results=rows,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Acao screener — CSV export
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/acoes/export",
+    summary="Exportar ações filtradas como CSV",
+    tags=["screener-v2"],
+)
+@limiter.limit("5/minute")
+async def screener_acoes_export(
+    request: Request,
+    min_dy: float | None = Query(None),
+    max_pl: float | None = Query(None),
+    max_pvp: float | None = Query(None),
+    max_ev_ebitda: float | None = Query(None),
+    sector: str | None = Query(None),
+    min_volume: int | None = Query(None),
+    min_market_cap: int | None = Query(None),
+    exclude_portfolio: bool = Query(False),
+    current_user: dict = Depends(get_current_user),
+    global_db: AsyncSession = Depends(get_global_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+    authed_db: AsyncSession = Depends(get_authed_db),
+) -> Response:
+    """Return all ações matching current filters as a downloadable CSV (max 2000 rows).
+
+    Accepts the same filter parameters as GET /screener/acoes but ignores pagination.
+    CVM Res. 19/2021 disclaimer is appended as the last row.
+    """
+    import csv
+    import io
+    from decimal import Decimal
+
+    params = AcaoScreenerParams(
+        min_dy=Decimal(str(min_dy)) if min_dy is not None else None,
+        max_pl=Decimal(str(max_pl)) if max_pl is not None else None,
+        max_pvp=Decimal(str(max_pvp)) if max_pvp is not None else None,
+        max_ev_ebitda=Decimal(str(max_ev_ebitda)) if max_ev_ebitda is not None else None,
+        sector=sector,
+        min_volume=min_volume,
+        min_market_cap=min_market_cap,
+        exclude_portfolio=exclude_portfolio,
+        limit=2000,
+        offset=0,
+    )
+
+    tenant_db = authed_db if exclude_portfolio else None
+    tid = tenant_id if exclude_portfolio else None
+
+    _, rows = await query_acoes(
+        db=global_db,
+        params=params,
+        tenant_db=tenant_db,
+        tenant_id=tid,
+    )
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Ticker", "Nome", "Setor", "Preco (R$)", "Variacao%",
+        "Volume (R$)", "Market Cap (R$)", "P/L", "P/VP", "DY (%)", "EV/EBITDA", "Data",
+    ])
+    for row in rows:
+        writer.writerow([
+            row.ticker,
+            row.short_name or "",
+            row.sector or "",
+            str(row.price) if row.price is not None else "",
+            str(row.change_pct) if row.change_pct is not None else "",
+            str(row.volume) if row.volume is not None else "",
+            str(row.market_cap) if row.market_cap is not None else "",
+            str(row.pl) if row.pl is not None else "",
+            str(row.pvp) if row.pvp is not None else "",
+            str(row.dy) if row.dy is not None else "",
+            str(row.ev_ebitda) if row.ev_ebitda is not None else "",
+            row.snapshot_date,
+        ])
+    writer.writerow([])
+    writer.writerow(["# Análise informativa — não constitui recomendação de investimento (CVM Res. 19/2021)"])
+
+    return Response(
+        content=output.getvalue().encode("utf-8"),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": "attachment; filename=acoes-screener.csv"},
     )
 
 
@@ -244,7 +334,7 @@ async def screener_fiis_export(
     import io
     from decimal import Decimal
 
-    params = FIIScreenerParams(
+    params = FIIExportParams(
         min_dy=Decimal(str(min_dy)) if min_dy is not None else None,
         max_pvp=Decimal(str(max_pvp)) if max_pvp is not None else None,
         segmento=segmento,
