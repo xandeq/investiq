@@ -135,6 +135,18 @@ export function AcoesScreenerContent() {
     }
   }
 
+  function applyPreset(preset: AcaoScreenerParams) {
+    setFilters(preset);
+    setApplied(preset);
+    setOffset(0);
+  }
+
+  const PRESETS: { label: string; filters: AcaoScreenerParams }[] = [
+    { label: "Dividendos", filters: { min_dy: 8, max_pl: 20 } },
+    { label: "Value", filters: { max_pvp: 2, max_pl: 15 } },
+    { label: "Growth", filters: { max_ev_ebitda: 10, max_pl: 25 } },
+  ];
+
   const total = data?.total ?? 0;
   const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
   const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -143,6 +155,19 @@ export function AcoesScreenerContent() {
     <div className="space-y-4">
       {/* Filter bar */}
       <div className="rounded-lg border border-zinc-200 bg-white p-4">
+        {/* Preset chips */}
+        <div className="flex gap-2 flex-wrap mb-3">
+          <span className="text-xs text-zinc-400 self-center">Filtros rápidos:</span>
+          {PRESETS.map((p) => (
+            <button
+              key={p.label}
+              onClick={() => applyPreset(p.filters)}
+              className="px-2.5 py-1 text-xs rounded-full border border-zinc-200 text-zinc-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           <div>
             <label className="block text-xs font-medium text-zinc-600 mb-1">DY mín (%)</label>
