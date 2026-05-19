@@ -262,6 +262,10 @@ def check_macro_freshness() -> dict:
 
     try:
         fetched_at = datetime.fromisoformat(raw.decode())
+        # Normalize to naive UTC regardless of whether the stored ISO string is
+        # offset-aware (e.g. "+00:00") or naive (legacy format without tz suffix).
+        if fetched_at.tzinfo is not None:
+            fetched_at = fetched_at.replace(tzinfo=None)
     except (ValueError, AttributeError):
         logger.error("MACRO_STALE: market:macro:fetched_at is unparseable: %r", raw)
         return {"status": "unparseable", "age_seconds": None}
