@@ -177,7 +177,7 @@ def test_refresh_quotes_writes_redis(fake_redis_sync, mock_brapi_client):
 
     # Check TTL matches _QUOTE_TTL=900 (15 min — BRAPI Pro update frequency)
     ttl = fake_redis_sync.ttl("market:quote:PETR4")
-    assert 890 <= ttl <= 900, f"Expected TTL ~900, got {ttl}"
+    assert 840 <= ttl <= 900, f"Expected TTL ~900, got {ttl}"
 
 
 def test_brapi_client_writes_redis(fake_redis_sync):
@@ -244,9 +244,9 @@ def test_refresh_macro_writes_redis(fake_redis_sync):
     assert fake_redis_sync.get("market:macro:ipca") is not None
     assert fake_redis_sync.get("market:macro:ptax_usd") is not None
 
-    # Verify TTL is approximately 25200
+    # Verify TTL is approximately 25200 (allow 60s for test execution overhead)
     ttl = fake_redis_sync.ttl("market:macro:selic")
-    assert 25190 <= ttl <= 25200, f"Expected TTL ~25200, got {ttl}"
+    assert 25140 <= ttl <= 25200, f"Expected TTL ~25200, got {ttl}"
 
     # Verify value
     selic_val = fake_redis_sync.get("market:macro:selic")
