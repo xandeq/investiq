@@ -59,9 +59,9 @@ export function OutcomeStatsBar({ stats, isLoading }: Props) {
     );
   }
 
-  if (!stats || stats.total === 0) return null;
+  if (!stats || stats.total_closed === 0) return null;
 
-  const winColor = stats.winrate >= 0.5 ? "text-emerald-600" : "text-red-500";
+  const winColor = (stats.winrate ?? 0) >= 0.5 ? "text-emerald-600" : "text-red-500";
   const rColor = (stats.avg_r ?? 0) >= 0 ? "text-emerald-600" : "text-red-500";
   const expColor = (stats.expectancy ?? 0) >= 0 ? "text-emerald-600" : "text-red-500";
 
@@ -70,7 +70,7 @@ export function OutcomeStatsBar({ stats, isLoading }: Props) {
       <StatChip
         index={0}
         label="Taxa de acerto"
-        value={`${fmtPct(stats.winrate)} (${stats.wins}/${stats.wins + stats.losses})`}
+        value={`${fmtPct(stats.winrate)} (${stats.total_closed} ops)`}
         icon={<Target size={14} />}
         color={winColor}
       />

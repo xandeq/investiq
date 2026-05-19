@@ -49,11 +49,15 @@ export interface OutcomeClosePayload {
   status?: "closed" | "stopped";
 }
 
+export interface GradeBreakdownEntry {
+  n: number;
+  winrate: number;
+  avg_r: number;
+}
+
 export interface OutcomeStats {
-  total: number;
-  wins: number;
-  losses: number;
-  winrate: number;       // 0–1
+  total_closed: number;
+  winrate: number | null;
   avg_r: number | null;
   expectancy: number | null;
   profit_factor: number | null;
@@ -61,7 +65,7 @@ export interface OutcomeStats {
   max_consecutive_wins: number;
   max_consecutive_losses: number;
   avg_holding_days: number | null;
-  grade_breakdown: Record<string, number>; // grade → count
+  grade_breakdown: Record<string, GradeBreakdownEntry>;
 }
 
 export interface ExpectancyByPattern {

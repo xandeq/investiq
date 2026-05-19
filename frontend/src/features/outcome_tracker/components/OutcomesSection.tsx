@@ -37,7 +37,7 @@ export function OutcomesSection() {
       className="space-y-3"
     >
       {/* Stats bar (only when there are closed outcomes) */}
-      {(statsQuery.data?.total ?? 0) > 0 && (
+      {(statsQuery.data?.total_closed ?? 0) > 0 && (
         <OutcomeStatsBar
           stats={statsQuery.data}
           isLoading={statsQuery.isLoading}
