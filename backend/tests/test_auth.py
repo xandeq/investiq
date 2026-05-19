@@ -242,10 +242,9 @@ async def test_refresh_rotation(client, email_stub, db_session):
     assert refresh_cookie, "refresh_token cookie not found in login response"
 
     # Call /auth/refresh
-    refresh_resp = await client.post(
-        "/auth/refresh",
-        cookies={"refresh_token": refresh_cookie},
-    )
+    client.cookies.set("refresh_token", refresh_cookie)
+    refresh_resp = await client.post("/auth/refresh")
+    client.cookies.clear()
     assert refresh_resp.status_code == 200
 
     # Old token should now be status=used in DB
@@ -282,11 +281,15 @@ async def test_refresh_reuse_revokes_all(client, email_stub, db_session):
     assert refresh_cookie
 
     # Use token once (valid rotation)
-    r1 = await client.post("/auth/refresh", cookies={"refresh_token": refresh_cookie})
+    client.cookies.set("refresh_token", refresh_cookie)
+    r1 = await client.post("/auth/refresh")
+    client.cookies.clear()
     assert r1.status_code == 200
 
     # Use SAME (now-used) token again → reuse detection
-    r2 = await client.post("/auth/refresh", cookies={"refresh_token": refresh_cookie})
+    client.cookies.set("refresh_token", refresh_cookie)
+    r2 = await client.post("/auth/refresh")
+    client.cookies.clear()
     assert r2.status_code == 401
 
     # All tokens for user should now be revoked
