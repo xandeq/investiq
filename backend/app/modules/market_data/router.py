@@ -21,7 +21,7 @@ Cache miss behavior:
 
 from fastapi import APIRouter, Depends
 
-from app.core.middleware import get_authed_db
+from app.core.middleware import get_authed_db, get_current_tenant_id
 from app.modules.market_data.schemas import FundamentalsCache, HistoricalCache, MacroCache, QuoteCache
 from app.modules.market_data.service import MarketDataService
 
@@ -46,6 +46,7 @@ def _get_market_service() -> MarketDataService:
 async def get_macro(
     service: MarketDataService = Depends(_get_market_service),
     _authed_db=Depends(get_authed_db),
+    _tenant_id: str = Depends(get_current_tenant_id),
 ) -> MacroCache:
     """Return current Brazilian macro indicators from Redis cache.
 
@@ -60,6 +61,7 @@ async def get_fundamentals(
     ticker: str,
     service: MarketDataService = Depends(_get_market_service),
     _authed_db=Depends(get_authed_db),
+    _tenant_id: str = Depends(get_current_tenant_id),
 ) -> FundamentalsCache:
     """Return fundamental analysis data for a B3 ticker from Redis cache.
 
@@ -75,6 +77,7 @@ async def get_quote(
     ticker: str,
     service: MarketDataService = Depends(_get_market_service),
     _authed_db=Depends(get_authed_db),
+    _tenant_id: str = Depends(get_current_tenant_id),
 ) -> QuoteCache:
     """Return current B3 quote (price, change, change_pct) from Redis cache.
 
@@ -88,6 +91,7 @@ async def get_historical(
     ticker: str,
     service: MarketDataService = Depends(_get_market_service),
     _authed_db=Depends(get_authed_db),
+    _tenant_id: str = Depends(get_current_tenant_id),
 ) -> HistoricalCache:
     """Return 1-year OHLCV price history for a B3 ticker from Redis cache.
 
