@@ -1,12 +1,13 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useSubscription } from "@/features/billing/hooks/useSubscription";
 import { TrialBanner } from "@/features/billing/components/TrialBanner";
 import { apiClient } from "@/lib/api-client";
+import { tickerPath } from "@/lib/formatters";
 import {
   SquaresFour,
   Briefcase,
@@ -32,6 +33,7 @@ import {
   Wallet,
   Pulse,
   FolderOpen,
+  X,
 } from "@phosphor-icons/react";
 
 interface UnreadCountResponse {
@@ -244,6 +246,66 @@ function NavDropdown({
   );
 }
 
+function TickerSearch() {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function submit() {
+    const t = value.trim().toUpperCase();
+    if (!t) return;
+    setValue("");
+    setOpen(false);
+    router.push(tickerPath(t));
+  }
+
+  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") submit();
+    if (e.key === "Escape") { setOpen(false); setValue(""); }
+  }
+
+  useEffect(() => {
+    if (open) inputRef.current?.focus();
+  }, [open]);
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        title="Buscar ticker"
+        className="flex items-center justify-center w-7 h-7 rounded-md text-zinc-400 hover:text-white hover:bg-white/10 transition-colors shrink-0"
+      >
+        <MagnifyingGlass size={14} />
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1 shrink-0">
+      <div className="flex items-center gap-1 bg-white/10 rounded-md px-2 py-1">
+        <MagnifyingGlass size={12} className="text-zinc-400 shrink-0" />
+        <input
+          ref={inputRef}
+          value={value}
+          onChange={(e) => setValue(e.target.value.toUpperCase())}
+          onKeyDown={onKeyDown}
+          onBlur={() => { if (!value) setOpen(false); }}
+          placeholder="Ticker..."
+          maxLength={10}
+          className="bg-transparent text-white text-xs w-16 outline-none placeholder:text-zinc-500 tabular-nums"
+        />
+      </div>
+      <button
+        onClick={() => { setOpen(false); setValue(""); }}
+        className="text-zinc-500 hover:text-white transition-colors"
+      >
+        <X size={12} />
+      </button>
+    </div>
+  );
+}
+
 export function AppNav() {
   const pathname = usePathname();
   const { logout } = useAuth();
@@ -290,6 +352,9 @@ export function AppNav() {
               <AdminDropdown pathname={pathname} />
             )}
           </div>
+
+          {/* Ticker quick-search */}
+          <TickerSearch />
 
           {/* Logout */}
           <button
