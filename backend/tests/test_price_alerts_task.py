@@ -1,4 +1,4 @@
-"""Tests for the check_price_alerts Celery task (Fase 6).
+"""Tests for the check_price_alerts Celery task (Phase 6 + Phase 46).
 
 Coverage:
   ALERT-01: Task fires alert when price is exactly at target
@@ -12,6 +12,9 @@ Coverage:
   ALERT-09: No items with price_alert_target → task is a no-op
   ALERT-10: check-price-alerts is in Celery beat schedule
   ALERT-11: Task handles invalid/negative target gracefully
+  ALERT-12: Dedup key is set with correct TTL after first alert
+  ALERT-13: Per-user Telegram sent when user has telegram_chat_id
+  ALERT-14: No Telegram sent when user has no telegram_chat_id
 """
 from __future__ import annotations
 
@@ -46,7 +49,7 @@ def test_alert_fires_on_exact_price_match():
     emails_sent = []
 
     with patch("app.modules.watchlist.tasks._get_watchlist_items_with_alerts", return_value=items), \
-         patch("app.modules.watchlist.tasks._get_user_email", return_value="user@example.com"), \
+         patch("app.modules.watchlist.tasks._get_user_contact", return_value=("user@example.com", None)), \
          patch("app.modules.watchlist.tasks._send_alert_email", side_effect=lambda *a: emails_sent.append(a)), \
          patch("app.modules.watchlist.tasks._save_alert_insight"), \
          patch("redis.Redis.from_url", return_value=r):
@@ -74,7 +77,7 @@ def test_alert_fires_when_price_slightly_below_target():
     emails_sent = []
 
     with patch("app.modules.watchlist.tasks._get_watchlist_items_with_alerts", return_value=items), \
-         patch("app.modules.watchlist.tasks._get_user_email", return_value="user@example.com"), \
+         patch("app.modules.watchlist.tasks._get_user_contact", return_value=("user@example.com", None)), \
          patch("app.modules.watchlist.tasks._send_alert_email", side_effect=lambda *a: emails_sent.append(a)), \
          patch("app.modules.watchlist.tasks._save_alert_insight"), \
          patch("redis.Redis.from_url", return_value=r):
@@ -98,7 +101,7 @@ def test_alert_fires_when_price_slightly_above_target():
     emails_sent = []
 
     with patch("app.modules.watchlist.tasks._get_watchlist_items_with_alerts", return_value=items), \
-         patch("app.modules.watchlist.tasks._get_user_email", return_value="user@example.com"), \
+         patch("app.modules.watchlist.tasks._get_user_contact", return_value=("user@example.com", None)), \
          patch("app.modules.watchlist.tasks._send_alert_email", side_effect=lambda *a: emails_sent.append(a)), \
          patch("app.modules.watchlist.tasks._save_alert_insight"), \
          patch("redis.Redis.from_url", return_value=r):
@@ -122,7 +125,7 @@ def test_no_alert_when_price_outside_tolerance():
     emails_sent = []
 
     with patch("app.modules.watchlist.tasks._get_watchlist_items_with_alerts", return_value=items), \
-         patch("app.modules.watchlist.tasks._get_user_email", return_value="user@example.com"), \
+         patch("app.modules.watchlist.tasks._get_user_contact", return_value=("user@example.com", None)), \
          patch("app.modules.watchlist.tasks._send_alert_email", side_effect=lambda *a: emails_sent.append(a)), \
          patch("app.modules.watchlist.tasks._save_alert_insight"), \
          patch("redis.Redis.from_url", return_value=r):
@@ -147,7 +150,7 @@ def test_no_duplicate_alert_within_dedup_ttl():
     emails_sent = []
 
     with patch("app.modules.watchlist.tasks._get_watchlist_items_with_alerts", return_value=items), \
-         patch("app.modules.watchlist.tasks._get_user_email", return_value="user@example.com"), \
+         patch("app.modules.watchlist.tasks._get_user_contact", return_value=("user@example.com", None)), \
          patch("app.modules.watchlist.tasks._send_alert_email", side_effect=lambda *a: emails_sent.append(a)), \
          patch("app.modules.watchlist.tasks._save_alert_insight"), \
          patch("redis.Redis.from_url", return_value=r):
@@ -170,7 +173,7 @@ def test_no_alert_when_quote_not_in_redis():
     emails_sent = []
 
     with patch("app.modules.watchlist.tasks._get_watchlist_items_with_alerts", return_value=items), \
-         patch("app.modules.watchlist.tasks._get_user_email", return_value="user@example.com"), \
+         patch("app.modules.watchlist.tasks._get_user_contact", return_value=("user@example.com", None)), \
          patch("app.modules.watchlist.tasks._send_alert_email", side_effect=lambda *a: emails_sent.append(a)), \
          patch("app.modules.watchlist.tasks._save_alert_insight"), \
          patch("redis.Redis.from_url", return_value=r):
@@ -193,7 +196,7 @@ def test_insight_saved_on_alert():
     insights_saved = []
 
     with patch("app.modules.watchlist.tasks._get_watchlist_items_with_alerts", return_value=items), \
-         patch("app.modules.watchlist.tasks._get_user_email", return_value="user@example.com"), \
+         patch("app.modules.watchlist.tasks._get_user_contact", return_value=("user@example.com", None)), \
          patch("app.modules.watchlist.tasks._send_alert_email"), \
          patch("app.modules.watchlist.tasks._save_alert_insight", side_effect=lambda *a: insights_saved.append(a)), \
          patch("redis.Redis.from_url", return_value=r):
@@ -269,7 +272,7 @@ def test_zero_target_is_skipped():
     emails_sent = []
 
     with patch("app.modules.watchlist.tasks._get_watchlist_items_with_alerts", return_value=items), \
-         patch("app.modules.watchlist.tasks._get_user_email", return_value="user@example.com"), \
+         patch("app.modules.watchlist.tasks._get_user_contact", return_value=("user@example.com", None)), \
          patch("app.modules.watchlist.tasks._send_alert_email", side_effect=lambda *a: emails_sent.append(a)), \
          patch("app.modules.watchlist.tasks._save_alert_insight"), \
          patch("redis.Redis.from_url", return_value=r):
@@ -291,7 +294,7 @@ def test_dedup_key_set_after_alert():
     items = [{"tenant_id": tenant_id, "ticker": "WEGE3", "target": Decimal("50.00")}]
 
     with patch("app.modules.watchlist.tasks._get_watchlist_items_with_alerts", return_value=items), \
-         patch("app.modules.watchlist.tasks._get_user_email", return_value="user@example.com"), \
+         patch("app.modules.watchlist.tasks._get_user_contact", return_value=("user@example.com", None)), \
          patch("app.modules.watchlist.tasks._send_alert_email"), \
          patch("app.modules.watchlist.tasks._save_alert_insight"), \
          patch("redis.Redis.from_url", return_value=r):
@@ -304,3 +307,54 @@ def test_dedup_key_set_after_alert():
     ttl = r.ttl(dedup_key)
     # TTL should be close to 23h (82800 seconds)
     assert 82700 <= ttl <= 82800, f"Expected TTL ~82800, got {ttl}"
+
+
+# ---------------------------------------------------------------------------
+# ALERT-13: Per-user Telegram sent when telegram_chat_id is set (Phase 46)
+# ---------------------------------------------------------------------------
+
+def test_telegram_sent_to_user_chat_id_when_set():
+    tenant_id = str(uuid.uuid4())
+    r = _make_redis_with_quote("PETR4", 38.00)
+    items = [{"tenant_id": tenant_id, "ticker": "PETR4", "target": Decimal("38.00")}]
+
+    tg_calls = []
+
+    with patch("app.modules.watchlist.tasks._get_watchlist_items_with_alerts", return_value=items), \
+         patch("app.modules.watchlist.tasks._get_user_contact", return_value=("user@example.com", "999888777")), \
+         patch("app.modules.watchlist.tasks._send_alert_email"), \
+         patch("app.modules.watchlist.tasks._save_alert_insight"), \
+         patch("app.modules.watchlist.tasks.send_telegram_notification",
+               side_effect=lambda chat_id, msg: tg_calls.append((chat_id, msg)) or True), \
+         patch("redis.Redis.from_url", return_value=r):
+
+        from app.modules.watchlist.tasks import check_price_alerts
+        check_price_alerts.apply()
+
+    assert len(tg_calls) == 1, "Telegram must be sent exactly once"
+    chat_id, msg = tg_calls[0]
+    assert chat_id == "999888777", "Must send to the user's own chat_id, not admin"
+    assert "PETR4" in msg
+    assert "38.00" in msg
+
+
+# ---------------------------------------------------------------------------
+# ALERT-14: No Telegram sent when user has no telegram_chat_id (Phase 46)
+# ---------------------------------------------------------------------------
+
+def test_no_telegram_when_user_has_no_chat_id():
+    tenant_id = str(uuid.uuid4())
+    r = _make_redis_with_quote("VALE3", 70.00)
+    items = [{"tenant_id": tenant_id, "ticker": "VALE3", "target": Decimal("70.00")}]
+
+    with patch("app.modules.watchlist.tasks._get_watchlist_items_with_alerts", return_value=items), \
+         patch("app.modules.watchlist.tasks._get_user_contact", return_value=("user@example.com", None)), \
+         patch("app.modules.watchlist.tasks._send_alert_email"), \
+         patch("app.modules.watchlist.tasks._save_alert_insight"), \
+         patch("app.modules.watchlist.tasks.send_telegram_notification") as mock_tg, \
+         patch("redis.Redis.from_url", return_value=r):
+
+        from app.modules.watchlist.tasks import check_price_alerts
+        check_price_alerts.apply()
+
+    mock_tg.assert_not_called()

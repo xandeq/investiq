@@ -31,7 +31,7 @@ from celery import shared_task
 from sqlalchemy import text
 
 from app.core.email import send_price_alert_email
-from app.modules.telegram_bot.tasks import _send_message as _tg
+from app.core.telegram import send_telegram_notification
 
 logger = logging.getLogger(__name__)
 
@@ -74,19 +74,19 @@ def _get_watchlist_items_with_alerts() -> list[dict]:
         return []
 
 
-def _get_user_email(tenant_id: str) -> str | None:
-    """Fetch user email from users table by tenant_id (tenant_id == user.id)."""
+def _get_user_contact(tenant_id: str) -> tuple[str | None, str | None]:
+    """Return (email, telegram_chat_id) for a tenant — either may be None."""
     try:
         from app.core.db_sync import get_sync_db_session
         with get_sync_db_session() as session:
             row = session.execute(
-                text("SELECT email FROM users WHERE id = :uid LIMIT 1"),
+                text("SELECT email, telegram_chat_id FROM users WHERE id = :uid LIMIT 1"),
                 {"uid": tenant_id},
             ).fetchone()
-            return row[0] if row else None
+            return (row[0], row[1]) if row else (None, None)
     except Exception as exc:
-        logger.error("check_price_alerts: failed to get user email for %s: %s", tenant_id, exc)
-        return None
+        logger.error("check_price_alerts: failed to get user contact for %s: %s", tenant_id, exc)
+        return (None, None)
 
 
 def _send_alert_email(to_email: str, ticker: str, target: Decimal, current_price: Decimal) -> None:
@@ -201,18 +201,20 @@ def check_price_alerts() -> None:
         # Persist triggered_at to DB (non-fatal if it fails)
         _update_alert_triggered_at(tenant_id, ticker, now)
 
-        email = _get_user_email(tenant_id)
+        email, tg_chat_id = _get_user_contact(tenant_id)
         if email:
             _send_alert_email(email, ticker, target, current_price)
 
         _save_alert_insight(tenant_id, ticker, target, current_price)
 
-        direction = "subiu para" if current_price >= target else "caiu para"
-        _tg(
-            f"🔔 <b>Alerta de Preço — {ticker}</b>\n\n"
-            f"<b>{ticker}</b> {direction} <b>R$ {current_price:.2f}</b>\n"
-            f"🎯 Seu alerta: R$ {target:.2f}"
-        )
+        if tg_chat_id:
+            direction = "subiu para" if current_price >= target else "caiu para"
+            send_telegram_notification(
+                tg_chat_id,
+                f"🔔 <b>Alerta de Preço — {ticker}</b>\n\n"
+                f"<b>{ticker}</b> {direction} <b>R$ {current_price:.2f}</b>\n"
+                f"🎯 Seu alerta: R$ {target:.2f}",
+            )
 
         alerted += 1
         logger.info(
