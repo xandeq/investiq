@@ -84,8 +84,9 @@ TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 @pytest.fixture(scope="session")
 def event_loop_policy():
-    """Event loop policy fixture — no-op in pytest-asyncio 0.24+."""
-    return None
+    """Return default asyncio policy so pytest-asyncio 0.24 shares one event loop per session."""
+    import asyncio
+    return asyncio.DefaultEventLoopPolicy()
 
 
 @pytest_asyncio.fixture(scope="session")
