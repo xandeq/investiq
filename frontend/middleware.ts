@@ -27,6 +27,7 @@ const PROTECTED_PATHS = [
   "/renda-fixa",
   "/acoes",
   "/admin",
+  "/fundos",
 ];
 const PUBLIC_PATHS = [
   "/login",

@@ -31,6 +31,7 @@ import {
   Lightbulb,
   Wallet,
   Pulse,
+  FolderOpen,
 } from "@phosphor-icons/react";
 
 interface UnreadCountResponse {
@@ -87,12 +88,13 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Mercado",
     icon: ChartBar,
-    activePrefixes: ["/watchlist", "/screener", "/renda-fixa", "/comparador", "/simulador", "/wizard", "/fii", "/caixa"],
+    activePrefixes: ["/watchlist", "/screener", "/renda-fixa", "/comparador", "/simulador", "/wizard", "/fii", "/caixa", "/fundos"],
     items: [
       { href: "/watchlist", label: "Watchlist", icon: Eye },
       { href: "/screener/acoes", label: "Ações", icon: MagnifyingGlass },
       { href: "/screener/fiis", label: "FIIs", icon: Buildings },
       { href: "/fii/screener", label: "FII Screener", icon: MagnifyingGlass },
+      { href: "/fundos", label: "Fundos", icon: FolderOpen },
       { href: "/renda-fixa", label: "Renda Fixa", icon: Bank },
       { href: "/caixa", label: "Caixa", icon: Wallet },
       { href: "/comparador", label: "Comparador", icon: ChartBar },
