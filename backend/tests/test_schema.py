@@ -545,7 +545,7 @@ def test_ext03_skill_adapter_interface():
     assert hasattr(svc, "calculate"), (
         "EXT-03: portfolio/service.py must expose a 'calculate' function"
     )
-    assert asyncio.iscoroutinefunction(svc.calculate), (
+    assert stdlib_inspect.iscoroutinefunction(svc.calculate), (
         "EXT-03: portfolio/service.calculate must be an async function (coroutine)"
     )
 

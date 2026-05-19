@@ -4,7 +4,7 @@ import { UploadSimple, PlusCircle, Warning } from "@phosphor-icons/react";
 import { useDashboardSummary } from "@/features/dashboard/hooks/useDashboardSummary";
 import { NetWorthCard } from "./NetWorthCard";
 import { AllocationChart } from "./AllocationChart";
-import { PortfolioChart } from "./PortfolioChart";
+import { PortfolioHistoryCard } from "./PortfolioHistoryCard";
 import { MacroIndicators } from "./MacroIndicators";
 import { RecentTransactions } from "./RecentTransactions";
 import { ActionInbox } from "./ActionInbox";
@@ -140,7 +140,7 @@ export function DashboardContent() {
         ) : data ? (
           <>
             <AllocationChart allocation={data.asset_allocation} />
-            <PortfolioChart data={data.portfolio_timeseries} />
+            <PortfolioHistoryCard />
           </>
         ) : null}
       </div>
