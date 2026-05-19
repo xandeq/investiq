@@ -86,7 +86,7 @@ async def send_test_briefing(
 
     Builds the full report and sends it via Telegram — same as the 08h30 beat task.
     """
-    if not current_user or current_user.email not in settings.ADMIN_EMAILS:
+    if not current_user or current_user.get("email") not in settings.ADMIN_EMAILS:
         raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Admin only")
 
     from app.modules.telegram_bot.tasks import send_morning_briefing
