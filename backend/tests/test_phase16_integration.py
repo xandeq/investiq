@@ -11,10 +11,8 @@ Covers:
 """
 from __future__ import annotations
 
-import asyncio
 import json
 import uuid
-from contextlib import contextmanager
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -54,68 +52,63 @@ def _quota_exhausted() -> tuple:
 class TestStartAllAnalysisTypes:
     """POST to each of the 4 analysis endpoints returns 202 and distinct job_ids."""
 
-    def test_all_four_types_return_distinct_job_ids(self, client, email_stub):
-        async def _run():
-            from tests.conftest import register_verify_and_login
+    async def test_all_four_types_return_distinct_job_ids(self, client, email_stub):
+        from tests.conftest import register_verify_and_login
 
-            await register_verify_and_login(
-                client,
-                email_stub,
-                email="phase16_all_types@test.com",
-                password="SecurePass123!",
+        await register_verify_and_login(
+            client,
+            email_stub,
+            email="phase16_all_types@test.com",
+            password="SecurePass123!",
+        )
+
+        mock_celery = _make_celery_mock()
+
+        with (
+            patch(
+                "app.modules.analysis.router.check_analysis_rate_limit",
+                new=AsyncMock(return_value=(True, 0)),
+            ),
+            patch(
+                "app.modules.analysis.router.check_analysis_quota",
+                return_value=_quota_allowed(),
+            ),
+            patch(
+                "app.modules.analysis.router.increment_quota_used",
+            ),
+            patch(
+                "app.celery_app.celery_app",
+                mock_celery,
+            ),
+        ):
+            resp_dcf = await client.post(
+                "/analysis/dcf", json={"ticker": "PETR4"}
+            )
+            resp_earnings = await client.post(
+                "/analysis/earnings", json={"ticker": "PETR4"}
+            )
+            resp_dividend = await client.post(
+                "/analysis/dividend", json={"ticker": "VALE3"}
+            )
+            resp_sector = await client.post(
+                "/analysis/sector", json={"ticker": "ITUB4", "max_peers": 5}
             )
 
-            mock_celery = _make_celery_mock()
+        assert resp_dcf.status_code == 202, resp_dcf.text
+        assert resp_earnings.status_code == 202, resp_earnings.text
+        assert resp_dividend.status_code == 202, resp_dividend.text
+        assert resp_sector.status_code == 202, resp_sector.text
 
-            with (
-                patch(
-                    "app.modules.analysis.router.check_analysis_rate_limit",
-                    new=AsyncMock(return_value=(True, 0)),
-                ),
-                patch(
-                    "app.modules.analysis.router.check_analysis_quota",
-                    return_value=_quota_allowed(),
-                ),
-                patch(
-                    "app.modules.analysis.router.increment_quota_used",
-                ),
-                patch(
-                    "app.celery_app.celery_app",
-                    mock_celery,
-                ),
-            ):
-                resp_dcf = await client.post(
-                    "/analysis/dcf", json={"ticker": "PETR4"}
-                )
-                resp_earnings = await client.post(
-                    "/analysis/earnings", json={"ticker": "PETR4"}
-                )
-                resp_dividend = await client.post(
-                    "/analysis/dividend", json={"ticker": "VALE3"}
-                )
-                resp_sector = await client.post(
-                    "/analysis/sector", json={"ticker": "ITUB4", "max_peers": 5}
-                )
+        ids = [
+            resp_dcf.json()["job_id"],
+            resp_earnings.json()["job_id"],
+            resp_dividend.json()["job_id"],
+            resp_sector.json()["job_id"],
+        ]
+        assert len(set(ids)) == 4, f"Expected 4 distinct job_ids, got: {ids}"
 
-            assert resp_dcf.status_code == 202, resp_dcf.text
-            assert resp_earnings.status_code == 202, resp_earnings.text
-            assert resp_dividend.status_code == 202, resp_dividend.text
-            assert resp_sector.status_code == 202, resp_sector.text
-
-            ids = [
-                resp_dcf.json()["job_id"],
-                resp_earnings.json()["job_id"],
-                resp_dividend.json()["job_id"],
-                resp_sector.json()["job_id"],
-            ]
-            # All four must be unique
-            assert len(set(ids)) == 4, f"Expected 4 distinct job_ids, got: {ids}"
-
-            # All responses must carry status == "pending"
-            for resp in [resp_dcf, resp_earnings, resp_dividend, resp_sector]:
-                assert resp.json()["status"] == "pending"
-
-        asyncio.run(_run())
+        for resp in [resp_dcf, resp_earnings, resp_dividend, resp_sector]:
+            assert resp.json()["status"] == "pending"
 
 
 # ---------------------------------------------------------------------------
@@ -126,56 +119,51 @@ class TestStartAllAnalysisTypes:
 class TestGetPendingJob:
     """Polling a newly created (pending) job returns correct shape and status."""
 
-    def test_pending_job_get_returns_correct_fields(self, client, email_stub):
-        async def _run():
-            from tests.conftest import register_verify_and_login
+    async def test_pending_job_get_returns_correct_fields(self, client, email_stub):
+        from tests.conftest import register_verify_and_login
 
-            await register_verify_and_login(
-                client,
-                email_stub,
-                email="phase16_pending_poll@test.com",
-                password="SecurePass123!",
+        await register_verify_and_login(
+            client,
+            email_stub,
+            email="phase16_pending_poll@test.com",
+            password="SecurePass123!",
+        )
+
+        mock_celery = _make_celery_mock()
+
+        with (
+            patch(
+                "app.modules.analysis.router.check_analysis_rate_limit",
+                new=AsyncMock(return_value=(True, 0)),
+            ),
+            patch(
+                "app.modules.analysis.router.check_analysis_quota",
+                return_value=_quota_allowed(),
+            ),
+            patch("app.modules.analysis.router.increment_quota_used"),
+            patch("app.celery_app.celery_app", mock_celery),
+        ):
+            create_resp = await client.post(
+                "/analysis/dcf", json={"ticker": "BBDC4"}
             )
 
-            mock_celery = _make_celery_mock()
+        assert create_resp.status_code == 202, create_resp.text
+        job_id = create_resp.json()["job_id"]
 
-            with (
-                patch(
-                    "app.modules.analysis.router.check_analysis_rate_limit",
-                    new=AsyncMock(return_value=(True, 0)),
-                ),
-                patch(
-                    "app.modules.analysis.router.check_analysis_quota",
-                    return_value=_quota_allowed(),
-                ),
-                patch("app.modules.analysis.router.increment_quota_used"),
-                patch("app.celery_app.celery_app", mock_celery),
-            ):
-                create_resp = await client.post(
-                    "/analysis/dcf", json={"ticker": "BBDC4"}
-                )
+        get_resp = await client.get(f"/analysis/{job_id}")
+        assert get_resp.status_code == 200, get_resp.text
 
-            assert create_resp.status_code == 202, create_resp.text
-            job_id = create_resp.json()["job_id"]
+        data = get_resp.json()
+        assert "analysis_id" in data
+        assert "analysis_type" in data
+        assert "ticker" in data
+        assert "status" in data
+        assert "disclaimer" in data
 
-            # Now poll the job — no mocks needed for GET
-            get_resp = await client.get(f"/analysis/{job_id}")
-            assert get_resp.status_code == 200, get_resp.text
-
-            data = get_resp.json()
-            # Required fields must be present
-            assert "analysis_id" in data
-            assert "analysis_type" in data
-            assert "ticker" in data
-            assert "status" in data
-            assert "disclaimer" in data
-
-            assert data["analysis_id"] == job_id
-            assert data["ticker"] == "BBDC4"
-            assert data["status"] == "pending"
-            assert data["result"] is None  # no result yet
-
-        asyncio.run(_run())
+        assert data["analysis_id"] == job_id
+        assert data["ticker"] == "BBDC4"
+        assert data["status"] == "pending"
+        assert data["result"] is None
 
 
 # ---------------------------------------------------------------------------
@@ -186,67 +174,62 @@ class TestGetPendingJob:
 class TestGetCompletedJob:
     """Directly updating DB to completed status makes GET return result payload."""
 
-    def test_completed_job_get_returns_result(self, client, email_stub, db_session):
-        async def _run():
-            from tests.conftest import register_verify_and_login
+    async def test_completed_job_get_returns_result(self, client, email_stub, db_session):
+        from tests.conftest import register_verify_and_login
 
-            await register_verify_and_login(
-                client,
-                email_stub,
-                email="phase16_completed_poll@test.com",
-                password="SecurePass123!",
+        await register_verify_and_login(
+            client,
+            email_stub,
+            email="phase16_completed_poll@test.com",
+            password="SecurePass123!",
+        )
+
+        mock_celery = _make_celery_mock()
+
+        with (
+            patch(
+                "app.modules.analysis.router.check_analysis_rate_limit",
+                new=AsyncMock(return_value=(True, 0)),
+            ),
+            patch(
+                "app.modules.analysis.router.check_analysis_quota",
+                return_value=_quota_allowed(),
+            ),
+            patch("app.modules.analysis.router.increment_quota_used"),
+            patch("app.celery_app.celery_app", mock_celery),
+        ):
+            create_resp = await client.post(
+                "/analysis/earnings", json={"ticker": "VALE3"}
             )
 
-            mock_celery = _make_celery_mock()
+        assert create_resp.status_code == 202, create_resp.text
+        job_id = create_resp.json()["job_id"]
 
-            with (
-                patch(
-                    "app.modules.analysis.router.check_analysis_rate_limit",
-                    new=AsyncMock(return_value=(True, 0)),
-                ),
-                patch(
-                    "app.modules.analysis.router.check_analysis_quota",
-                    return_value=_quota_allowed(),
-                ),
-                patch("app.modules.analysis.router.increment_quota_used"),
-                patch("app.celery_app.celery_app", mock_celery),
-            ):
-                create_resp = await client.post(
-                    "/analysis/earnings", json={"ticker": "VALE3"}
-                )
+        result = await db_session.execute(
+            select(AnalysisJob).where(AnalysisJob.id == job_id)
+        )
+        job = result.scalar_one_or_none()
+        assert job is not None, "Job should exist in DB"
 
-            assert create_resp.status_code == 202, create_resp.text
-            job_id = create_resp.json()["job_id"]
+        fake_result = {
+            "ticker": "VALE3",
+            "narrative": "Lucros consistentes e crescentes.",
+            "earnings_quality_score": 8.5,
+            "data_version_id": "brapi_eod_20260403_v1.2",
+            "data_timestamp": "2026-04-03T10:00:00+00:00",
+        }
+        job.status = "completed"
+        job.result_json = json.dumps(fake_result)
+        await db_session.commit()
 
-            # Directly update the DB record to simulate task completion
-            result = await db_session.execute(
-                select(AnalysisJob).where(AnalysisJob.id == job_id)
-            )
-            job = result.scalar_one_or_none()
-            assert job is not None, "Job should exist in DB"
+        get_resp = await client.get(f"/analysis/{job_id}")
+        assert get_resp.status_code == 200, get_resp.text
 
-            fake_result = {
-                "ticker": "VALE3",
-                "narrative": "Lucros consistentes e crescentes.",
-                "earnings_quality_score": 8.5,
-                "data_version_id": "brapi_eod_20260403_v1.2",
-                "data_timestamp": "2026-04-03T10:00:00+00:00",
-            }
-            job.status = "completed"
-            job.result_json = json.dumps(fake_result)
-            await db_session.commit()
-
-            # Now GET should return the completed result
-            get_resp = await client.get(f"/analysis/{job_id}")
-            assert get_resp.status_code == 200, get_resp.text
-
-            data = get_resp.json()
-            assert data["status"] == "completed"
-            assert data["result"] is not None
-            assert data["result"]["ticker"] == "VALE3"
-            assert "narrative" in data["result"]
-
-        asyncio.run(_run())
+        data = get_resp.json()
+        assert data["status"] == "completed"
+        assert data["result"] is not None
+        assert data["result"]["ticker"] == "VALE3"
+        assert "narrative" in data["result"]
 
 
 # ---------------------------------------------------------------------------
@@ -257,54 +240,48 @@ class TestGetCompletedJob:
 class TestTenantIsolation:
     """User B cannot access User A's analysis jobs."""
 
-    def test_user_b_gets_404_for_user_a_job(self, client, email_stub):
-        async def _run():
-            from tests.conftest import register_verify_and_login
+    async def test_user_b_gets_404_for_user_a_job(self, client, email_stub):
+        from tests.conftest import register_verify_and_login
 
-            # Register and login User A
-            await register_verify_and_login(
-                client,
-                email_stub,
-                email="phase16_tenant_a@test.com",
-                password="SecurePass123!",
+        await register_verify_and_login(
+            client,
+            email_stub,
+            email="phase16_tenant_a@test.com",
+            password="SecurePass123!",
+        )
+
+        mock_celery = _make_celery_mock()
+
+        with (
+            patch(
+                "app.modules.analysis.router.check_analysis_rate_limit",
+                new=AsyncMock(return_value=(True, 0)),
+            ),
+            patch(
+                "app.modules.analysis.router.check_analysis_quota",
+                return_value=_quota_allowed(),
+            ),
+            patch("app.modules.analysis.router.increment_quota_used"),
+            patch("app.celery_app.celery_app", mock_celery),
+        ):
+            create_resp = await client.post(
+                "/analysis/dcf", json={"ticker": "PETR4"}
             )
 
-            mock_celery = _make_celery_mock()
+        assert create_resp.status_code == 202, create_resp.text
+        job_id_a = create_resp.json()["job_id"]
 
-            with (
-                patch(
-                    "app.modules.analysis.router.check_analysis_rate_limit",
-                    new=AsyncMock(return_value=(True, 0)),
-                ),
-                patch(
-                    "app.modules.analysis.router.check_analysis_quota",
-                    return_value=_quota_allowed(),
-                ),
-                patch("app.modules.analysis.router.increment_quota_used"),
-                patch("app.celery_app.celery_app", mock_celery),
-            ):
-                create_resp = await client.post(
-                    "/analysis/dcf", json={"ticker": "PETR4"}
-                )
+        await register_verify_and_login(
+            client,
+            email_stub,
+            email="phase16_tenant_b@test.com",
+            password="SecurePass123!",
+        )
 
-            assert create_resp.status_code == 202, create_resp.text
-            job_id_a = create_resp.json()["job_id"]
-
-            # Register and login User B (overwrites session cookie)
-            await register_verify_and_login(
-                client,
-                email_stub,
-                email="phase16_tenant_b@test.com",
-                password="SecurePass123!",
-            )
-
-            # User B tries to access User A's job
-            get_resp = await client.get(f"/analysis/{job_id_a}")
-            assert get_resp.status_code == 404, (
-                f"Expected 404 for tenant isolation, got {get_resp.status_code}: {get_resp.text}"
-            )
-
-        asyncio.run(_run())
+        get_resp = await client.get(f"/analysis/{job_id_a}")
+        assert get_resp.status_code == 404, (
+            f"Expected 404 for tenant isolation, got {get_resp.status_code}: {get_resp.text}"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -315,77 +292,70 @@ class TestTenantIsolation:
 class TestQuotaExceeded:
     """POST /analysis/dcf with exhausted quota returns 403 QUOTA_EXCEEDED."""
 
-    def test_quota_exceeded_returns_403_with_code(self, client, email_stub):
-        async def _run():
-            from tests.conftest import register_verify_and_login
+    async def test_quota_exceeded_returns_403_with_code(self, client, email_stub):
+        from tests.conftest import register_verify_and_login
 
-            await register_verify_and_login(
-                client,
-                email_stub,
-                email="phase16_quota_exceeded@test.com",
-                password="SecurePass123!",
+        await register_verify_and_login(
+            client,
+            email_stub,
+            email="phase16_quota_exceeded@test.com",
+            password="SecurePass123!",
+        )
+
+        with (
+            patch(
+                "app.modules.analysis.router.check_analysis_rate_limit",
+                new=AsyncMock(return_value=(True, 0)),
+            ),
+            patch(
+                "app.modules.analysis.router.check_analysis_quota",
+                return_value=_quota_exhausted(),
+            ),
+        ):
+            resp = await client.post(
+                "/analysis/dcf", json={"ticker": "PETR4"}
             )
 
-            with (
-                patch(
-                    "app.modules.analysis.router.check_analysis_rate_limit",
-                    new=AsyncMock(return_value=(True, 0)),
-                ),
-                patch(
-                    "app.modules.analysis.router.check_analysis_quota",
-                    return_value=_quota_exhausted(),
-                ),
-            ):
-                resp = await client.post(
-                    "/analysis/dcf", json={"ticker": "PETR4"}
-                )
+        assert resp.status_code == 403, resp.text
+        data = resp.json()
+        assert data["detail"]["code"] == "QUOTA_EXCEEDED"
+        assert data["detail"]["quota_used"] == 50
+        assert data["detail"]["quota_limit"] == 50
 
-            assert resp.status_code == 403, resp.text
-            data = resp.json()
-            assert data["detail"]["code"] == "QUOTA_EXCEEDED"
-            assert data["detail"]["quota_used"] == 50
-            assert data["detail"]["quota_limit"] == 50
-
-        asyncio.run(_run())
-
-    def test_quota_exceeded_for_all_endpoints(self, client, email_stub):
+    async def test_quota_exceeded_for_all_endpoints(self, client, email_stub):
         """All 4 endpoints enforce quota and return 403 with QUOTA_EXCEEDED code."""
+        from tests.conftest import register_verify_and_login
 
-        async def _run():
-            from tests.conftest import register_verify_and_login
+        await register_verify_and_login(
+            client,
+            email_stub,
+            email="phase16_quota_all_eps@test.com",
+            password="SecurePass123!",
+        )
 
-            await register_verify_and_login(
-                client,
-                email_stub,
-                email="phase16_quota_all_eps@test.com",
-                password="SecurePass123!",
-            )
+        endpoints_payloads = [
+            ("/analysis/dcf", {"ticker": "PETR4"}),
+            ("/analysis/earnings", {"ticker": "PETR4"}),
+            ("/analysis/dividend", {"ticker": "VALE3"}),
+            ("/analysis/sector", {"ticker": "ITUB4", "max_peers": 5}),
+        ]
 
-            endpoints_payloads = [
-                ("/analysis/dcf", {"ticker": "PETR4"}),
-                ("/analysis/earnings", {"ticker": "PETR4"}),
-                ("/analysis/dividend", {"ticker": "VALE3"}),
-                ("/analysis/sector", {"ticker": "ITUB4", "max_peers": 5}),
-            ]
-
-            with (
-                patch(
-                    "app.modules.analysis.router.check_analysis_rate_limit",
-                    new=AsyncMock(return_value=(True, 0)),
-                ),
-                patch(
-                    "app.modules.analysis.router.check_analysis_quota",
-                    return_value=_quota_exhausted(),
-                ),
-            ):
-                for endpoint, payload in endpoints_payloads:
-                    resp = await client.post(endpoint, json=payload)
-                    assert resp.status_code == 403, (
-                        f"{endpoint} should return 403, got {resp.status_code}: {resp.text}"
-                    )
-                    assert resp.json()["detail"]["code"] == "QUOTA_EXCEEDED"
-
-        asyncio.run(_run())
+        with (
+            patch(
+                "app.modules.analysis.router.check_analysis_rate_limit",
+                new=AsyncMock(return_value=(True, 0)),
+            ),
+            patch(
+                "app.modules.analysis.router.check_analysis_quota",
+                return_value=_quota_exhausted(),
+            ),
+        ):
+            for endpoint, payload in endpoints_payloads:
+                resp = await client.post(endpoint, json=payload)
+                assert resp.status_code == 403, (
+                    f"{endpoint} should return 403, got {resp.status_code}: {resp.text}"
+                )
+                assert resp.json()["detail"]["code"] == "QUOTA_EXCEEDED"
 
 
 # ---------------------------------------------------------------------------
@@ -396,114 +366,101 @@ class TestQuotaExceeded:
 class TestResponseShape:
     """Validate that GET /analysis/{job_id} returns correct field types and values."""
 
-    def test_disclaimer_contains_cvm(self, client, email_stub):
+    async def test_disclaimer_contains_cvm(self, client, email_stub):
         """GET /analysis/{job_id} response.disclaimer must contain 'CVM'."""
+        from tests.conftest import register_verify_and_login
 
-        async def _run():
-            from tests.conftest import register_verify_and_login
+        await register_verify_and_login(
+            client,
+            email_stub,
+            email="phase16_shape_disclaimer@test.com",
+            password="SecurePass123!",
+        )
 
-            await register_verify_and_login(
-                client,
-                email_stub,
-                email="phase16_shape_disclaimer@test.com",
-                password="SecurePass123!",
+        mock_celery = _make_celery_mock()
+
+        with (
+            patch(
+                "app.modules.analysis.router.check_analysis_rate_limit",
+                new=AsyncMock(return_value=(True, 0)),
+            ),
+            patch(
+                "app.modules.analysis.router.check_analysis_quota",
+                return_value=_quota_allowed(),
+            ),
+            patch("app.modules.analysis.router.increment_quota_used"),
+            patch("app.celery_app.celery_app", mock_celery),
+        ):
+            create_resp = await client.post(
+                "/analysis/dcf", json={"ticker": "PETR4"}
             )
 
-            mock_celery = _make_celery_mock()
+        assert create_resp.status_code == 202, create_resp.text
+        job_id = create_resp.json()["job_id"]
 
-            with (
-                patch(
-                    "app.modules.analysis.router.check_analysis_rate_limit",
-                    new=AsyncMock(return_value=(True, 0)),
-                ),
-                patch(
-                    "app.modules.analysis.router.check_analysis_quota",
-                    return_value=_quota_allowed(),
-                ),
-                patch("app.modules.analysis.router.increment_quota_used"),
-                patch("app.celery_app.celery_app", mock_celery),
-            ):
-                create_resp = await client.post(
-                    "/analysis/dcf", json={"ticker": "PETR4"}
-                )
+        get_resp = await client.get(f"/analysis/{job_id}")
+        assert get_resp.status_code == 200, get_resp.text
 
-            assert create_resp.status_code == 202, create_resp.text
-            job_id = create_resp.json()["job_id"]
+        data = get_resp.json()
+        assert "CVM" in data["disclaimer"], (
+            f"Disclaimer should contain 'CVM', got: {data['disclaimer']}"
+        )
 
-            get_resp = await client.get(f"/analysis/{job_id}")
-            assert get_resp.status_code == 200, get_resp.text
-
-            data = get_resp.json()
-            assert "CVM" in data["disclaimer"], (
-                f"Disclaimer should contain 'CVM', got: {data['disclaimer']}"
-            )
-
-        asyncio.run(_run())
-
-    def test_analysis_id_is_uuid(self, client, email_stub):
+    async def test_analysis_id_is_uuid(self, client, email_stub):
         """GET /analysis/{job_id} response.analysis_id must be a valid UUID."""
+        from tests.conftest import register_verify_and_login
 
-        async def _run():
-            from tests.conftest import register_verify_and_login
+        await register_verify_and_login(
+            client,
+            email_stub,
+            email="phase16_shape_uuid@test.com",
+            password="SecurePass123!",
+        )
 
-            await register_verify_and_login(
-                client,
-                email_stub,
-                email="phase16_shape_uuid@test.com",
-                password="SecurePass123!",
+        mock_celery = _make_celery_mock()
+
+        with (
+            patch(
+                "app.modules.analysis.router.check_analysis_rate_limit",
+                new=AsyncMock(return_value=(True, 0)),
+            ),
+            patch(
+                "app.modules.analysis.router.check_analysis_quota",
+                return_value=_quota_allowed(),
+            ),
+            patch("app.modules.analysis.router.increment_quota_used"),
+            patch("app.celery_app.celery_app", mock_celery),
+        ):
+            create_resp = await client.post(
+                "/analysis/sector", json={"ticker": "BBAS3", "max_peers": 5}
             )
 
-            mock_celery = _make_celery_mock()
+        assert create_resp.status_code == 202, create_resp.text
+        job_id = create_resp.json()["job_id"]
 
-            with (
-                patch(
-                    "app.modules.analysis.router.check_analysis_rate_limit",
-                    new=AsyncMock(return_value=(True, 0)),
-                ),
-                patch(
-                    "app.modules.analysis.router.check_analysis_quota",
-                    return_value=_quota_allowed(),
-                ),
-                patch("app.modules.analysis.router.increment_quota_used"),
-                patch("app.celery_app.celery_app", mock_celery),
-            ):
-                create_resp = await client.post(
-                    "/analysis/sector", json={"ticker": "BBAS3", "max_peers": 5}
-                )
+        get_resp = await client.get(f"/analysis/{job_id}")
+        assert get_resp.status_code == 200, get_resp.text
 
-            assert create_resp.status_code == 202, create_resp.text
-            job_id = create_resp.json()["job_id"]
+        data = get_resp.json()
+        try:
+            parsed = uuid.UUID(data["analysis_id"])
+            assert str(parsed) == data["analysis_id"].lower()
+        except (ValueError, AttributeError) as exc:
+            pytest.fail(f"analysis_id is not a valid UUID: {data['analysis_id']} — {exc}")
 
-            get_resp = await client.get(f"/analysis/{job_id}")
-            assert get_resp.status_code == 200, get_resp.text
-
-            data = get_resp.json()
-            # analysis_id must be a valid UUID
-            try:
-                parsed = uuid.UUID(data["analysis_id"])
-                assert str(parsed) == data["analysis_id"].lower()
-            except (ValueError, AttributeError) as exc:
-                pytest.fail(f"analysis_id is not a valid UUID: {data['analysis_id']} — {exc}")
-
-        asyncio.run(_run())
-
-    def test_get_nonexistent_job_returns_404(self, client, email_stub):
+    async def test_get_nonexistent_job_returns_404(self, client, email_stub):
         """GET /analysis/{random_uuid} returns 404 when job does not exist."""
+        from tests.conftest import register_verify_and_login
 
-        async def _run():
-            from tests.conftest import register_verify_and_login
+        await register_verify_and_login(
+            client,
+            email_stub,
+            email="phase16_shape_404@test.com",
+            password="SecurePass123!",
+        )
 
-            await register_verify_and_login(
-                client,
-                email_stub,
-                email="phase16_shape_404@test.com",
-                password="SecurePass123!",
-            )
-
-            fake_id = str(uuid.uuid4())
-            get_resp = await client.get(f"/analysis/{fake_id}")
-            assert get_resp.status_code == 404, (
-                f"Expected 404 for unknown job_id, got {get_resp.status_code}"
-            )
-
-        asyncio.run(_run())
+        fake_id = str(uuid.uuid4())
+        get_resp = await client.get(f"/analysis/{fake_id}")
+        assert get_resp.status_code == 404, (
+            f"Expected 404 for unknown job_id, got {get_resp.status_code}"
+        )
