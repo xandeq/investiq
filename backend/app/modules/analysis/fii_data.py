@@ -95,6 +95,19 @@ def fetch_fii_data(ticker: str) -> dict:
             }
         raise DataFetchError(ticker_upper, "BRAPI", str(exc))
 
+    # BRAPI returns {"code": "MODULES_NOT_AVAILABLE"} when the paid modules
+    # are unavailable for this ticker — fall back to a plain quote fetch.
+    if data.get("code") == "MODULES_NOT_AVAILABLE":
+        try:
+            plain_params: dict = {}
+            if token:
+                plain_params["token"] = token
+            plain_resp = requests.get(url, params=plain_params, timeout=15)
+            plain_resp.raise_for_status()
+            data = plain_resp.json()
+        except Exception as exc:
+            raise DataFetchError(ticker_upper, "BRAPI", str(exc))
+
     results = data.get("results", [])
     if not results:
         raise DataFetchError(ticker_upper, "BRAPI", "No results returned")
@@ -157,8 +170,7 @@ def _parse_dividends_monthly(
     if not cash_dividends:
         return [], None, None
 
-    now = datetime.now(timezone.utc)
-    twelve_months_ago = now - timedelta(days=365)
+    twelve_months_ago = datetime.now() - timedelta(days=365)
 
     # Aggregate by YYYY-MM, limit to last 12 months
     monthly: dict[str, float] = defaultdict(float)

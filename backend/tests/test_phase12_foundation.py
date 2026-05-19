@@ -336,7 +336,7 @@ class TestAsyncJobs:
         # Track all _update_job calls
         job_updates: list[dict] = []
 
-        def fake_update_job(jid, status, result_json=None, error=None):
+        def fake_update_job(jid, tenant_id, status, result_json=None, error=None):
             job_updates.append({
                 "job_id": jid,
                 "status": status,
@@ -402,7 +402,7 @@ class TestAsyncJobs:
 
         job_updates: list[dict] = []
 
-        def fake_update_job(jid, status, result_json=None, error=None):
+        def fake_update_job(jid, tenant_id, status, result_json=None, error=None):
             job_updates.append({
                 "job_id": jid,
                 "status": status,
@@ -457,7 +457,7 @@ class TestAsyncJobs:
 
         job_updates: list[dict] = []
 
-        def fake_update_job(jid, status, result_json=None, error=None):
+        def fake_update_job(jid, tenant_id, status, result_json=None, error=None):
             job_updates.append({
                 "job_id": jid,
                 "status": status,
@@ -544,7 +544,7 @@ class TestDataVersioning:
 
         job_updates: list[dict] = []
 
-        def fake_update_job(jid, status, result_json=None, error=None):
+        def fake_update_job(jid, tenant_id, status, result_json=None, error=None):
             job_updates.append({
                 "job_id": jid,
                 "status": status,
@@ -593,7 +593,7 @@ class TestDataVersioning:
 
         job_updates: list[dict] = []
 
-        def fake_update_job(jid, status, result_json=None, error=None):
+        def fake_update_job(jid, tenant_id, status, result_json=None, error=None):
             job_updates.append({
                 "job_id": jid,
                 "status": status,
@@ -644,7 +644,7 @@ class TestDataVersioning:
 
         job_updates: list[dict] = []
 
-        def fake_update_job(jid, status, result_json=None, error=None):
+        def fake_update_job(jid, tenant_id, status, result_json=None, error=None):
             job_updates.append({
                 "job_id": jid,
                 "status": status,
@@ -842,19 +842,12 @@ class TestQuotaEnforcement:
             password="SecurePass123!",
         )
 
-        mock_task = MagicMock()
-        mock_task.delay = MagicMock()
-        with patch("app.modules.analysis.router.check_analysis_rate_limit", return_value=(True, 0)):
-            with patch(
-                "app.modules.analysis.router.check_analysis_quota",
-                return_value=(True, 49, 50),
-            ):
-                with patch("app.modules.analysis.router.increment_quota_used"):
-                    with patch("app.modules.analysis.tasks.run_dcf", mock_task):
-                        resp = await client.post(
-                            "/analysis/dcf",
-                            json={"ticker": "PETR4"},
-                        )
+        with patch("app.modules.analysis.router.check_analysis_rate_limit", return_value=(True, 0)), \
+             patch("app.modules.analysis.router.check_analysis_quota", return_value=(True, 49, 50)), \
+             patch("app.modules.analysis.router.increment_quota_used"), \
+             patch("app.celery_app.celery_app.connection_for_write"), \
+             patch("app.celery_app.celery_app.send_task"):
+            resp = await client.post("/analysis/dcf", json={"ticker": "PETR4"})
 
         assert resp.status_code == 202
         data = resp.json()
@@ -874,16 +867,12 @@ class TestRateLimiting:
         )
 
         # First request: rate limit allows
-        mock_task = MagicMock()
-        mock_task.delay = MagicMock()
-        with patch("app.modules.analysis.router.check_analysis_rate_limit", return_value=(True, 0)):
-            with patch("app.modules.analysis.router.check_analysis_quota", return_value=(True, 0, 50)):
-                with patch("app.modules.analysis.router.increment_quota_used"):
-                    with patch("app.modules.analysis.tasks.run_dcf", mock_task):
-                        resp1 = await client.post(
-                            "/analysis/dcf",
-                            json={"ticker": "PETR4"},
-                        )
+        with patch("app.modules.analysis.router.check_analysis_rate_limit", return_value=(True, 0)), \
+             patch("app.modules.analysis.router.check_analysis_quota", return_value=(True, 0, 50)), \
+             patch("app.modules.analysis.router.increment_quota_used"), \
+             patch("app.celery_app.celery_app.connection_for_write"), \
+             patch("app.celery_app.celery_app.send_task"):
+            resp1 = await client.post("/analysis/dcf", json={"ticker": "PETR4"})
         assert resp1.status_code == 202
 
         # Second request: rate limit blocks
@@ -970,16 +959,12 @@ class TestDisclaimerEndpoint:
         )
 
         # Create a job via endpoint (mock guards + celery dispatch)
-        mock_task = MagicMock()
-        mock_task.delay = MagicMock()
-        with patch("app.modules.analysis.router.check_analysis_rate_limit", return_value=(True, 0)):
-            with patch("app.modules.analysis.router.check_analysis_quota", return_value=(True, 0, 50)):
-                with patch("app.modules.analysis.router.increment_quota_used"):
-                    with patch("app.modules.analysis.tasks.run_dcf", mock_task):
-                        create_resp = await client.post(
-                            "/analysis/dcf",
-                            json={"ticker": "PETR4"},
-                        )
+        with patch("app.modules.analysis.router.check_analysis_rate_limit", return_value=(True, 0)), \
+             patch("app.modules.analysis.router.check_analysis_quota", return_value=(True, 0, 50)), \
+             patch("app.modules.analysis.router.increment_quota_used"), \
+             patch("app.celery_app.celery_app.connection_for_write"), \
+             patch("app.celery_app.celery_app.send_task"):
+            create_resp = await client.post("/analysis/dcf", json={"ticker": "PETR4"})
         assert create_resp.status_code == 202
         job_id = create_resp.json()["job_id"]
 
