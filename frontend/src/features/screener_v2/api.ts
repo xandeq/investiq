@@ -43,3 +43,16 @@ export async function getTesouroRates(): Promise<TesouroRatesResponse> {
 export async function getMacroRates(): Promise<MacroRatesResponse> {
   return apiClient<MacroRatesResponse>("/renda-fixa/macro-rates");
 }
+
+export async function exportFIIScreenerCSV(
+  params: FIIScreenerParams = {}
+): Promise<Blob> {
+  const response = await fetch(
+    `/api/screener/fiis/export${buildQuery(params as unknown as Record<string, unknown>)}`,
+    { credentials: "include" },
+  );
+  if (!response.ok) {
+    throw new Error(`Erro ao exportar CSV: HTTP ${response.status}`);
+  }
+  return response.blob();
+}

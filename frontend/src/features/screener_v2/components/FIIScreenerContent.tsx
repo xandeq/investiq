@@ -1,9 +1,12 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { Eye, EyeSlash } from "@phosphor-icons/react";
+import { Eye, EyeSlash, DownloadSimple } from "@phosphor-icons/react";
 import { useFIIScreener } from "../hooks/useFIIScreener";
+import { exportFIIScreenerCSV } from "../api";
 import type { FIIRow, FIIScreenerParams } from "../types";
+import { useSortedData } from "@/hooks/useSort";
+import { SortableHeader } from "@/components/ui/SortableHeader";
 import { useWatchlist, useAddToWatchlist, useRemoveFromWatchlist } from "@/features/watchlist/hooks/useWatchlist";
 
 const SEGMENTOS = ["Tijolo", "Papel", "Híbrido", "FoF", "Agro"];
@@ -94,9 +97,11 @@ export function FIIScreenerContent() {
   const [applied, setApplied] = useState<FIIScreenerParams>({});
   const [offset, setOffset] = useState(0);
   const [excludePortfolio, setExcludePortfolio] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const params: FIIScreenerParams = { ...applied, limit: PAGE_SIZE, offset, exclude_portfolio: excludePortfolio };
   const { data, isLoading, isFetching, error } = useFIIScreener(params);
+  const { sorted: sortedFIIs, col, dir, toggle } = useSortedData(data?.results ?? []);
 
   function applyFilters() {
     setOffset(0);
@@ -107,6 +112,25 @@ export function FIIScreenerContent() {
     setFilters({});
     setApplied({});
     setOffset(0);
+  }
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const blob = await exportFIIScreenerCSV({ ...applied, exclude_portfolio: excludePortfolio });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `fiis-screener-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      // silent — don't break the UI for a failed export
+    } finally {
+      setExporting(false);
+    }
   }
 
   const { data: watchlistItems = [] } = useWatchlist();
@@ -195,6 +219,15 @@ export function FIIScreenerContent() {
               Limpar
             </button>
             <button
+              onClick={handleExport}
+              disabled={exporting || isLoading}
+              title="Exportar resultados filtrados como CSV"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-sm border border-zinc-200 text-zinc-600 hover:bg-zinc-50 disabled:opacity-40 transition-colors"
+            >
+              <DownloadSimple size={14} weight="bold" aria-hidden />
+              {exporting ? "Exportando..." : "Exportar CSV"}
+            </button>
+            <button
               onClick={applyFilters}
               className="px-4 py-2 rounded-md text-sm bg-blue-500 text-white hover:bg-blue-600 transition-colors font-medium"
             >
@@ -234,14 +267,14 @@ export function FIIScreenerContent() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-zinc-50 border-b border-zinc-200">
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-600">FII</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-600">Segmento</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-600">Preço</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-600">Var.</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-600">DY</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-600">P/VP</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-600">Vacância</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-600">Cotistas</th>
+                  <SortableHeader col="ticker" label="FII" activeCol={col} dir={dir} onSort={toggle} className="text-left py-3 px-4 text-xs font-semibold text-zinc-600" />
+                  <SortableHeader col="segmento" label="Segmento" activeCol={col} dir={dir} onSort={toggle} className="text-left py-3 px-4 text-xs font-semibold text-zinc-600" />
+                  <SortableHeader col="price" label="Preço" activeCol={col} dir={dir} onSort={toggle} className="text-left py-3 px-4 text-xs font-semibold text-zinc-600" />
+                  <SortableHeader col="change_pct" label="Var." activeCol={col} dir={dir} onSort={toggle} className="text-left py-3 px-4 text-xs font-semibold text-zinc-600" />
+                  <SortableHeader col="dy" label="DY" activeCol={col} dir={dir} onSort={toggle} className="text-left py-3 px-4 text-xs font-semibold text-zinc-600" />
+                  <SortableHeader col="pvp" label="P/VP" activeCol={col} dir={dir} onSort={toggle} className="text-left py-3 px-4 text-xs font-semibold text-zinc-600" />
+                  <SortableHeader col="vacancia_financeira" label="Vacância" activeCol={col} dir={dir} onSort={toggle} className="text-left py-3 px-4 text-xs font-semibold text-zinc-600" />
+                  <SortableHeader col="num_cotistas" label="Cotistas" activeCol={col} dir={dir} onSort={toggle} className="text-left py-3 px-4 text-xs font-semibold text-zinc-600" />
                   <th className="py-3 px-2 text-xs font-semibold text-zinc-600" />
                 </tr>
               </thead>
@@ -256,7 +289,7 @@ export function FIIScreenerContent() {
                         ))}
                       </tr>
                     ))
-                  : data?.results.map((row) => (
+                  : sortedFIIs.map((row) => (
                       <FIITableRow key={`${row.ticker}`} row={row} watchlistTickers={watchlistTickers} />
                     ))}
                 {!isLoading && data?.results.length === 0 && (
