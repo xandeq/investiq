@@ -13,6 +13,8 @@ import { useWatchlist, useAddToWatchlist, useRemoveFromWatchlist } from "@/featu
 import { useStockQuote } from "@/hooks/useStockQuote";
 import { useFundamentals } from "@/hooks/useFundamentals";
 import { StockPriceChart } from "./StockPriceChart";
+import { SentimentChip } from "@/features/analysis/components/SentimentChip";
+import { SignalEvalCard } from "@/features/analysis/components/SignalEvalCard";
 
 interface Props {
   ticker: string;
@@ -140,9 +142,10 @@ export function StockDetailContent({ ticker }: Props) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">{ticker}</h1>
-          <div className="flex items-center gap-3 mt-1">
+          <div className="flex items-center gap-3 mt-1 flex-wrap">
             <p className="text-muted-foreground">Análise Fundamentalista</p>
             <LivePriceChip ticker={ticker} />
+            <SentimentChip ticker={ticker} />
           </div>
           <FundamentalsRow ticker={ticker} />
         </div>
@@ -154,6 +157,9 @@ export function StockDetailContent({ ticker }: Props) {
 
       {/* Price chart — instant from Redis cache */}
       <StockPriceChart ticker={ticker} />
+
+      {/* Signal evaluation — 10-gate technical analysis */}
+      <SignalEvalCard ticker={ticker} />
 
       {/* Quota / start error */}
       {isQuotaError && (

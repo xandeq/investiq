@@ -11,6 +11,7 @@ import { FIIPVPChart } from "@/features/fii_detail/components/FIIPVPChart";
 import { FIIPortfolioSection } from "@/features/fii_detail/components/FIIPortfolioSection";
 import { FIIAnalysisCard } from "@/features/fii_detail/components/FIIAnalysisCard";
 import { StockPriceChart } from "@/app/stock/[ticker]/StockPriceChart";
+import { SentimentChip } from "@/features/analysis/components/SentimentChip";
 import type { FIIAnalysisResult, FIIPortfolio } from "@/features/fii_detail/types";
 
 interface Props {
@@ -111,6 +112,7 @@ export function FIIDetailContent({ ticker }: Props) {
               <p className="text-muted-foreground">{fiiRow.short_name}</p>
             )}
             <LivePriceChip ticker={ticker} />
+            <SentimentChip ticker={ticker} />
           </div>
           {fiiRow?.segmento && (
             <span className="inline-block mt-1 px-2 py-0.5 bg-muted rounded text-xs">
