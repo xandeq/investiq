@@ -71,6 +71,39 @@ test.describe('Stock Detail — Mobile', () => {
   });
 });
 
+test.describe('Stock Detail — CopilotPickCard (Phase 67A)', () => {
+  test('CopilotPickCard renders without crashing', async ({ page }) => {
+    await login(page);
+    await page.goto('/stock/PETR4');
+    await page.waitForLoadState('networkidle').catch(() => null);
+    await page.waitForTimeout(5000);
+
+    // Card always renders one of three states — verify "Visão do Copilot" label is present
+    const copilotLabel = page.getByText('Visão do Copilot');
+    await expect(copilotLabel).toBeVisible({ timeout: 15000 });
+  });
+
+  test('CopilotPickCard shows one of three valid states', async ({ page }) => {
+    await login(page);
+    await page.goto('/stock/PETR4');
+    await page.waitForLoadState('networkidle').catch(() => null);
+    await page.waitForTimeout(5000);
+
+    const body = await page.textContent('body');
+    expect(body).toMatch(/Setup Favorável|Setup parcial|Sem setup/i);
+  });
+
+  test('no horizontal overflow on iPhone SE (375px)', async ({ page }) => {
+    page.setViewportSize({ width: 375, height: 812 });
+    await login(page);
+    await page.goto('/stock/PETR4');
+    await page.waitForLoadState('networkidle').catch(() => null);
+    await page.waitForTimeout(4000);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+    expect(overflow).toBe(false);
+  });
+});
+
 test.describe('Stock Detail — Integration', () => {
   test('spinner shows then content or error renders (no crash)', async ({ page }) => {
     test.setTimeout(120_000);

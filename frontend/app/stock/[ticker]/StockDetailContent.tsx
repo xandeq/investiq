@@ -15,6 +15,7 @@ import { useFundamentals } from "@/hooks/useFundamentals";
 import { StockPriceChart } from "./StockPriceChart";
 import { SentimentChip } from "@/features/analysis/components/SentimentChip";
 import { SignalEvalCard } from "@/features/analysis/components/SignalEvalCard";
+import { CopilotPickCard } from "@/features/analysis/components/CopilotPickCard";
 
 interface Props {
   ticker: string;
@@ -160,6 +161,9 @@ export function StockDetailContent({ ticker }: Props) {
 
       {/* Signal evaluation — 10-gate technical analysis */}
       <SignalEvalCard ticker={ticker} />
+
+      {/* Copilot synthesis — composes signal eval + sentiment */}
+      <CopilotPickCard ticker={ticker} />
 
       {/* Quota / start error */}
       {isQuotaError && (
