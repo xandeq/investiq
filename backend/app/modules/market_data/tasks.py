@@ -262,15 +262,16 @@ def check_macro_freshness() -> dict:
 
     try:
         fetched_at = datetime.fromisoformat(raw.decode())
-        # Normalize to naive UTC regardless of whether the stored ISO string is
-        # offset-aware (e.g. "+00:00") or naive (legacy format without tz suffix).
-        if fetched_at.tzinfo is not None:
-            fetched_at = fetched_at.replace(tzinfo=None)
+        # Normalize to UTC-aware regardless of stored format (legacy naive = UTC assumed)
+        if fetched_at.tzinfo is None:
+            fetched_at = fetched_at.replace(tzinfo=timezone.utc)
+        else:
+            fetched_at = fetched_at.astimezone(timezone.utc)
     except (ValueError, AttributeError):
         logger.error("MACRO_STALE: market:macro:fetched_at is unparseable: %r", raw)
         return {"status": "unparseable", "age_seconds": None}
 
-    age = (datetime.now(timezone.utc).replace(tzinfo=None) - fetched_at).total_seconds()
+    age = (datetime.now(timezone.utc) - fetched_at).total_seconds()
 
     if age > _MACRO_STALE_THRESHOLD_SECONDS:
         logger.error(
