@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { AppNav } from "@/components/AppNav";
 import { AcoesScreenerContent } from "@/features/screener_v2/components/AcoesScreenerContent";
 
@@ -13,7 +14,9 @@ export default function AcoesScreenerPage() {
               Filtre ações por múltiplos critérios — dados do snapshot diário, sem chamadas externas por requisição
             </p>
           </div>
-          <AcoesScreenerContent />
+          <Suspense fallback={<div className="h-96 rounded-lg border border-zinc-200 bg-zinc-50 animate-pulse" />}>
+            <AcoesScreenerContent />
+          </Suspense>
         </div>
       </main>
     </>

@@ -1,7 +1,8 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { Eye, EyeSlash, DownloadSimple } from "@phosphor-icons/react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { Eye, EyeSlash, DownloadSimple, Link as LinkIcon, Check } from "@phosphor-icons/react";
 import { useFIIScreener } from "../hooks/useFIIScreener";
 import { exportFIIScreenerCSV } from "../api";
 import type { FIIRow, FIIScreenerParams } from "../types";
@@ -11,6 +12,44 @@ import { useWatchlist, useAddToWatchlist, useRemoveFromWatchlist } from "@/featu
 
 const SEGMENTOS = ["Tijolo", "Papel", "Híbrido", "FoF", "Agro"];
 const PAGE_SIZE = 50;
+const STORAGE_KEY = "investiq:screenerv2:fii";
+
+const NUM_PARAMS = ["min_dy", "max_pvp", "max_vacancia", "min_cotistas"] as const;
+const STR_PARAMS = ["segmento"] as const;
+
+function parseSearchParams(sp: URLSearchParams): FIIScreenerParams {
+  const out: FIIScreenerParams = {};
+  for (const k of NUM_PARAMS) {
+    const v = sp.get(k);
+    if (v !== null) (out as Record<string, unknown>)[k] = +v;
+  }
+  for (const k of STR_PARAMS) {
+    const v = sp.get(k);
+    if (v) (out as Record<string, unknown>)[k] = v;
+  }
+  return out;
+}
+
+function buildSearchParams(f: FIIScreenerParams): URLSearchParams {
+  const sp = new URLSearchParams();
+  for (const k of NUM_PARAMS) {
+    const v = (f as Record<string, unknown>)[k];
+    if (v !== undefined && v !== null) sp.set(k, String(v));
+  }
+  for (const k of STR_PARAMS) {
+    const v = (f as Record<string, unknown>)[k];
+    if (v) sp.set(k, String(v));
+  }
+  return sp;
+}
+
+function countActive(f: FIIScreenerParams): number {
+  return (
+    (NUM_PARAMS as readonly string[]).concat(STR_PARAMS).filter(
+      (k) => (f as Record<string, unknown>)[k] !== undefined && (f as Record<string, unknown>)[k] !== null && (f as Record<string, unknown>)[k] !== ""
+    ).length
+  );
+}
 
 function fmt(val: string | null, decimals = 2, suffix = ""): string {
   if (val === null || val === undefined) return "—";
@@ -92,42 +131,86 @@ function FIITableRow({ row, watchlistTickers }: { row: FIIRow; watchlistTickers:
   );
 }
 
-const STORAGE_KEY = "investiq:screenerv2:fii";
-
 export function FIIScreenerContent() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const [filters, setFilters] = useState<FIIScreenerParams>({});
   const [applied, setApplied] = useState<FIIScreenerParams>({});
   const [offset, setOffset] = useState(0);
   const [excludePortfolio, setExcludePortfolio] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  // Restore last applied filters from localStorage on mount
+  const selfNavRef = useRef(false);
+  const isFirstMount = useRef(true);
+
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const saved = JSON.parse(raw) as FIIScreenerParams;
-        setFilters(saved);
-        setApplied(saved);
+    const urlFilters = parseSearchParams(searchParams);
+    const hasUrlFilters = Object.keys(urlFilters).length > 0;
+
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      if (hasUrlFilters) {
+        setFilters(urlFilters);
+        setApplied(urlFilters);
+      } else {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const saved = JSON.parse(raw) as FIIScreenerParams;
+            setFilters(saved);
+            setApplied(saved);
+          }
+        } catch { /* ignore */ }
       }
-    } catch { /* ignore */ }
-  }, []);
+      return;
+    }
+
+    if (selfNavRef.current) {
+      selfNavRef.current = false;
+      return;
+    }
+    setFilters(urlFilters);
+    setApplied(urlFilters);
+    setOffset(0);
+  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const params: FIIScreenerParams = { ...applied, limit: PAGE_SIZE, offset, exclude_portfolio: excludePortfolio };
   const { data, isLoading, isFetching, error } = useFIIScreener(params);
   const { sorted: sortedFIIs, col, dir, toggle } = useSortedData(data?.results ?? []);
+  const { data: watchlistItems = [] } = useWatchlist();
+  const watchlistTickers = new Set(watchlistItems.map((w: { ticker: string }) => w.ticker));
 
-  function applyFilters() {
+  const applyFilters = useCallback(() => {
     setOffset(0);
     setApplied({ ...filters });
+    const sp = buildSearchParams(filters);
+    const qs = sp.toString();
+    selfNavRef.current = true;
+    router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(filters)); } catch { /* ignore */ }
-  }
+  }, [filters, router, pathname]);
 
-  function clearFilters() {
+  const clearFilters = useCallback(() => {
     setFilters({});
     setApplied({});
     setOffset(0);
+    selfNavRef.current = true;
+    router.replace(pathname, { scroll: false });
     try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+  }, [router, pathname]);
+
+  function applyPreset(preset: FIIScreenerParams) {
+    setFilters(preset);
+    setApplied(preset);
+    setOffset(0);
+    const sp = buildSearchParams(preset);
+    const qs = sp.toString();
+    selfNavRef.current = true;
+    router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(preset)); } catch { /* ignore */ }
   }
 
   async function handleExport() {
@@ -143,19 +226,18 @@ export function FIIScreenerContent() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch {
-      // silent — don't break the UI for a failed export
+      // silent — export failure must not break the UI
     } finally {
       setExporting(false);
     }
   }
 
-  const { data: watchlistItems = [] } = useWatchlist();
-  const watchlistTickers = new Set(watchlistItems.map((w: { ticker: string }) => w.ticker));
-
-  function applyPreset(preset: FIIScreenerParams) {
-    setFilters(preset);
-    setApplied(preset);
-    setOffset(0);
+  function handleCopyLink() {
+    try {
+      navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* ignore */ }
   }
 
   const PRESETS: { label: string; filters: FIIScreenerParams }[] = [
@@ -168,6 +250,7 @@ export function FIIScreenerContent() {
   const total = data?.total ?? 0;
   const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
   const totalPages = Math.ceil(total / PAGE_SIZE);
+  const activeCount = countActive(applied);
 
   return (
     <div className="space-y-4">
@@ -253,13 +336,23 @@ export function FIIScreenerContent() {
             />
             <span className="text-zinc-700">Apenas FIIs que não tenho na carteira</span>
           </label>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <button
               onClick={clearFilters}
               className="px-4 py-2 rounded-md text-sm text-zinc-600 border border-zinc-200 hover:bg-zinc-50 transition-colors"
             >
               Limpar
             </button>
+            {activeCount > 0 && (
+              <button
+                onClick={handleCopyLink}
+                title="Copiar link com os filtros atuais"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm border border-zinc-200 text-zinc-600 hover:bg-zinc-50 transition-colors"
+              >
+                {copied ? <Check size={14} weight="bold" className="text-emerald-500" /> : <LinkIcon size={14} />}
+                {copied ? "Copiado!" : "Copiar link"}
+              </button>
+            )}
             <button
               onClick={handleExport}
               disabled={exporting || isLoading}
@@ -271,9 +364,14 @@ export function FIIScreenerContent() {
             </button>
             <button
               onClick={applyFilters}
-              className="px-4 py-2 rounded-md text-sm bg-blue-500 text-white hover:bg-blue-600 transition-colors font-medium"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm bg-blue-500 text-white hover:bg-blue-600 transition-colors font-medium"
             >
               Filtrar
+              {activeCount > 0 && (
+                <span className="bg-white/20 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center leading-none">
+                  {activeCount}
+                </span>
+              )}
             </button>
           </div>
         </div>

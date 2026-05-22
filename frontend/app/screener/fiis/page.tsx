@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { AppNav } from "@/components/AppNav";
 import { FIIScreenerContent } from "@/features/screener_v2/components/FIIScreenerContent";
 
@@ -13,7 +14,9 @@ export default function FIIScreenerPage() {
               Filtre fundos imobiliários por segmento, DY, P/VP, vacância e cotistas — snapshot diário + metadados CVM
             </p>
           </div>
-          <FIIScreenerContent />
+          <Suspense fallback={<div className="h-96 rounded-lg border border-zinc-200 bg-zinc-50 animate-pulse" />}>
+            <FIIScreenerContent />
+          </Suspense>
         </div>
       </main>
     </>
