@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Eye, EyeSlash, DownloadSimple } from "@phosphor-icons/react";
 import { useFIIScreener } from "../hooks/useFIIScreener";
@@ -92,12 +92,26 @@ function FIITableRow({ row, watchlistTickers }: { row: FIIRow; watchlistTickers:
   );
 }
 
+const STORAGE_KEY = "investiq:screenerv2:fii";
+
 export function FIIScreenerContent() {
   const [filters, setFilters] = useState<FIIScreenerParams>({});
   const [applied, setApplied] = useState<FIIScreenerParams>({});
   const [offset, setOffset] = useState(0);
   const [excludePortfolio, setExcludePortfolio] = useState(false);
   const [exporting, setExporting] = useState(false);
+
+  // Restore last applied filters from localStorage on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw) as FIIScreenerParams;
+        setFilters(saved);
+        setApplied(saved);
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   const params: FIIScreenerParams = { ...applied, limit: PAGE_SIZE, offset, exclude_portfolio: excludePortfolio };
   const { data, isLoading, isFetching, error } = useFIIScreener(params);
@@ -106,12 +120,14 @@ export function FIIScreenerContent() {
   function applyFilters() {
     setOffset(0);
     setApplied({ ...filters });
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(filters)); } catch { /* ignore */ }
   }
 
   function clearFilters() {
     setFilters({});
     setApplied({});
     setOffset(0);
+    try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
   }
 
   async function handleExport() {

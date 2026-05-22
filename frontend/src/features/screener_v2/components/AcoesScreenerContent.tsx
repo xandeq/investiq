@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Eye, EyeSlash, DownloadSimple } from "@phosphor-icons/react";
 import { useAcoesScreener } from "../hooks/useAcoesScreener";
@@ -90,12 +90,26 @@ function AcaoTableRow({ row, watchlistTickers }: { row: AcaoRow; watchlistTicker
   );
 }
 
+const STORAGE_KEY = "investiq:screenerv2:acoes";
+
 export function AcoesScreenerContent() {
   const [filters, setFilters] = useState<AcaoScreenerParams>({});
   const [applied, setApplied] = useState<AcaoScreenerParams>({});
   const [offset, setOffset] = useState(0);
   const [excludePortfolio, setExcludePortfolio] = useState(false);
   const [exporting, setExporting] = useState(false);
+
+  // Restore last applied filters from localStorage on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw) as AcaoScreenerParams;
+        setFilters(saved);
+        setApplied(saved);
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   const params: AcaoScreenerParams = { ...applied, limit: PAGE_SIZE, offset, exclude_portfolio: excludePortfolio };
   const { data, isLoading, isFetching, error } = useAcoesScreener(params);
@@ -108,12 +122,14 @@ export function AcoesScreenerContent() {
   function applyFilters() {
     setOffset(0);
     setApplied({ ...filters });
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(filters)); } catch { /* ignore */ }
   }
 
   function clearFilters() {
     setFilters({});
     setApplied({});
     setOffset(0);
+    try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
   }
 
   async function handleExport() {
