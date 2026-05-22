@@ -93,7 +93,7 @@ function SwingPickCard({ pick, rank, index, onOpen }: SwingPickCardProps) {
       <p className="text-sm text-zinc-600 mb-4 leading-relaxed">{pick.tese}</p>
 
       {/* Price levels */}
-      <div className="grid grid-cols-3 gap-2 mb-4">
+      <div className="grid grid-cols-3 sm:grid-cols-3 gap-2 mb-4">
         <div className="bg-blue-50 rounded-lg p-2.5 text-center">
           <div className="text-[10px] text-blue-500 font-semibold uppercase tracking-wide">Entrada</div>
           <div className="text-sm font-bold text-blue-700 tabular-nums">R${fmt(pick.entrada)}</div>

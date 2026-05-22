@@ -72,7 +72,7 @@ export function DCFSection({ data, isLoading }: Props) {
       {r.scenarios && (
         <div>
           <p className="text-sm font-medium mb-2">Cenários</p>
-          <div className="grid grid-cols-3 gap-2 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
             {(["bear", "base", "bull"] as const).map((s) => {
               const scenario = r.scenarios[s] as Record<string, unknown>;
               const fv = scenario?.fair_value as number | undefined;

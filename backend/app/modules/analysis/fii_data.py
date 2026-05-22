@@ -170,7 +170,7 @@ def _parse_dividends_monthly(
     if not cash_dividends:
         return [], None, None
 
-    twelve_months_ago = datetime.now() - timedelta(days=365)
+    twelve_months_ago = datetime.now(timezone.utc) - timedelta(days=365)
 
     # Aggregate by YYYY-MM, limit to last 12 months
     monthly: dict[str, float] = defaultdict(float)

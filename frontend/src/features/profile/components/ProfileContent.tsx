@@ -208,7 +208,7 @@ export function ProfileContent() {
       <div className="space-y-4 max-w-xl py-4">
         <ShimmerSkeleton className="h-8 w-48 rounded" />
         <ShimmerSkeleton className="h-24 w-full rounded-xl" />
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {[0,1,2,3,4,5].map(i => <ShimmerSkeleton key={i} className="h-14 rounded-md" />)}
         </div>
       </div>

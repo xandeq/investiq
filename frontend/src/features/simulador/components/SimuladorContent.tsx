@@ -178,7 +178,7 @@ function DeltaSection({
       ) : (
         <div className="rounded-lg border border-zinc-200 bg-white p-4">
           {/* Header row */}
-          <div className="grid grid-cols-4 gap-2 text-xs font-semibold text-zinc-500 uppercase tracking-wide pb-2 border-b border-zinc-200">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-semibold text-zinc-500 uppercase tracking-wide pb-2 border-b border-zinc-200">
             <span>Classe</span>
             <span>Atual</span>
             <span>Alvo</span>
@@ -202,7 +202,7 @@ function DeltaSection({
             }
 
             return (
-              <div key={row.key} className="grid grid-cols-4 gap-2 items-center py-2 text-sm border-t border-zinc-100 first:border-t-0">
+              <div key={row.key} className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-center py-2 text-sm border-t border-zinc-100 first:border-t-0">
                 <span className="flex items-center gap-1.5">
                   <span className={`w-2 h-2 rounded-sm inline-block ${row.dotColor}`} />
                   {row.label}

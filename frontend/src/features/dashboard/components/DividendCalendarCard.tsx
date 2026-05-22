@@ -119,7 +119,7 @@ export function DividendCalendarCard() {
 
       {isLoading && (
         <>
-          <div className="grid grid-cols-3 gap-2 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
             {[0, 1, 2].map((i) => <ShimmerSkeleton key={i} className="h-12 rounded-lg" />)}
           </div>
           <SkeletonRows />
@@ -129,7 +129,7 @@ export function DividendCalendarCard() {
       {!isLoading && data && data.entries.length > 0 && (
         <>
           {/* Summary chips */}
-          <div className="grid grid-cols-3 gap-2 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
             {summaryChips.map(({ label, value, color }, i) => (
               <motion.div
                 key={label}
