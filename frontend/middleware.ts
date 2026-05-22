@@ -52,7 +52,10 @@ export function middleware(request: NextRequest) {
     const accessToken = request.cookies.get("access_token")?.value;
     if (!accessToken) {
       const loginUrl = new URL("/login", request.url);
-      loginUrl.searchParams.set("redirect", pathname);
+      const fullPath = request.nextUrl.search
+        ? `${pathname}${request.nextUrl.search}`
+        : pathname;
+      loginUrl.searchParams.set("redirect", fullPath);
       return NextResponse.redirect(loginUrl);
     }
   }
