@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { AppNav } from "@/components/AppNav";
 import { AcoesUniverseContent } from "@/features/acoes_screener/components/AcoesUniverseContent";
 
@@ -24,7 +25,9 @@ export default function AcoesScreenerPage() {
                 fundamentos
               </p>
             </div>
-            <AcoesUniverseContent />
+            <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-zinc-100" />}>
+              <AcoesUniverseContent />
+            </Suspense>
           </div>
         </div>
       </main>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { AppNav } from "@/components/AppNav";
 import { FIIScoredScreenerContent } from "@/features/fii_screener/components/FIIScoredScreenerContent";
 
@@ -20,7 +21,9 @@ export default function FIIScreenerPage() {
                 Ranking por score composto (DY 12m + P/VP + Liquidez)
               </p>
             </div>
-            <FIIScoredScreenerContent />
+            <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-zinc-100" />}>
+              <FIIScoredScreenerContent />
+            </Suspense>
           </div>
         </div>
       </main>

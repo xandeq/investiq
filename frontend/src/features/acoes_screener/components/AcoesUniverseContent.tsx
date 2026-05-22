@@ -3,6 +3,10 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useAcoesUniverse } from "../hooks/useAcoesUniverse";
 import type { AcoesUniverseRow } from "../types";
+import { useFilterState } from "@/hooks/useFilterState";
+
+const ACOES_FILTER_DEFAULTS = { dy: "", pl: "", sector: "", mcap: "" } as const;
+type AcoesFilterKey = keyof typeof ACOES_FILTER_DEFAULTS;
 
 const PAGE_SIZE = 50;
 
@@ -57,11 +61,17 @@ export function AcoesUniverseContent() {
 
   const [sortCol, setSortCol] = useState<SortCol | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-  const [minDy, setMinDy] = useState("");
-  const [maxPl, setMaxPl] = useState("");
-  const [sectorFilter, setSectorFilter] = useState("");
-  const [mcapTier, setMcapTier] = useState<McapTier>("");
   const [page, setPage] = useState(0);
+
+  const filters = useFilterState<AcoesFilterKey>({
+    defaults: ACOES_FILTER_DEFAULTS,
+    storageKey: "investiq:screener:acoes",
+  });
+
+  const minDy = filters.values.dy;
+  const maxPl = filters.values.pl;
+  const sectorFilter = filters.values.sector;
+  const mcapTier = filters.values.mcap as McapTier;
 
   const sectors = useMemo(() => {
     if (!data?.results) return [];
@@ -176,7 +186,7 @@ export function AcoesUniverseContent() {
   }
 
   function toggleMcap(tier: McapTier) {
-    setMcapTier((prev) => (prev === tier ? "" : tier));
+    filters.set("mcap", mcapTier === tier ? "" : tier);
     setPage(0);
   }
 
@@ -196,7 +206,7 @@ export function AcoesUniverseContent() {
               placeholder="Ex: 5"
               value={minDy}
               onChange={(e) => {
-                setMinDy(e.target.value);
+                filters.set("dy", e.target.value);
                 setPage(0);
               }}
               className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
@@ -214,7 +224,7 @@ export function AcoesUniverseContent() {
               placeholder="Ex: 20"
               value={maxPl}
               onChange={(e) => {
-                setMaxPl(e.target.value);
+                filters.set("pl", e.target.value);
                 setPage(0);
               }}
               className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
@@ -229,7 +239,7 @@ export function AcoesUniverseContent() {
             <select
               value={sectorFilter}
               onChange={(e) => {
-                setSectorFilter(e.target.value);
+                filters.set("sector", e.target.value);
                 setPage(0);
               }}
               className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
@@ -289,10 +299,7 @@ export function AcoesUniverseContent() {
           <div>
             <button
               onClick={() => {
-                setMinDy("");
-                setMaxPl("");
-                setSectorFilter("");
-                setMcapTier("");
+                filters.clear();
                 setPage(0);
               }}
               className="px-4 py-2 rounded-md text-sm text-zinc-600 border border-zinc-200 hover:bg-zinc-50 transition-colors"

@@ -1,10 +1,14 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { useFIIScoredScreener } from "../hooks/useFIIScreener";
 import type { FIIScoredRow } from "../types";
 import { useSortedData } from "@/hooks/useSort";
 import { SortableHeader } from "@/components/ui/SortableHeader";
+import { useFilterState } from "@/hooks/useFilterState";
+
+const FII_FILTER_DEFAULTS = { seg: "", dy: "" } as const;
+type FIIFilterKey = keyof typeof FII_FILTER_DEFAULTS;
 
 const SEGMENTOS = [
   "Logistica",
@@ -102,8 +106,14 @@ const TH = "text-left py-3 px-4 text-xs font-semibold text-zinc-600";
 
 export function FIIScoredScreenerContent() {
   const { data, isLoading, error } = useFIIScoredScreener();
-  const [segmentoFilter, setSegmentoFilter] = useState<string>("");
-  const [minDyFilter, setMinDyFilter] = useState<string>("");
+
+  const filters = useFilterState<FIIFilterKey>({
+    defaults: FII_FILTER_DEFAULTS,
+    storageKey: "investiq:screener:fii",
+  });
+
+  const segmentoFilter = filters.values.seg;
+  const minDyFilter = filters.values.dy;
 
   const filtered = useMemo(() => {
     if (!data?.results) return [];
@@ -125,11 +135,6 @@ export function FIIScoredScreenerContent() {
     "desc"
   );
 
-  function clearFilters() {
-    setSegmentoFilter("");
-    setMinDyFilter("");
-  }
-
   return (
     <div className="space-y-4">
       {/* Score not available notice */}
@@ -148,7 +153,7 @@ export function FIIScoredScreenerContent() {
             </label>
             <select
               value={segmentoFilter}
-              onChange={(e) => setSegmentoFilter(e.target.value)}
+              onChange={(e) => filters.set("seg", e.target.value)}
               className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
             >
               <option value="">Todos os segmentos</option>
@@ -168,13 +173,13 @@ export function FIIScoredScreenerContent() {
               step="0.1"
               placeholder="Ex: 8"
               value={minDyFilter}
-              onChange={(e) => setMinDyFilter(e.target.value)}
+              onChange={(e) => filters.set("dy", e.target.value)}
               className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
             />
           </div>
           <div className="flex items-end">
             <button
-              onClick={clearFilters}
+              onClick={() => filters.clear()}
               className="px-4 py-2 rounded-md text-sm text-zinc-600 border border-zinc-200 hover:bg-zinc-50 transition-colors w-full sm:w-auto"
             >
               Limpar filtros
