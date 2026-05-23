@@ -273,10 +273,10 @@ function DarfTab() {
                         <td className="px-4 py-3 text-zinc-600">
                           {new Date(tx.date + "T00:00:00").toLocaleDateString("pt-BR")}
                         </td>
-                        <td className="px-4 py-3 text-right">{tx.quantity.toLocaleString("pt-BR")}</td>
-                        <td className="px-4 py-3 text-right">{fmt(tx.unit_price)}</td>
-                        <td className="px-4 py-3 text-right font-medium">{fmt(tx.total_value)}</td>
-                        <td className="px-4 py-3 text-right font-semibold">
+                        <td className="px-4 py-3 text-right tabular-nums">{tx.quantity.toLocaleString("pt-BR")}</td>
+                        <td className="px-4 py-3 text-right tabular-nums">{fmt(tx.unit_price)}</td>
+                        <td className="px-4 py-3 text-right tabular-nums font-medium">{fmt(tx.total_value)}</td>
+                        <td className="px-4 py-3 text-right tabular-nums font-semibold">
                           {tx.gross_profit !== null ? (
                             <span className={tx.gross_profit >= 0 ? "text-emerald-600" : "text-red-600"}>
                               {tx.gross_profit >= 0 ? "+" : ""}{fmt(tx.gross_profit)}
@@ -321,11 +321,11 @@ function DarfTab() {
                     onClick={() => setMonth(row.month)}
                   >
                     <td className="px-4 py-3 font-medium">{row.month}</td>
-                    <td className="px-4 py-3 text-right">{fmt(row.total_vendas)}</td>
-                    <td className={`px-4 py-3 text-right font-medium ${row.lucro_bruto >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                    <td className="px-4 py-3 text-right tabular-nums">{fmt(row.total_vendas)}</td>
+                    <td className={`px-4 py-3 text-right tabular-nums font-medium ${row.lucro_bruto >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                       {fmt(row.lucro_bruto)}
                     </td>
-                    <td className="px-4 py-3 text-right">{row.ir_devido > 0 ? fmt(row.ir_devido) : "—"}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{row.ir_devido > 0 ? fmt(row.ir_devido) : "—"}</td>
                     <td className="px-4 py-3 text-right">
                       {row.isento ? (
                         <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-medium">Isento</span>
@@ -504,19 +504,19 @@ function DeclarationTab() {
                         <td className="px-4 py-3 text-zinc-600 hidden md:table-cell">
                           {ASSET_CLASS_LABELS[item.asset_class] ?? item.asset_class}
                         </td>
-                        <td className="px-4 py-3 text-right font-mono text-sm">
+                        <td className="px-4 py-3 text-right tabular-nums font-mono text-sm">
                           {item.quantidade_atual > 0
                             ? item.quantidade_atual.toLocaleString("pt-BR", { maximumFractionDigits: 4 })
                             : "—"
                           }
                         </td>
-                        <td className="px-4 py-3 text-right font-mono text-sm">
+                        <td className="px-4 py-3 text-right tabular-nums font-mono text-sm">
                           {item.custo_medio_atual > 0 ? fmt(item.custo_medio_atual) : "—"}
                         </td>
-                        <td className="px-4 py-3 text-right font-mono text-sm text-zinc-500">
+                        <td className="px-4 py-3 text-right tabular-nums font-mono text-sm text-zinc-500">
                           {item.situacao_ano_anterior > 0 ? fmt(item.situacao_ano_anterior) : "—"}
                         </td>
-                        <td className="px-4 py-3 text-right font-mono text-sm font-semibold">
+                        <td className="px-4 py-3 text-right tabular-nums font-mono text-sm font-semibold">
                           {item.situacao_ano_atual > 0 ? fmt(item.situacao_ano_atual) : "—"}
                         </td>
                       </tr>
