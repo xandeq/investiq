@@ -345,7 +345,7 @@ export function OperationsSection({
         </div>
         <button
           onClick={() => setModalOpen(true)}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] transition-all duration-150"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.97] transition-all duration-150"
         >
           <Plus size={14} weight="bold" aria-hidden />
           Nova Operação

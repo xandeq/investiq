@@ -125,7 +125,7 @@ export function CloseOutcomeModal({ outcome, onClose, onConfirm, isPending }: Pr
                   <button
                     type="button"
                     onClick={() => setStatus("closed")}
-                    className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg border py-2 text-sm font-medium transition-colors active:scale-[0.98] ${
+                    className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg border py-2 text-sm font-medium transition-colors active:scale-[0.97] ${
                       status === "closed"
                         ? "border-emerald-500 bg-emerald-50 text-emerald-700"
                         : "border-zinc-200 text-zinc-500 hover:border-zinc-300"
@@ -137,7 +137,7 @@ export function CloseOutcomeModal({ outcome, onClose, onConfirm, isPending }: Pr
                   <button
                     type="button"
                     onClick={() => setStatus("stopped")}
-                    className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg border py-2 text-sm font-medium transition-colors active:scale-[0.98] ${
+                    className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg border py-2 text-sm font-medium transition-colors active:scale-[0.97] ${
                       status === "stopped"
                         ? "border-red-400 bg-red-50 text-red-600"
                         : "border-zinc-200 text-zinc-500 hover:border-zinc-300"
@@ -153,7 +153,7 @@ export function CloseOutcomeModal({ outcome, onClose, onConfirm, isPending }: Pr
               <button
                 type="submit"
                 disabled={!exitPrice || isPending}
-                className="w-full rounded-xl bg-zinc-900 py-3 text-sm font-semibold text-white transition-all hover:bg-zinc-800 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full rounded-xl bg-zinc-900 py-3 text-sm font-semibold text-white transition-all hover:bg-zinc-800 active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {isPending ? "Registrando..." : "Confirmar encerramento"}
               </button>

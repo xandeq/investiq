@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { usePositions } from "@/features/portfolio/hooks/usePositions";
 import { formatBRL } from "@/lib/formatters";
@@ -26,12 +27,12 @@ export function PositionsTable() {
         <p className="text-xs text-zinc-400 mt-1 mb-4">
           Adicione transações de compra para ver seus ativos aqui.
         </p>
-        <a
+        <Link
           href="/portfolio/transactions"
-          className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-blue-500 text-white rounded-lg hover:bg-blue-600 active:scale-[0.98] transition-all duration-150"
+          className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-blue-500 text-white rounded-lg hover:bg-blue-600 active:scale-[0.97] transition-all duration-150"
         >
           + Adicionar transação
-        </a>
+        </Link>
       </motion.div>
     );
   }

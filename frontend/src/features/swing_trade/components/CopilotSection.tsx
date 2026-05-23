@@ -119,7 +119,7 @@ function SwingPickCard({ pick, rank, index, onOpen }: SwingPickCardProps) {
       {/* CTA */}
       <button
         onClick={() => onOpen(pick)}
-        className="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-sm font-semibold py-2.5 rounded-lg transition-all duration-150"
+        className="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.97] text-white text-sm font-semibold py-2.5 rounded-lg transition-all duration-150"
       >
         Abrir Operação
       </button>
@@ -205,7 +205,7 @@ function DividendPlayCard({ play, rank, index, onOpen }: DividendPlayCardProps) 
       {/* CTA */}
       <button
         onClick={() => onOpen(play)}
-        className="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white text-sm font-semibold py-2.5 rounded-lg transition-all duration-150"
+        className="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.97] text-white text-sm font-semibold py-2.5 rounded-lg transition-all duration-150"
       >
         Abrir Operação
       </button>
@@ -332,7 +332,7 @@ function OpenOperationModal({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 border border-zinc-300 text-zinc-700 text-sm font-medium py-2.5 rounded-lg hover:bg-zinc-50 active:scale-[0.98] transition-all duration-150"
+            className="flex-1 border border-zinc-300 text-zinc-700 text-sm font-medium py-2.5 rounded-lg hover:bg-zinc-50 active:scale-[0.97] transition-all duration-150"
           >
             Cancelar
           </button>
@@ -348,7 +348,7 @@ function OpenOperationModal({
                 quantity: qty,
               });
             }}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-sm font-semibold py-2.5 rounded-lg transition-all duration-150"
+            className="flex-1 bg-blue-600 hover:bg-blue-700 active:scale-[0.97] text-white text-sm font-semibold py-2.5 rounded-lg transition-all duration-150"
           >
             Confirmar Operação
           </button>

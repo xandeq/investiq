@@ -103,13 +103,13 @@ export function CalibrationSection() {
                 <div className="flex gap-4 text-xs">
                   <div>
                     <span className="opacity-60">Winrate</span>
-                    <p className={`font-bold ${winrateColor(stats.winrate)}`}>
+                    <p className={`font-bold tabular-nums ${winrateColor(stats.winrate)}`}>
                       {(stats.winrate * 100).toFixed(0)}%
                     </p>
                   </div>
                   <div>
                     <span className="opacity-60">Avg-R</span>
-                    <p className={`font-bold ${avgRColor(stats.avg_r)}`}>
+                    <p className={`font-bold tabular-nums ${avgRColor(stats.avg_r)}`}>
                       {stats.avg_r > 0 ? "+" : ""}{stats.avg_r.toFixed(2)}R
                     </p>
                   </div>

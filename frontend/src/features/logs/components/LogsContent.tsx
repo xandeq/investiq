@@ -93,7 +93,7 @@ function LogRow({
         <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
           {log.module ?? "—"}
         </td>
-        <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+        <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap tabular-nums">
           {formatDate(log.created_at)}
         </td>
         <td className="px-4 py-3 text-right">

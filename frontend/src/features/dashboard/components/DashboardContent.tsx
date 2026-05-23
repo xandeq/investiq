@@ -99,14 +99,14 @@ export function DashboardContent() {
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
               href="/imports"
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold bg-blue-500 text-white rounded-lg hover:bg-blue-600 active:scale-[0.98] transition-all duration-150"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold bg-blue-500 text-white rounded-lg hover:bg-blue-600 active:scale-[0.97] transition-all duration-150"
             >
               <UploadSimple size={16} weight="bold" aria-hidden />
               Importar extrato da B3
             </Link>
             <Link
               href="/portfolio/transactions"
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold border border-zinc-200 rounded-lg hover:bg-zinc-50 active:scale-[0.98] transition-all duration-150"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold border border-zinc-200 rounded-lg hover:bg-zinc-50 active:scale-[0.97] transition-all duration-150"
             >
               <PlusCircle size={16} weight="regular" aria-hidden />
               Adicionar manualmente

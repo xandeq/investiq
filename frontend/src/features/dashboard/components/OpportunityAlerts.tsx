@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Warning, TrendDown, Info, CheckCircle, ArrowClockwise } from "@phosphor-icons/react";
@@ -141,9 +142,9 @@ export function OpportunityAlerts() {
 
       {insights.length > 6 && (
         <div className="mt-3 text-center">
-          <a href="/insights" className="text-xs text-blue-500 hover:text-blue-600 font-medium">
+          <Link href="/insights" className="text-xs text-blue-500 hover:text-blue-600 font-medium active:scale-[0.97] transition-all duration-150 inline-block">
             Ver todos os {insights.length} alertas →
-          </a>
+          </Link>
         </div>
       )}
     </div>

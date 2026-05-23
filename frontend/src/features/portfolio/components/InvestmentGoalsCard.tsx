@@ -208,7 +208,7 @@ function GoalForm({
       <div className="flex gap-2 justify-end pt-1">
         <button
           onClick={onCancel}
-          className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg bg-zinc-200 hover:bg-zinc-300 font-medium transition-colors active:scale-[0.98]"
+          className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg bg-zinc-200 hover:bg-zinc-300 font-medium transition-colors active:scale-[0.97]"
         >
           <X size={14} />
           Cancelar
@@ -216,7 +216,7 @@ function GoalForm({
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-lg bg-blue-500 text-white hover:bg-blue-600 font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors active:scale-[0.98]"
+          className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-lg bg-blue-500 text-white hover:bg-blue-600 font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors active:scale-[0.97]"
         >
           <Check size={14} />
           {saving ? "Salvando…" : "Salvar"}
@@ -440,7 +440,7 @@ export function InvestmentGoalsCard() {
         </div>
         <button
           onClick={openCreate}
-          className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 font-semibold transition-colors active:scale-[0.98]"
+          className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 font-semibold transition-colors active:scale-[0.97]"
         >
           <Plus size={12} weight="bold" />
           Nova meta

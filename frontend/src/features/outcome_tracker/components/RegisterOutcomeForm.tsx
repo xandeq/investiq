@@ -193,7 +193,7 @@ export function RegisterOutcomeForm({ onSubmit, isPending }: Props) {
               <button
                 type="submit"
                 disabled={!ticker || !entryPrice || !stopPrice || isPending}
-                className="w-full rounded-xl bg-zinc-900 py-2.5 text-sm font-semibold text-white transition-all hover:bg-zinc-800 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full rounded-xl bg-zinc-900 py-2.5 text-sm font-semibold text-white transition-all hover:bg-zinc-800 active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {isPending ? "Registrando..." : "Registrar entrada"}
               </button>
