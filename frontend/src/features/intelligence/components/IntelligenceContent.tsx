@@ -226,7 +226,7 @@ function NewsFeedList({ items }: { items: NewsItem[] }) {
                 </div>
               </div>
               {item.sentiment !== null && (
-                <span className={`text-xs font-mono shrink-0 ${sentColor}`}>
+                <span className={`text-xs font-mono tabular-nums shrink-0 ${sentColor}`}>
                   {item.sentiment > 0 ? "▲" : item.sentiment < 0 ? "▼" : "—"}
                   {Math.abs(item.sentiment * 100).toFixed(0)}%
                 </span>
