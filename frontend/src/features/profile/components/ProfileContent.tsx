@@ -148,7 +148,7 @@ function ProfileSummary({ profile, onEdit }: { profile: ReturnType<typeof usePro
             className="rounded-md bg-zinc-50 border border-zinc-100 p-3"
           >
             <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">{label}</p>
-            <p className="text-sm font-semibold mt-0.5 text-zinc-900">{value ?? "—"}</p>
+            <p className="text-sm font-semibold mt-0.5 text-zinc-900 tabular-nums">{value ?? "—"}</p>
           </motion.div>
         ))}
       </div>

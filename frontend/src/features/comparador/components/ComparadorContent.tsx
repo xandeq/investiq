@@ -129,7 +129,7 @@ export function ComparadorContent() {
             onChange={(e) => setTaxaPct(parseFloat(e.target.value) || 0)}
             className="w-28 rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
           />
-          <p className="text-xs text-zinc-400 mt-0.5">Padrão: {defaultTaxa.toFixed(2)}% a.a.</p>
+          <p className="text-xs text-zinc-400 mt-0.5 tabular-nums">Padrão: {defaultTaxa.toFixed(2)}% a.a.</p>
         </div>
 
         {/* Spread (only for TESOURO_IPCA) */}

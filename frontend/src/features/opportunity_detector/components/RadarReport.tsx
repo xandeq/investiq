@@ -395,7 +395,7 @@ export function RadarReportView({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-bold text-zinc-900">Radar de Oportunidades</h2>
-          <p className="text-xs text-zinc-400">
+          <p className="text-xs text-zinc-400 tabular-nums">
             Gerado em {generatedAt} · Cache {report.cache_expires_in_minutes}min
           </p>
         </div>

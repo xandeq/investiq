@@ -306,7 +306,7 @@ export function WizardContent() {
             <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-600">
               Prazo: <strong>{PRAZO_LABELS[prazo]}</strong>
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-600">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-600 tabular-nums">
               {fmtBRL(parseFloat(valorInput))}
             </span>
           </div>
@@ -347,7 +347,7 @@ export function WizardContent() {
                 {" · "}
                 <span className="text-zinc-500">{PRAZO_LABELS[job.prazo as PrazoLabel] ?? job.prazo}</span>
               </h2>
-              <span className="text-xs text-zinc-400">{fmtBRL(job.valor)}</span>
+              <span className="text-xs text-zinc-400 tabular-nums">{fmtBRL(job.valor)}</span>
             </div>
 
             <AllocationBar allocation={job.result.allocation} />
@@ -366,8 +366,8 @@ export function WizardContent() {
                     <span className={`w-2.5 h-2.5 rounded-sm ${AC_COLORS[key]}`} />
                     <span className="text-xs text-zinc-500">{AC_LABELS[key]}</span>
                   </div>
-                  <p className="text-lg font-bold text-zinc-800">{pct}%</p>
-                  <p className="text-xs text-zinc-400">{fmtBRL((job.valor * pct) / 100)}</p>
+                  <p className="text-lg font-bold text-zinc-800 tabular-nums">{pct}%</p>
+                  <p className="text-xs text-zinc-400 tabular-nums">{fmtBRL((job.valor * pct) / 100)}</p>
                 </div>
               ))}
             </div>
