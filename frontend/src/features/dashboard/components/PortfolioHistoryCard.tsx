@@ -6,6 +6,7 @@ import { createChart, AreaSeries, LineSeries } from "lightweight-charts";
 import { apiClient } from "@/lib/api-client";
 import { usePortfolioHistory, type HistoryRange } from "@/features/dashboard/hooks/usePortfolioHistory";
 import { formatBRL } from "@/lib/formatters";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 
 interface MacroCache {
   cdi: string;
@@ -171,12 +172,12 @@ export function PortfolioHistoryCard() {
       {/* Period return summary */}
       {hasData && (
         <div className="flex items-baseline gap-3 mb-3">
-          <span className="text-lg font-bold text-zinc-900">{formatBRL(lastValue)}</span>
-          <span className={`text-sm font-semibold ${isPositive ? "text-emerald-600" : "text-red-500"}`}>
+          <span className="text-lg font-bold text-zinc-900 tabular-nums">{formatBRL(lastValue)}</span>
+          <span className={`text-sm font-semibold tabular-nums ${isPositive ? "text-emerald-600" : "text-red-500"}`}>
             {isPositive ? "+" : ""}
             {returnPct.toFixed(2)}%
           </span>
-          <span className={`text-xs ${isPositive ? "text-emerald-500" : "text-red-400"}`}>
+          <span className={`text-xs tabular-nums ${isPositive ? "text-emerald-500" : "text-red-400"}`}>
             {isPositive ? "+" : ""}
             {formatBRL(returnAbs)} no período
           </span>
@@ -185,12 +186,18 @@ export function PortfolioHistoryCard() {
 
       {/* Chart */}
       {isLoading ? (
-        <div className="h-[240px] flex items-center justify-center">
-          <div className="w-6 h-6 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-        </div>
+        <ShimmerSkeleton className="h-[240px] w-full rounded-lg" />
       ) : !hasData ? (
-        <div className="h-[240px] flex items-center justify-center text-sm text-zinc-400">
-          Sem dados históricos para este período
+        <div className="h-[240px] flex flex-col items-center justify-center gap-3 text-center bg-zinc-50 rounded-lg">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white border border-zinc-200">
+            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden>
+              <path d="M3 17l5-5 4 4 5-6 4 4" stroke="#a1a1aa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-zinc-700">Sem dados históricos</p>
+            <p className="text-xs text-zinc-400 mt-0.5">Dados disponíveis após o fechamento do mercado.</p>
+          </div>
         </div>
       ) : (
         <div ref={containerRef} className="w-full" />
@@ -210,7 +217,7 @@ export function PortfolioHistoryCard() {
           {cdiRate > 0 && (
             <span className="flex items-center gap-1.5">
               <span className="inline-block w-3 border-t border-dashed border-emerald-500" />
-              CDI ({(cdiRate * 100).toFixed(1)}% a.a.)
+              CDI (<span className="tabular-nums">{(cdiRate * 100).toFixed(1)}% a.a.</span>)
             </span>
           )}
         </div>
