@@ -3,6 +3,7 @@ import { useState, useMemo } from "react";
 import { useMacroRates, useFixedIncomeCatalog } from "@/features/screener_v2/hooks/useRendaFixa";
 import { useComparadorCalc, getDefaultRateForTipo } from "../hooks/useComparadorCalc";
 import { ComparadorChart } from "./ComparadorChart";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 import type { TipoRF, ComparadorInputs } from "../types";
 
 function fmt(n: number, decimals = 2): string {
@@ -148,7 +149,7 @@ export function ComparadorContent() {
 
       {/* Loading skeleton */}
       {(loadingMacro || loadingCatalog) && (
-        <div className="h-40 rounded-lg bg-zinc-100" />
+        <ShimmerSkeleton className="h-40 w-full rounded-lg" />
       )}
 
       {/* Comparison table */}

@@ -64,13 +64,13 @@ export function ImportContent() {
               <button
                 onClick={handleClearAll}
                 disabled={clearing}
-                className="rounded-md bg-destructive px-3 py-1.5 text-sm text-white font-medium hover:bg-destructive/90 disabled:opacity-50"
+                className="rounded-md bg-destructive px-3 py-1.5 text-sm text-white font-medium hover:bg-destructive/90 disabled:opacity-50 active:scale-[0.97] transition-all duration-150"
               >
                 {clearing ? "Limpando..." : "Sim, limpar tudo"}
               </button>
               <button
                 onClick={() => setClearStep("idle")}
-                className="rounded-md border px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted"
+                className="rounded-md border px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted active:scale-[0.97] transition-all duration-150"
               >
                 Cancelar
               </button>
@@ -79,9 +79,9 @@ export function ImportContent() {
             <button
               onClick={handleClearAll}
               disabled={clearing}
-              className="rounded-md border border-destructive/40 px-3 py-1.5 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-50"
+              className="rounded-md border border-destructive/40 px-3 py-1.5 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-50 active:scale-[0.97] transition-all duration-150"
             >
-              🗑️ Limpar carteira
+              Limpar carteira
             </button>
           )}
         </div>

@@ -47,7 +47,7 @@ function GoalRow({ goal }: { goal: GoalResponse }) {
       </div>
 
       <div className="flex items-center justify-between text-xs text-zinc-500">
-        <span>
+        <span className="tabular-nums">
           {fmt(goal.current_amount)} / {fmt(goal.target_amount)} ({pct.toFixed(0)}%)
         </span>
         {goal.months_to_deadline !== null && goal.status !== "concluido" && (
@@ -108,7 +108,7 @@ export function GoalsProgressCard() {
           )}
           <Link
             href="/portfolio"
-            className="flex items-center gap-0.5 text-xs text-blue-600 hover:text-blue-700"
+            className="flex items-center gap-0.5 text-xs text-blue-600 hover:text-blue-700 active:scale-[0.97] transition-all duration-150"
           >
             Ver todas
             <ArrowRight className="h-3 w-3" />
