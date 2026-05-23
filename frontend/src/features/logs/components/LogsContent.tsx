@@ -58,7 +58,7 @@ function CopyButton({ label, text }: { label: string; text: string }) {
   return (
     <button
       onClick={copy}
-      className="px-3 py-1 text-xs rounded border border-border bg-background hover:bg-muted transition-colors font-medium"
+      className="px-3 py-1 text-xs rounded border border-border bg-background hover:bg-muted active:scale-[0.97] transition-all duration-150 font-medium"
     >
       {copied ? "Copiado!" : label}
     </button>
@@ -160,7 +160,7 @@ function LogRow({
                       e.stopPropagation();
                       onDelete(log.id);
                     }}
-                    className="px-3 py-1 text-xs rounded border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
+                    className="px-3 py-1 text-xs rounded border border-red-200 text-red-600 hover:bg-red-50 active:scale-[0.97] transition-all duration-150"
                   >
                     Remover
                   </button>

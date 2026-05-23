@@ -172,7 +172,7 @@ export function RendaFixaContent() {
           <button
             key={label}
             onClick={() => setTypeFilter(value)}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+            className={`px-3 py-1.5 rounded-md text-xs font-medium border active:scale-[0.97] transition-all duration-150 ${
               typeFilter === value
                 ? "bg-blue-500 text-white border-blue-500"
                 : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
@@ -206,7 +206,7 @@ export function RendaFixaContent() {
                   if (selectedPrazo === p) setSortDir(d => d === "desc" ? "asc" : "desc");
                   else { setSelectedPrazo(p); setSortDir("desc"); }
                 }}
-                className={`px-2 py-1 rounded text-xs font-medium border transition-colors ${
+                className={`px-2 py-1 rounded text-xs font-medium border active:scale-[0.97] transition-all duration-150 ${
                   selectedPrazo === p
                     ? "bg-indigo-500 text-white border-indigo-500"
                     : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
