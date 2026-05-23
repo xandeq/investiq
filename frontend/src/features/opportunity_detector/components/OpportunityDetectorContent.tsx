@@ -168,7 +168,7 @@ function OpportunityTableRow({
               className={
                 row.drop_pct != null && row.drop_pct < 0
                   ? "text-red-600 font-medium"
-                  : "text-green-600 font-medium"
+                  : "text-emerald-600 font-medium"
               }
             >
               {fmt(row.drop_pct)}%
@@ -181,7 +181,7 @@ function OpportunityTableRow({
         </td>
         <td className="py-3 px-4 text-center text-base">
           {row.is_opportunity ? (
-            <span className="text-green-600" title="É oportunidade">✓</span>
+            <span className="text-emerald-600" title="É oportunidade">✓</span>
           ) : (
             <span className="text-red-500" title="Não é oportunidade">✗</span>
           )}

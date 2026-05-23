@@ -31,7 +31,7 @@ export function DCFSection({ data, isLoading }: Props) {
 
   const r = data.result as unknown as DCFResult;
   const upside = r.upside_pct;
-  const upsideColor = upside === null ? "" : upside >= 0 ? "text-green-600" : "text-red-600";
+  const upsideColor = upside === null ? "" : upside >= 0 ? "text-emerald-600" : "text-red-600";
 
   return (
     <div className="rounded-xl border bg-card p-6 space-y-4">
