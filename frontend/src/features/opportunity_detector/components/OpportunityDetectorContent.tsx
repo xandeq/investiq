@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useOpportunityHistory } from "../hooks/useOpportunityHistory";
 import { fetchRadar, markAsFollowed, triggerRadarRefresh, triggerScan } from "../api";
 import type { OpportunityRow } from "../types";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 import { RadarReportView } from "./RadarReport";
 
 const RISK_COLORS: Record<string, string> = {
@@ -411,11 +412,17 @@ export function OpportunityDetectorContent() {
                 {isLoading
                   ? Array.from({ length: 8 }).map((_, i) => (
                       <tr key={i} className="border-b border-zinc-100">
-                        {Array.from({ length: 8 }).map((_, j) => (
-                          <td key={j} className="py-3 px-4">
-                            <div className="h-4 bg-zinc-100 rounded" />
-                          </td>
-                        ))}
+                        <td className="py-3 px-4 space-y-1.5">
+                          <ShimmerSkeleton className="h-3.5 w-16" />
+                          <ShimmerSkeleton className="h-3 w-28" />
+                        </td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-5 w-14 rounded-full" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-5 w-12 rounded-full" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3.5 w-14" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3.5 w-12" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3.5 w-10" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3 w-24" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-7 w-20 rounded-lg" /></td>
                       </tr>
                     ))
                   : data?.results.map((row) => (

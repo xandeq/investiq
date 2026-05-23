@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useAcoesUniverse } from "../hooks/useAcoesUniverse";
 import type { AcoesUniverseRow } from "../types";
 import { useFilterState } from "@/hooks/useFilterState";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 
 const ACOES_FILTER_DEFAULTS = { dy: "", pl: "", sector: "", mcap: "" } as const;
 type AcoesFilterKey = keyof typeof ACOES_FILTER_DEFAULTS;
@@ -351,11 +352,16 @@ export function AcoesUniverseContent() {
                 {isLoading
                   ? Array.from({ length: 8 }).map((_, i) => (
                       <tr key={i} className="border-b border-zinc-100">
-                        {Array.from({ length: 7 }).map((_, j) => (
-                          <td key={j} className="py-3 px-4">
-                            <div className="h-4 bg-zinc-100 rounded" />
-                          </td>
-                        ))}
+                        <td className="py-3 px-4 space-y-1.5">
+                          <ShimmerSkeleton className="h-3.5 w-16" />
+                          <ShimmerSkeleton className="h-3 w-28" />
+                        </td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3.5 w-20" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3.5 w-14" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3.5 w-10" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3.5 w-10" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3.5 w-16" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3.5 w-14" /></td>
                       </tr>
                     ))
                   : pageRows.map((row) => (
