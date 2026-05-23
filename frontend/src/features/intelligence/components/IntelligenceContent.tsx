@@ -94,9 +94,16 @@ function relativeTime(iso: string | null): string {
 function SentimentHeatMap({ data }: { data: MarketHeat }) {
   if (data.ticker_count === 0) {
     return (
-      <div className="text-center py-12 text-zinc-400 text-sm">
-        <p className="font-medium mb-1">Nenhum dado de sentimento disponível ainda.</p>
-        <p>A coleta roda a cada 30min durante o pregão. Volte mais tarde.</p>
+      <div className="flex flex-col items-center gap-3 py-12 text-center">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-50 border border-zinc-200">
+          <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 text-zinc-400" aria-hidden>
+            <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+        <div className="text-sm text-zinc-400">
+          <p className="font-medium text-zinc-600 mb-0.5">Nenhum dado de sentimento disponível ainda.</p>
+          <p>A coleta roda a cada 30min durante o pregão. Volte mais tarde.</p>
+        </div>
       </div>
     );
   }

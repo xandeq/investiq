@@ -179,7 +179,11 @@ function AcoesEmptyState({
 
   return (
     <div className="flex flex-col items-center gap-4 py-4 max-w-sm mx-auto text-center">
-      <div className="text-3xl select-none">🔍</div>
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-50 border border-zinc-200">
+        <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6 text-zinc-400" aria-hidden>
+          <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </div>
       <div>
         <p className="text-sm font-medium text-zinc-700">Nenhuma ação encontrada</p>
         {activeCount > 0 && (
