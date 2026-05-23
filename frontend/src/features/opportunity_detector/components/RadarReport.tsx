@@ -1,5 +1,6 @@
 "use client";
 import { TrendUp, Buildings, CurrencyBtc, Bank, Warning } from "@phosphor-icons/react";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 import type {
   RadarReport,
   RadarAcaoItem,
@@ -312,13 +313,13 @@ function RendaFixaSection({ items }: { items: RadarRendaFixaItem[] }) {
 function RadarSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="h-10 bg-zinc-100 rounded-lg" />
+      <ShimmerSkeleton className="h-10 rounded-lg" />
       {[1, 2, 3, 4].map((i) => (
         <div key={i} className="space-y-3">
-          <div className="h-5 bg-zinc-100 rounded w-1/3" />
+          <ShimmerSkeleton className="h-5 w-1/3" />
           <div className="space-y-2">
             {[1, 2, 3].map((j) => (
-              <div key={j} className="h-8 bg-zinc-50 rounded" />
+              <ShimmerSkeleton key={j} className="h-8 rounded-lg" />
             ))}
           </div>
         </div>

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Target, CheckCircle, Warning, ArrowRight } from "@phosphor-icons/react";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 import { useGoals } from "@/features/portfolio/hooks/useGoals";
 import type { GoalResponse, GoalStatus } from "@/features/portfolio/types";
 
@@ -68,11 +69,11 @@ export function GoalsProgressCard() {
   if (isLoading) {
     return (
       <div className="rounded-xl border border-zinc-200 bg-white p-5">
-        <div className="h-4 w-40 bg-zinc-100 rounded mb-4" />
+        <ShimmerSkeleton className="h-4 w-40 mb-4" />
         {[1, 2, 3].map((i) => (
           <div key={i} className="py-3 border-b border-zinc-100 last:border-0 space-y-2">
-            <div className="h-3.5 w-32 bg-zinc-100 rounded" />
-            <div className="h-1.5 w-full bg-zinc-100 rounded-full" />
+            <ShimmerSkeleton className="h-3.5 w-32" />
+            <ShimmerSkeleton className="h-1.5 w-full rounded-full" />
           </div>
         ))}
       </div>

@@ -20,6 +20,34 @@ function fmtPct(v: string | null) {
   return `${Number(v).toFixed(2)}%`;
 }
 
+function dyColor(v: string | null): string {
+  if (!v) return "text-zinc-400";
+  const n = parseFloat(v);
+  if (isNaN(n)) return "text-zinc-400";
+  if (n >= 8) return "text-emerald-600 font-medium";
+  if (n >= 5) return "text-emerald-500";
+  if (n >= 3) return "text-zinc-600";
+  return "text-zinc-400";
+}
+
+function plColor(v: string | null): string {
+  if (!v) return "text-zinc-400";
+  const n = parseFloat(v);
+  if (isNaN(n) || n <= 0) return "text-zinc-400";
+  if (n < 15) return "text-emerald-600 font-medium";
+  if (n < 25) return "text-zinc-600";
+  return "text-amber-600";
+}
+
+function pvpColor(v: string | null): string {
+  if (!v) return "text-zinc-400";
+  const n = parseFloat(v);
+  if (isNaN(n) || n <= 0) return "text-zinc-400";
+  if (n <= 1) return "text-emerald-600 font-medium";
+  if (n <= 1.5) return "text-zinc-600";
+  return "text-amber-600";
+}
+
 function changeBadge(v: string | null) {
   if (!v) return <span className="text-zinc-400 text-xs">—</span>;
   const n = parseFloat(v);
@@ -185,9 +213,9 @@ function WatchlistRow({ item, index }: { item: WatchlistQuote; index: number }) 
       <td className="px-4 py-3 text-right">
         {item.data_stale ? <span className="text-zinc-400 text-xs">—</span> : changeBadge(item.change_pct)}
       </td>
-      <td className="px-4 py-3 text-right tabular-nums text-zinc-400">{fmtPct(item.dy)}</td>
-      <td className="px-4 py-3 text-right tabular-nums text-zinc-400">{item.pl ?? "—"}</td>
-      <td className="px-4 py-3 text-right tabular-nums text-zinc-400">{item.pvp ?? "—"}</td>
+      <td className={`px-4 py-3 text-right tabular-nums text-sm ${dyColor(item.dy)}`}>{fmtPct(item.dy)}</td>
+      <td className={`px-4 py-3 text-right tabular-nums text-sm ${plColor(item.pl)}`}>{item.pl != null ? `${parseFloat(item.pl).toFixed(1)}x` : "—"}</td>
+      <td className={`px-4 py-3 text-right tabular-nums text-sm ${pvpColor(item.pvp)}`}>{item.pvp != null ? `${parseFloat(item.pvp).toFixed(2)}x` : "—"}</td>
       <td className="px-4 py-3 text-right">
         <AlertInline ticker={item.ticker} current={item.price_alert_target} />
       </td>
