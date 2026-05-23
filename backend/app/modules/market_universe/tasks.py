@@ -784,9 +784,10 @@ def calculate_fii_scores(self) -> None:
     dy_values = [float(r.dy) if r.dy is not None else None for r in rows]
     pvp_values = [float(r.pvp) if r.pvp is not None else None for r in rows]
     volume_values = [float(r.regular_market_volume) if r.regular_market_volume is not None else None for r in rows]
-    # Only overwrite fii_metadata.dy_12m/pvp if snapshot has a value; preserve enriched data
-    snapshot_dy = [r.dy if r.dy is not None else r.meta_dy for r in rows]
-    snapshot_pvp = [r.pvp if r.pvp is not None else r.meta_pvp for r in rows]
+    # Preserve enriched values: only overwrite dy_12m/pvp if COALESCE found a value
+    # r.dy = COALESCE(snapshot.dy, fii_metadata.dy_12m) — already resolved
+    snapshot_dy = [r.dy for r in rows]   # may be None; task must NOT overwrite with None
+    snapshot_pvp = [r.pvp for r in rows]
     snapshot_volume = [r.regular_market_volume for r in rows]
 
     # Compute percentile ranks
@@ -801,7 +802,8 @@ def calculate_fii_scores(self) -> None:
     ]
 
     # Compute composite scores: DY 50% + PVP_inverted 30% + liquidity 20%
-    # FIIs missing PVP data can still be scored using DY+liquidity with adjusted weights
+    # DY is required — a ticker without DY is not a real FII (likely a stock ending in 11)
+    # PVP is optional — when missing, use DY (70%) + liquidity (30%) as fallback
     scored_count = 0
     skipped_count = 0
     now = datetime.now(timezone.utc)
@@ -812,36 +814,39 @@ def calculate_fii_scores(self) -> None:
             pvp_rank_inv = pvp_ranks_inverted[i]
             liq_rank = liquidity_ranks[i]
 
-            if dy_rank is None and liq_rank is None:
-                # Cannot rank at all without at least DY or liquidity
+            if dy_rank is None:
+                # DY is required to confirm this is a dividend-paying FII
                 score = None
                 skipped_count += 1
             elif pvp_rank_inv is None:
-                # Score with DY (60%) + liquidity (40%) when PVP missing
+                # PVP unavailable — score with DY (70%) + liquidity (30%)
                 score = Decimal(str(
-                    (dy_rank or 0) * 0.6 + (liq_rank or 0) * 0.4
-                )) if (dy_rank is not None or liq_rank is not None) else None
-                if score is not None:
-                    scored_count += 1
-                else:
-                    skipped_count += 1
+                    dy_rank * 0.7 + (liq_rank or 0) * 0.3
+                ))
+                scored_count += 1
             else:
                 score = Decimal(str(dy_rank * 0.5 + pvp_rank_inv * 0.3 + liq_rank * 0.2))
                 scored_count += 1
 
+            # Build values dict: only update dy_12m/pvp if we have a resolved value,
+            # never overwrite enriched data with NULL (preserves refresh_fii_metadata results)
+            update_vals: dict = {
+                "daily_liquidity": snapshot_volume[i],
+                "score": score,
+                "dy_rank": dy_rank,
+                "pvp_rank": pvp_rank_inv,
+                "liquidity_rank": liq_rank,
+                "score_updated_at": now,
+            }
+            if snapshot_dy[i] is not None:
+                update_vals["dy_12m"] = snapshot_dy[i]
+            if snapshot_pvp[i] is not None:
+                update_vals["pvp"] = snapshot_pvp[i]
+
             session.execute(
                 update(FIIMetadata)
                 .where(FIIMetadata.id == fii_id)
-                .values(
-                    dy_12m=snapshot_dy[i],
-                    pvp=snapshot_pvp[i],
-                    daily_liquidity=snapshot_volume[i],
-                    score=score,
-                    dy_rank=dy_rank,
-                    pvp_rank=pvp_rank_inv,
-                    liquidity_rank=liq_rank,
-                    score_updated_at=now,
-                )
+                .values(**update_vals)
             )
 
     logger.info(
