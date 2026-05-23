@@ -83,10 +83,10 @@ export function BenchmarkChart() {
               <span className="inline-block w-3 h-0.5 bg-blue-600 rounded" />
               <span>Carteira</span>
             </div>
-            <div className="text-muted-foreground">
+            <div className="text-muted-foreground tabular-nums">
               CDI: {benchmarks.cdi ? `${parseFloat(benchmarks.cdi).toFixed(2)}% a.a.` : "—"}
             </div>
-            <div className="text-muted-foreground">
+            <div className="text-muted-foreground tabular-nums">
               IBOVESPA: {benchmarks.ibovespa_price ? parseFloat(benchmarks.ibovespa_price).toLocaleString("pt-BR") : "—"}
             </div>
           </div>
@@ -100,7 +100,7 @@ export function BenchmarkChart() {
         <div ref={containerRef} className="w-full" />
       )}
       {benchmarks && (
-        <p className="text-xs text-muted-foreground mt-2">
+        <p className="text-xs text-muted-foreground mt-2 tabular-nums">
           Referência: CDI {benchmarks.cdi ? `${parseFloat(benchmarks.cdi).toFixed(2)}% a.a.` : "—"} ·{" "}
           IBOVESPA {benchmarks.ibovespa_price ? parseFloat(benchmarks.ibovespa_price).toLocaleString("pt-BR") : "—"} pts
         </p>
