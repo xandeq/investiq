@@ -237,15 +237,17 @@ def refresh_macro(self) -> None:
 
 
 # Maximum acceptable age for macro data before the watchdog fires.
-_MACRO_STALE_THRESHOLD_SECONDS = 2 * 3600  # 2 hours
+# refresh_macro runs every 6h — allow 1h buffer for retry, so alert at 7h.
+_MACRO_STALE_THRESHOLD_SECONDS = 7 * 3600  # 7 hours
 
 
 @celery_app.task
 def check_macro_freshness() -> dict:
-    """Watchdog: alert if market:macro:fetched_at is absent or older than 2h.
+    """Watchdog: alert if market:macro:fetched_at is absent or older than 7h.
 
     Runs every 30min (beat schedule). Logs ERROR so it surfaces in any
     log aggregator / alerting pipeline watching for ERROR lines.
+    Threshold is 7h (6h refresh interval + 1h retry buffer).
 
     Returns a dict so Celery result backend captures the outcome for inspection.
     """

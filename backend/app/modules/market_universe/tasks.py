@@ -325,166 +325,154 @@ def refresh_screener_universe(self) -> None:
 
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=120)
 def refresh_fii_metadata(self) -> None:
-    """Download CVM FII informe mensal ZIP and upsert FII metadata.
+    """Seed/refresh fii_metadata from screener_snapshots, enrich DY from brapi dividends.
 
     Schedule: Monday at 06:00 BRT (crontab in celery_app.py)
     DB: fii_metadata — upsert on ticker (unique)
-    Redis: fii:metadata:{TICKER} — TTL 7 days
 
-    Source: https://dados.cvm.gov.br/dados/FII/DOC/INF_MENSAL/DADOS/
-    CSV encoding: latin-1, delimiter: semicolon
-    Target CSV inside ZIP: file containing "complemento" in name (case-insensitive)
+    Strategy:
+      1. Seed any new FII tickers from screener_snapshots (tickers ending in 11)
+      2. For each FII, fetch last-12-months dividend data from brapi and compute DY
+      3. Volume comes from screener_snapshots (already populated by refresh_screener_universe)
+
+    CVM data (informe mensal complemento) does not contain B3 ticker symbols (only CNPJs),
+    so it cannot be used to seed fii_metadata. Segmento/vacância enrichment from CVM
+    requires a CNPJ→ticker mapping and is deferred.
     """
+    from sqlalchemy import select, text as sa_text
+
     logger.info("refresh_fii_metadata: starting")
-    r = _get_redis()
     today = date.today()
-    zip_url = CVM_FII_ZIP_URL.format(year=today.year)
+    cutoff_12m = datetime.now(timezone.utc) - __import__("datetime").timedelta(days=365)
+    brapi_client = _get_brapi_client()
 
-    try:
-        logger.info("refresh_fii_metadata: downloading ZIP from %s", zip_url)
-        resp = requests_lib.get(zip_url, timeout=120)
-        resp.raise_for_status()
-    except Exception as exc:
-        logger.error("refresh_fii_metadata: failed to download ZIP: %s", exc)
-        raise self.retry(exc=exc)
-
-    try:
-        zf = zipfile.ZipFile(io.BytesIO(resp.content))
-    except zipfile.BadZipFile as exc:
-        logger.error("refresh_fii_metadata: ZIP is corrupt: %s", exc)
-        raise self.retry(exc=exc)
-
-    csv_files = [n for n in zf.namelist() if n.lower().endswith(".csv")]
-    logger.info("refresh_fii_metadata: ZIP contains: %s", csv_files)
-
-    if not csv_files:
-        logger.error("refresh_fii_metadata: no CSV files found in ZIP")
-        raise self.retry(exc=RuntimeError("No CSV files in CVM FII ZIP"))
-
-    # Prefer the "complemento" file — it has segment and vacancy data
-    target_csv = next(
-        (n for n in csv_files if "complemento" in n.lower()),
-        csv_files[0],
-    )
-    logger.info("refresh_fii_metadata: selected CSV: %s", target_csv)
-
-    try:
-        with zf.open(target_csv) as f:
-            reader = csv.DictReader(
-                io.TextIOWrapper(f, encoding="latin-1"),
-                delimiter=";",
+    # Step 1: Get the latest snapshot date and all FII tickers from screener_snapshots
+    with get_sync_db_session(tenant_id=None) as session:
+        result = session.execute(
+            sa_text(
+                "SELECT MAX(snapshot_date) FROM screener_snapshots"
             )
-            # Log column names on first execution so we can verify field names
-            rows = list(reader)
+        )
+        latest_date = result.scalar_one_or_none()
 
-        if rows:
-            logger.info("refresh_fii_metadata: CSV columns: %s", list(rows[0].keys()))
-    except Exception as exc:
-        logger.error("refresh_fii_metadata: failed to parse CSV: %s", exc)
-        raise self.retry(exc=exc)
+    if latest_date is None:
+        logger.warning("refresh_fii_metadata: no screener snapshots found — aborting")
+        return
 
-    count = 0
-    batch_rows: list[dict] = []
+    with get_sync_db_session(tenant_id=None) as session:
+        # Seed new FII tickers that are not yet in fii_metadata
+        session.execute(
+            sa_text("""
+                INSERT INTO fii_metadata (id, ticker, updated_at)
+                SELECT gen_random_uuid()::text, ticker, NOW()
+                FROM screener_snapshots
+                WHERE ticker LIKE '%11'
+                  AND snapshot_date = :snap_date
+                ON CONFLICT (ticker) DO NOTHING
+            """),
+            {"snap_date": latest_date},
+        )
+        logger.info("refresh_fii_metadata: seeded new FII tickers from screener_snapshots")
 
-    def _flush_fii_batch(fii_rows: list[dict]) -> None:
-        if not fii_rows:
+    # Step 2: Get all FII tickers + their volume/price from latest snapshot
+    with get_sync_db_session(tenant_id=None) as session:
+        result = session.execute(
+            sa_text("""
+                SELECT fm.ticker, ss.regular_market_volume, ss.regular_market_price
+                FROM fii_metadata fm
+                LEFT JOIN screener_snapshots ss
+                  ON ss.ticker = fm.ticker AND ss.snapshot_date = :snap_date
+                ORDER BY fm.ticker
+            """),
+            {"snap_date": latest_date},
+        )
+        fii_rows = result.fetchall()
+
+    logger.info("refresh_fii_metadata: enriching %d FIIs with DY from brapi", len(fii_rows))
+
+    # Step 3: Fetch DY from brapi dividendsData for each FII
+    enriched = 0
+    skipped = 0
+    now = datetime.now(timezone.utc)
+
+    batch_updates: list[dict] = []
+
+    def _flush_updates(updates: list[dict]) -> None:
+        if not updates:
             return
         with get_sync_db_session(tenant_id=None) as session:
-            stmt = pg_insert(FIIMetadata).values(fii_rows)
-            stmt = stmt.on_conflict_do_update(
-                index_elements=["ticker"],
-                set_={
-                    "segmento": stmt.excluded.segmento,
-                    "vacancia_financeira": stmt.excluded.vacancia_financeira,
-                    "num_cotistas": stmt.excluded.num_cotistas,
-                    "updated_at": stmt.excluded.updated_at,
-                },
-            )
-            session.execute(stmt)
+            for u in updates:
+                session.execute(
+                    sa_text("""
+                        UPDATE fii_metadata
+                        SET dy_12m = :dy, daily_liquidity = :vol, updated_at = :ts
+                        WHERE ticker = :ticker
+                    """),
+                    u,
+                )
 
-    for row in rows:
-        # CVM field names vary by year — handle common variants
-        # Known fields from CVM FII informe complementar:
-        #   CNPJ_Fundo, Denom_Social, TP_Fundo_Cotas, Fundo_Cotas,
-        #   Fundo_Exclusivo, Num_Cotistas, Publico_Alvo, Encerramento_Exerc_Social,
-        #   Prazo_Duration, Taxa_Admin, Taxa_Gestao, Taxa_Performance, Taxa_Outras,
-        #   VL_Patrimonio_Liquido, VL_Cota, VL_Emissoes, VL_Resgates,
-        #   Rendimento_Distribuido, Vacancia_Financeira, Vacancia_Fisica
-        #   (Segmento is typically in a separate "caracteristicas" file)
-        ticker_raw = (
-            row.get("CD_Fundo_CVM")
-            or row.get("TICKER")
-            or row.get("Ticker")
-            or row.get("Fundo")
-            or row.get("CNPJ_Fundo", "")  # fallback: CNPJ as identifier
-        )
-        ticker = ticker_raw.strip().upper() if ticker_raw else None
-
-        if not ticker:
-            continue
-
-        segmento = (
-            row.get("Segmento")
-            or row.get("TP_Fundo_Cotas")
-            or row.get("Tipo_FII")
-        )
-        if segmento:
-            segmento = segmento.strip()[:50]
-
-        vacancia_str = (
-            row.get("Vacancia_Financeira")
-            or row.get("Vacância Financeira")
-            or row.get("VACANCIA_FINANCEIRA")
-        )
-        vacancia = _safe_decimal(
-            vacancia_str.replace(",", ".") if vacancia_str else None
-        )
-
-        num_cotistas_str = (
-            row.get("Num_Cotistas")
-            or row.get("Num Cotistas")
-            or row.get("NUM_COTISTAS")
-        )
-        num_cotistas = _safe_int(num_cotistas_str)
-
-        fii_row = {
-            "id": str(uuid.uuid4()),
-            "ticker": ticker,
-            "segmento": segmento,
-            "vacancia_financeira": vacancia,
-            "num_cotistas": num_cotistas,
-            "updated_at": datetime.now(timezone.utc),
-        }
-        batch_rows.append(fii_row)
-
-        # Write to Redis
-        redis_key = _FII_PREFIX + ticker
-        r.set(
-            redis_key,
-            json.dumps({
-                "ticker": ticker,
-                "segmento": segmento,
-                "vacancia_financeira": str(vacancia) if vacancia is not None else None,
-                "num_cotistas": num_cotistas,
-            }),
-            ex=_FII_META_TTL,
-        )
-        count += 1
-
-        if len(batch_rows) >= 50:
-            try:
-                _flush_fii_batch(batch_rows)
-            except Exception as exc:
-                logger.error("refresh_fii_metadata: batch flush failed: %s", exc)
-            batch_rows = []
-
-    if batch_rows:
+    for ticker, volume, price in fii_rows:
+        time.sleep(0.15)  # respect brapi rate limits
         try:
-            _flush_fii_batch(batch_rows)
-        except Exception as exc:
-            logger.error("refresh_fii_metadata: final batch flush failed: %s", exc)
+            resp = requests_lib.get(
+                f"https://brapi.dev/api/quote/{ticker}",
+                params={"token": os.environ.get("BRAPI_TOKEN", ""), "dividends": "true"},
+                timeout=10,
+            )
+            if not resp.ok:
+                skipped += 1
+                continue
+            data = resp.json().get("results", [{}])[0] if resp.ok else {}
 
-    logger.info("refresh_fii_metadata: done — %d FIIs updated", count)
+            # Compute DY 12m from cash dividends
+            live_price = data.get("regularMarketPrice") or (float(price) if price else None)
+            divs = (data.get("dividendsData") or {}).get("cashDividends", [])
+            total_12m = 0.0
+            for d in divs:
+                if not d.get("rate") or not d.get("paymentDate"):
+                    continue
+                try:
+                    pay_dt = datetime.fromisoformat(d["paymentDate"].replace("Z", "+00:00"))
+                    if pay_dt >= cutoff_12m:
+                        total_12m += float(d["rate"])
+                except (ValueError, KeyError):
+                    continue
+
+            dy = round(total_12m / live_price, 4) if live_price and live_price > 0 and total_12m > 0 else None
+
+            batch_updates.append({
+                "ticker": ticker,
+                "dy": dy,
+                "vol": int(volume) if volume else None,
+                "ts": now,
+            })
+            if dy is not None:
+                enriched += 1
+            else:
+                skipped += 1
+
+        except Exception as exc:
+            logger.warning("refresh_fii_metadata: brapi error for %s: %s", ticker, exc)
+            skipped += 1
+
+        if len(batch_updates) >= 50:
+            try:
+                _flush_updates(batch_updates)
+            except Exception as exc:
+                logger.error("refresh_fii_metadata: batch update failed: %s", exc)
+            batch_updates = []
+
+    if batch_updates:
+        try:
+            _flush_updates(batch_updates)
+        except Exception as exc:
+            logger.error("refresh_fii_metadata: final batch update failed: %s", exc)
+
+    logger.info(
+        "refresh_fii_metadata: done — %d FIIs enriched with DY, %d skipped",
+        enriched,
+        skipped,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -756,15 +744,22 @@ def calculate_fii_scores(self) -> None:
 
         logger.info("calculate_fii_scores: using snapshot date %s", latest_date)
 
-        # Get all FII tickers (ending in 11) with their latest snapshot data
+        # Get all FII tickers (ending in 11) with their latest snapshot data.
+        # COALESCE: ScreenerSnapshot.dy is NULL for FIIs (brapi fundamentals endpoint
+        # doesn't return dividendYield for FIIs) — fall back to fii_metadata.dy_12m
+        # which is populated weekly by refresh_fii_metadata via brapi dividendsData.
+        from sqlalchemy import func as sa_func
+
         stmt = (
             select(
                 FIIMetadata.id,
                 FIIMetadata.ticker,
-                ScreenerSnapshot.dy,
-                ScreenerSnapshot.pvp,
+                sa_func.coalesce(ScreenerSnapshot.dy, FIIMetadata.dy_12m).label("dy"),
+                sa_func.coalesce(ScreenerSnapshot.pvp, FIIMetadata.pvp).label("pvp"),
                 ScreenerSnapshot.regular_market_volume,
                 ScreenerSnapshot.short_name,
+                FIIMetadata.dy_12m.label("meta_dy"),
+                FIIMetadata.pvp.label("meta_pvp"),
             )
             .outerjoin(
                 ScreenerSnapshot,
@@ -789,8 +784,9 @@ def calculate_fii_scores(self) -> None:
     dy_values = [float(r.dy) if r.dy is not None else None for r in rows]
     pvp_values = [float(r.pvp) if r.pvp is not None else None for r in rows]
     volume_values = [float(r.regular_market_volume) if r.regular_market_volume is not None else None for r in rows]
-    snapshot_dy = [r.dy for r in rows]
-    snapshot_pvp = [r.pvp for r in rows]
+    # Only overwrite fii_metadata.dy_12m/pvp if snapshot has a value; preserve enriched data
+    snapshot_dy = [r.dy if r.dy is not None else r.meta_dy for r in rows]
+    snapshot_pvp = [r.pvp if r.pvp is not None else r.meta_pvp for r in rows]
     snapshot_volume = [r.regular_market_volume for r in rows]
 
     # Compute percentile ranks
@@ -804,7 +800,8 @@ def calculate_fii_scores(self) -> None:
         for r in pvp_ranks_raw
     ]
 
-    # Compute composite scores
+    # Compute composite scores: DY 50% + PVP_inverted 30% + liquidity 20%
+    # FIIs missing PVP data can still be scored using DY+liquidity with adjusted weights
     scored_count = 0
     skipped_count = 0
     now = datetime.now(timezone.utc)
@@ -815,9 +812,19 @@ def calculate_fii_scores(self) -> None:
             pvp_rank_inv = pvp_ranks_inverted[i]
             liq_rank = liquidity_ranks[i]
 
-            if any(r is None for r in [dy_rank, pvp_rank_inv, liq_rank]):
+            if dy_rank is None and liq_rank is None:
+                # Cannot rank at all without at least DY or liquidity
                 score = None
                 skipped_count += 1
+            elif pvp_rank_inv is None:
+                # Score with DY (60%) + liquidity (40%) when PVP missing
+                score = Decimal(str(
+                    (dy_rank or 0) * 0.6 + (liq_rank or 0) * 0.4
+                )) if (dy_rank is not None or liq_rank is not None) else None
+                if score is not None:
+                    scored_count += 1
+                else:
+                    skipped_count += 1
             else:
                 score = Decimal(str(dy_rank * 0.5 + pvp_rank_inv * 0.3 + liq_rank * 0.2))
                 scored_count += 1
