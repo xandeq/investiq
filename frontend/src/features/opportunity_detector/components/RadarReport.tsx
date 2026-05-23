@@ -127,12 +127,12 @@ function AcoesSection({ items }: { items: RadarAcaoItem[] }) {
               <tr key={item.ticker} className="border-b border-zinc-50 hover:bg-zinc-50">
                 <td className="py-2 pr-3 font-mono font-bold text-zinc-900">{item.ticker}</td>
                 <td className="py-2 pr-3 text-zinc-500 whitespace-nowrap">{item.setor}</td>
-                <td className="py-2 pr-3 text-right font-medium">{fmtPrice(item.current_price)}</td>
-                <td className="py-2 pr-3 text-right text-zinc-500">{fmtPrice(item.high_52w)}</td>
+                <td className="py-2 pr-3 text-right tabular-nums font-medium">{fmtPrice(item.current_price)}</td>
+                <td className="py-2 pr-3 text-right tabular-nums text-zinc-500">{fmtPrice(item.high_52w)}</td>
                 <td className="py-2 pr-3 text-right">
                   <DiscountBadge pct={item.discount_from_high_pct} />
                 </td>
-                <td className="py-2 pr-3 text-right text-zinc-600">
+                <td className="py-2 pr-3 text-right tabular-nums text-zinc-600">
                   {item.pl != null ? `${fmt(item.pl, 1)}x` : "—"}
                 </td>
                 <td className="py-2 text-zinc-600 text-xs max-w-[200px]">{item.signal}</td>
@@ -177,12 +177,12 @@ function FiisSection({ items }: { items: RadarFiiItem[] }) {
               <tr key={item.ticker} className="border-b border-zinc-50 hover:bg-zinc-50">
                 <td className="py-2 pr-3 font-mono font-bold text-zinc-900">{item.ticker}</td>
                 <td className="py-2 pr-3 text-zinc-500 whitespace-nowrap">{item.segmento}</td>
-                <td className="py-2 pr-3 text-right font-medium">{fmtPrice(item.current_price)}</td>
-                <td className="py-2 pr-3 text-right text-zinc-500">{fmtPrice(item.high_52w)}</td>
+                <td className="py-2 pr-3 text-right tabular-nums font-medium">{fmtPrice(item.current_price)}</td>
+                <td className="py-2 pr-3 text-right tabular-nums text-zinc-500">{fmtPrice(item.high_52w)}</td>
                 <td className="py-2 pr-3 text-right">
                   <DiscountBadge pct={item.discount_from_high_pct} />
                 </td>
-                <td className="py-2 pr-3 text-right font-medium text-emerald-700">
+                <td className="py-2 pr-3 text-right tabular-nums font-medium text-emerald-700">
                   {item.dy_anual_pct != null ? `${fmt(item.dy_anual_pct, 1)}%` : "—"}
                 </td>
                 <td className="py-2 text-zinc-600 text-xs max-w-[200px]">{item.signal}</td>

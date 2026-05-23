@@ -120,7 +120,7 @@ export function FundPositionsTable({ positions, isLoading }: Props) {
                     </p>
                   )}
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-4 py-3 text-right tabular-nums">
                   <PnLCell pnl={pos.unrealized_pnl} pct={pos.unrealized_pnl_pct} />
                 </td>
               </motion.tr>

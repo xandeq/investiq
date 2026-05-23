@@ -743,10 +743,10 @@ function TaxLossTab() {
                           <td className="px-4 py-3 text-right font-mono text-zinc-500">
                             {fmt(item.avg_cost)}
                           </td>
-                          <td className="px-4 py-3 text-right font-mono">
+                          <td className="px-4 py-3 text-right tabular-nums font-mono">
                             {fmt(item.current_price)}
                           </td>
-                          <td className="px-4 py-3 text-right">
+                          <td className="px-4 py-3 text-right tabular-nums">
                             <span className="text-red-600 font-semibold font-mono">
                               {fmt(item.unrealized_loss)}
                             </span>
@@ -754,7 +754,7 @@ function TaxLossTab() {
                               ({item.unrealized_loss_pct.toFixed(1)}%)
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-right">
+                          <td className="px-4 py-3 text-right tabular-nums">
                             {item.potential_tax_saving > 0 ? (
                               <span className="text-emerald-700 font-semibold font-mono">
                                 {fmt(item.potential_tax_saving)}

@@ -123,17 +123,17 @@ export function DividendHistory() {
                   <td className="py-2 pr-4 text-muted-foreground text-xs">
                     {ASSET_CLASS_LABELS[d.asset_class] ?? d.asset_class}
                   </td>
-                  <td className="py-2 pr-4 text-right">
+                  <td className="py-2 pr-4 text-right tabular-nums">
                     {parseFloat(d.quantity).toLocaleString("pt-BR")}
                   </td>
-                  <td className="py-2 pr-4 text-right">{formatBRL(d.unit_price)}</td>
-                  <td className="py-2 pr-4 text-right font-medium text-green-600">
+                  <td className="py-2 pr-4 text-right tabular-nums">{formatBRL(d.unit_price)}</td>
+                  <td className="py-2 pr-4 text-right tabular-nums font-medium text-green-600">
                     {formatBRL(d.total_value)}
                   </td>
-                  <td className="py-2 pr-4 text-right text-muted-foreground">
+                  <td className="py-2 pr-4 text-right tabular-nums text-muted-foreground">
                     {formatDate(d.transaction_date)}
                   </td>
-                  <td className="py-2 text-right">
+                  <td className="py-2 text-right tabular-nums">
                     {d.is_exempt ? (
                       <span className="text-xs text-green-600">Sim</span>
                     ) : (

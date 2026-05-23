@@ -90,7 +90,7 @@ export function DividendSection({ data, isLoading }: Props) {
                 {r.dividend_history.slice(-6).map((row) => (
                   <tr key={row.year} className="border-b last:border-0">
                     <td className="py-1 pr-4">{row.year}</td>
-                    <td className="py-1 text-right">R$ {row.dps.toFixed(2)}</td>
+                    <td className="py-1 text-right tabular-nums">R$ {row.dps.toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>

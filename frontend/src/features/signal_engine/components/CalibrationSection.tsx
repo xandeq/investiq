@@ -148,8 +148,8 @@ export function CalibrationSection() {
                 >
                   <td className="py-2 px-3 font-mono text-xs text-zinc-700">{pattern}</td>
                   <td className="py-2 px-3 text-center">{statusBadge(pw.status)}</td>
-                  <td className="py-2 px-3 text-right text-zinc-400 text-xs">{pw.n}</td>
-                  <td className={`py-2 px-3 text-right font-mono text-xs ${
+                  <td className="py-2 px-3 text-right tabular-nums text-zinc-400 text-xs">{pw.n}</td>
+                  <td className={`py-2 px-3 text-right tabular-nums font-mono text-xs ${
                     pw.expectancy === null
                       ? "text-zinc-300"
                       : avgRColor(pw.expectancy)
@@ -158,7 +158,7 @@ export function CalibrationSection() {
                       ? "—"
                       : `${pw.expectancy > 0 ? "+" : ""}${pw.expectancy.toFixed(2)}R`}
                   </td>
-                  <td className={`py-2 px-3 text-right text-xs ${
+                  <td className={`py-2 px-3 text-right tabular-nums text-xs ${
                     pw.win_rate === null
                       ? "text-zinc-300"
                       : winrateColor(pw.win_rate)
