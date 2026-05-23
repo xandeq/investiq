@@ -28,8 +28,8 @@ interface ScenarioCardProps {
 
 function ScenarioCard({ scenario, isSelected, prazoMeses, onClick }: ScenarioCardProps) {
   const cardClass = isSelected
-    ? "rounded-xl border-2 border-blue-500 bg-blue-50 p-5 text-left w-full"
-    : "rounded-xl border-2 border-zinc-200 bg-white hover:border-blue-300 p-5 text-left w-full";
+    ? "rounded-xl border-2 border-blue-500 bg-blue-50 p-5 text-left w-full active:scale-[0.97] transition-all duration-150"
+    : "rounded-xl border-2 border-zinc-200 bg-white hover:border-blue-300 p-5 text-left w-full active:scale-[0.97] transition-all duration-150";
 
   const { rf_pct, acoes_pct, fiis_pct } = scenario.allocation;
 
@@ -48,10 +48,10 @@ function ScenarioCard({ scenario, isSelected, prazoMeses, onClick }: ScenarioCar
       </div>
 
       {/* Big total */}
-      <div className="text-2xl font-bold text-emerald-600">
+      <div className="text-2xl font-bold text-emerald-600 tabular-nums">
         {fmtBRL(scenario.total_projetado_brl)}
       </div>
-      <div className="text-xs text-zinc-500 mb-3">
+      <div className="text-xs text-zinc-500 mb-3 tabular-nums">
         Total em {prazoMeses} meses · {fmtPct(scenario.retorno_total_pct)}
       </div>
 
@@ -64,7 +64,7 @@ function ScenarioCard({ scenario, isSelected, prazoMeses, onClick }: ScenarioCar
             RF · {rf_pct}%
           </span>
           <div className="text-right">
-            <span className="font-medium text-zinc-700">{fmtBRL(scenario.rf.valor_final_brl)}</span>
+            <span className="font-medium text-zinc-700 tabular-nums">{fmtBRL(scenario.rf.valor_final_brl)}</span>
             <div className="text-zinc-400 text-[10px]">
               {fmtPct(scenario.rf.retorno_nominal_pct)} (IR {fmtPct(scenario.rf.ir_rate_pct, 1)})
             </div>
@@ -78,7 +78,7 @@ function ScenarioCard({ scenario, isSelected, prazoMeses, onClick }: ScenarioCar
             Ações · {acoes_pct}%
           </span>
           <div className="text-right">
-            <span className="font-medium text-zinc-700">{fmtBRL(scenario.acoes.valor_final_brl)}</span>
+            <span className="font-medium text-zinc-700 tabular-nums">{fmtBRL(scenario.acoes.valor_final_brl)}</span>
             <div className="text-zinc-400 text-[10px]">
               {fmtPct(scenario.acoes.retorno_nominal_pct)} (IR {fmtPct(scenario.acoes.ir_rate_pct, 1)})
             </div>
@@ -92,7 +92,7 @@ function ScenarioCard({ scenario, isSelected, prazoMeses, onClick }: ScenarioCar
             FIIs · {fiis_pct}%
           </span>
           <div className="text-right">
-            <span className="font-medium text-zinc-700">{fmtBRL(scenario.fiis.valor_final_brl)}</span>
+            <span className="font-medium text-zinc-700 tabular-nums">{fmtBRL(scenario.fiis.valor_final_brl)}</span>
             <div className="text-zinc-400 text-[10px]">
               {fmtPct(scenario.fiis.retorno_nominal_pct)} (IR {fmtPct(scenario.fiis.ir_rate_pct, 1)})
             </div>

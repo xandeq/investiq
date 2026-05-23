@@ -61,7 +61,7 @@ export function AIModeCard() {
               type="button"
               onClick={() => isPro && isUltra ? mutation.mutate("standard") : undefined}
               disabled={mutation.isPending || !isPro}
-              className={`rounded-lg border-2 p-3 text-left transition-all duration-200 disabled:opacity-60
+              className={`rounded-lg border-2 p-3 text-left active:scale-[0.97] transition-all duration-150 disabled:opacity-60
                 ${!isUltra
                   ? "border-blue-500 bg-blue-50"
                   : "border-zinc-200 bg-white hover:border-zinc-300"
@@ -76,7 +76,7 @@ export function AIModeCard() {
               type="button"
               onClick={() => isPro && !isUltra ? mutation.mutate("ultra") : undefined}
               disabled={mutation.isPending || !isPro}
-              className={`rounded-lg border-2 p-3 text-left transition-all duration-200 disabled:opacity-60
+              className={`rounded-lg border-2 p-3 text-left active:scale-[0.97] transition-all duration-150 disabled:opacity-60
                 ${isUltra
                   ? "border-blue-500 bg-blue-50"
                   : isPro
