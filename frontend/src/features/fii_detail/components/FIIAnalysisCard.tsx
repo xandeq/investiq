@@ -31,7 +31,7 @@ export function FIIAnalysisCard({
           <button
             onClick={onTrigger}
             disabled={isStarting}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 text-sm"
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 text-sm active:scale-[0.97] transition-all duration-150"
           >
             Gerar Analise IA
           </button>

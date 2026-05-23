@@ -29,7 +29,7 @@ export function CashParkingContent() {
             <p className="mt-1 text-sm text-amber-800">{message}</p>
             <button
               onClick={() => refetch()}
-              className="mt-3 inline-flex items-center gap-2 rounded-md bg-amber-600 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-50"
+              className="mt-3 inline-flex items-center gap-2 rounded-md bg-amber-600 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-50 active:scale-[0.97] transition-all duration-150"
               disabled={isFetching}
             >
               <ArrowClockwise className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} aria-hidden />

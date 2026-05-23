@@ -16,15 +16,15 @@ export function FIIPortfolioSection({ portfolio }: Props) {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-muted/50 rounded-lg p-3">
           <p className="text-xs text-muted-foreground">Numero de Imoveis</p>
-          <p className="text-lg font-semibold">{displayValue(portfolio.num_imoveis)}</p>
+          <p className="text-lg font-semibold tabular-nums">{displayValue(portfolio.num_imoveis)}</p>
         </div>
         <div className="bg-muted/50 rounded-lg p-3">
           <p className="text-xs text-muted-foreground">Tipo de Contrato</p>
           <p className="text-lg font-semibold">{displayValue(portfolio.tipo_contrato)}</p>
         </div>
         <div className="bg-muted/50 rounded-lg p-3">
-          <p className="text-xs text-muted-foreground">Vacancia</p>
-          <p className="text-lg font-semibold">
+          <p className="text-xs text-muted-foreground">Vacância</p>
+          <p className="text-lg font-semibold tabular-nums">
             {displayValue(
               portfolio.vacancia != null
                 ? (portfolio.vacancia * 100).toFixed(1)

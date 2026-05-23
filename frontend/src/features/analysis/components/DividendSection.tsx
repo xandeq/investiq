@@ -8,7 +8,7 @@ interface Props {
 }
 
 const sustainabilityConfig = {
-  safe: { label: "Seguro", className: "bg-green-100 text-green-700 border-green-200" },
+  safe: { label: "Seguro", className: "bg-emerald-100 text-emerald-700 border-emerald-200" },
   warning: { label: "Atenção", className: "bg-yellow-100 text-yellow-700 border-yellow-200" },
   risk: { label: "Risco", className: "bg-red-100 text-red-700 border-red-200" },
 };
@@ -58,15 +58,15 @@ export function DividendSection({ data, isLoading }: Props) {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div>
           <p className="text-xs text-muted-foreground">Dividend Yield</p>
-          <p className="text-xl font-bold">{pct(r.current_yield)}</p>
+          <p className="text-xl font-bold tabular-nums">{pct(r.current_yield)}</p>
         </div>
         <div>
           <p className="text-xs text-muted-foreground">Payout Ratio</p>
-          <p className="font-semibold">{pct(r.payout_ratio)}</p>
+          <p className="font-semibold tabular-nums">{pct(r.payout_ratio)}</p>
         </div>
         <div>
           <p className="text-xs text-muted-foreground">Cobertura</p>
-          <p className="font-semibold">{pct(r.coverage_ratio)}</p>
+          <p className="font-semibold tabular-nums">{pct(r.coverage_ratio)}</p>
         </div>
         <div>
           <p className="text-xs text-muted-foreground">Consistência</p>
