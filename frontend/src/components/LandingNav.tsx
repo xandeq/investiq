@@ -53,7 +53,7 @@ export function LandingNav() {
             </Link>
             <Link
               href="/register"
-              className="px-4 py-2 text-sm font-semibold bg-blue-500 text-white rounded-md hover:bg-blue-400 transition-all duration-200 hover:scale-[1.02]"
+              className="px-4 py-2 text-sm font-semibold bg-blue-500 text-white rounded-md hover:bg-blue-400 active:scale-[0.97] transition-all duration-150"
             >
               Começar grátis
             </Link>

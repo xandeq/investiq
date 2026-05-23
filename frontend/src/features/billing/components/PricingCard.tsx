@@ -17,7 +17,7 @@ export function PricingCard({ name, price, priceNote, features, highlighted = fa
   return (
     <div className={`rounded-xl flex flex-col gap-6 p-8 transition-all duration-200 ${
       highlighted
-        ? "bg-zinc-900 text-white hover:scale-[1.02]"
+        ? "bg-zinc-900 text-white"
         : "bg-zinc-100 hover:bg-zinc-200"
     }`}>
       <div>
