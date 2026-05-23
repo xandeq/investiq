@@ -202,19 +202,23 @@ export function OutcomesTable({ outcomes, isLoading, isError, onClose, closePend
           <motion.div
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            className="py-8 text-center"
+            className="flex flex-col items-center gap-3 py-10 text-center"
           >
-            <p className="text-sm font-medium text-zinc-500">
-              {filter === "all"
-                ? "Nenhum resultado registrado ainda."
-                : `Nenhum resultado ${filter === "open" ? "aberto" : filter === "closed" ? "fechado" : "stopado"}.`
-              }
-            </p>
-            {filter === "all" && (
-              <p className="text-xs text-zinc-400 mt-1">
-                Use o formulário acima para registrar sua primeira entrada.
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-50 border border-zinc-200">
+              <Target size={20} className="text-zinc-400" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-zinc-700">
+                {filter === "all"
+                  ? "Nenhum resultado registrado ainda."
+                  : `Nenhum resultado ${filter === "open" ? "aberto" : filter === "closed" ? "fechado" : "stopado"}.`}
               </p>
-            )}
+              <p className="text-xs text-zinc-400 mt-0.5">
+                {filter === "all"
+                  ? "Use o formulário acima para registrar sua primeira entrada."
+                  : "Tente mudar o filtro de status."}
+              </p>
+            </div>
           </motion.div>
         )}
 

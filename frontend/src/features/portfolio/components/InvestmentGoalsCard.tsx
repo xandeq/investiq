@@ -496,7 +496,7 @@ export function InvestmentGoalsCard() {
       {/* Empty state */}
       {!isLoading && !isError && goals && goals.length === 0 && !showForm && (
         <div className="py-8 text-center">
-          <Target size={28} className="mx-auto text-zinc-200 mb-2" />
+          <Target size={28} className="mx-auto text-zinc-400 mb-2" />
           <p className="text-sm text-zinc-400">Nenhuma meta cadastrada.</p>
           <p className="text-xs text-zinc-300 mt-0.5">
             Clique em &quot;Nova meta&quot; para definir objetivos financeiros.

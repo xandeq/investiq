@@ -504,11 +504,21 @@ export function TransactionsContent() {
               )}
               {!isLoading && transactions.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-zinc-400 text-sm">
-                    Nenhuma transação encontrada.{" "}
-                    <button onClick={() => setShowNew(true)} className="text-blue-500 hover:text-blue-600 font-medium active:scale-[0.97] transition-all duration-150">
-                      Adicionar a primeira
-                    </button>
+                  <td colSpan={9} className="px-4 py-10">
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-50 border border-zinc-200">
+                        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 text-zinc-400" aria-hidden>
+                          <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-zinc-700">Nenhuma transação encontrada</p>
+                        <p className="text-xs text-zinc-400 mt-0.5">Registre suas operações de compra e venda aqui.</p>
+                      </div>
+                      <button onClick={() => setShowNew(true)} className="text-xs font-medium text-blue-500 hover:text-blue-600 active:scale-[0.97] transition-all duration-150">
+                        Adicionar a primeira →
+                      </button>
+                    </div>
                   </td>
                 </tr>
               )}
