@@ -103,7 +103,7 @@ function AlertInline({ ticker, current }: { ticker: string; current: string | nu
     return (
       <button
         onClick={() => setEditing(true)}
-        className="text-xs text-zinc-400 hover:text-zinc-700 transition-colors"
+        className="text-xs text-zinc-400 hover:text-zinc-700 active:scale-[0.97] transition-all duration-150"
       >
         {current ? fmtBRL(current) : "—"}
       </button>
@@ -127,13 +127,13 @@ function AlertInline({ ticker, current }: { ticker: string; current: string | nu
           setEditing(false);
         }}
         disabled={updateMut.isPending}
-        className="text-xs text-emerald-600 font-semibold hover:text-emerald-700 transition-colors"
+        className="text-xs text-emerald-600 font-semibold hover:text-emerald-700 active:scale-[0.97] transition-all duration-150"
       >
         Ok
       </button>
       <button
         onClick={() => setEditing(false)}
-        className="text-xs text-zinc-400 hover:text-zinc-700 transition-colors"
+        className="text-xs text-zinc-400 hover:text-zinc-700 active:scale-[0.97] transition-all duration-150"
       >
         ×
       </button>

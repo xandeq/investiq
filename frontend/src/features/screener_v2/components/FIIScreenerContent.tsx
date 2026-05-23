@@ -273,7 +273,7 @@ export function FIIScreenerContent() {
             <button
               key={p.label}
               onClick={() => applyPreset(p.filters)}
-              className="px-2.5 py-1 text-xs rounded-full border border-zinc-200 text-zinc-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+              className="px-2.5 py-1 text-xs rounded-full border border-zinc-200 text-zinc-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 active:scale-[0.97] transition-all duration-150"
             >
               {p.label}
             </button>
@@ -349,7 +349,7 @@ export function FIIScreenerContent() {
           <div className="flex gap-2 flex-wrap">
             <button
               onClick={clearFilters}
-              className="px-4 py-2 rounded-md text-sm text-zinc-600 border border-zinc-200 hover:bg-zinc-50 transition-colors"
+              className="px-4 py-2 rounded-md text-sm text-zinc-600 border border-zinc-200 hover:bg-zinc-50 active:scale-[0.97] transition-all duration-150"
             >
               Limpar
             </button>
@@ -357,7 +357,7 @@ export function FIIScreenerContent() {
               <button
                 onClick={handleCopyLink}
                 title="Copiar link com os filtros atuais"
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm border border-zinc-200 text-zinc-600 hover:bg-zinc-50 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm border border-zinc-200 text-zinc-600 hover:bg-zinc-50 active:scale-[0.97] transition-all duration-150"
               >
                 {copied ? <Check size={14} weight="bold" className="text-emerald-500" /> : <LinkIcon size={14} />}
                 {copied ? "Copiado!" : "Copiar link"}

@@ -164,7 +164,7 @@ export function StagingReviewTable({ jobId, onConfirmed, onCancelled }: StagingR
         <button
           onClick={handleCancel}
           disabled={confirming}
-          className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+          className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground active:scale-[0.97] transition-all duration-150 disabled:opacity-50"
         >
           Cancelar
         </button>

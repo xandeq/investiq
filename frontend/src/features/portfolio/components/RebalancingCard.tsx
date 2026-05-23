@@ -115,7 +115,7 @@ export function RebalancingCard() {
         </div>
         <button
           onClick={() => refetch()}
-          className="flex items-center gap-1 text-xs text-zinc-500 hover:text-blue-600 border border-zinc-200 rounded-md px-2 py-1 hover:border-blue-300 transition-colors"
+          className="flex items-center gap-1 text-xs text-zinc-500 hover:text-blue-600 border border-zinc-200 rounded-md px-2 py-1 hover:border-blue-300 active:scale-[0.97] transition-all duration-150"
         >
           <ArrowClockwise className="h-3 w-3" />
           Tentar novamente
@@ -141,7 +141,7 @@ export function RebalancingCard() {
         {!editing ? (
           <button
             onClick={startEdit}
-            className="flex items-center gap-1 px-2 py-1 text-xs text-zinc-500 hover:text-blue-600 border border-zinc-200 rounded-md hover:border-blue-300 transition-colors"
+            className="flex items-center gap-1 px-2 py-1 text-xs text-zinc-500 hover:text-blue-600 border border-zinc-200 rounded-md hover:border-blue-300 active:scale-[0.97] transition-all duration-150"
           >
             <PencilSimple className="h-3 w-3" />
             {plan.has_targets ? "Editar metas" : "Definir metas"}

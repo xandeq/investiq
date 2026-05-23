@@ -60,7 +60,7 @@ export function RegisterOutcomeForm({ onSubmit, isPending }: Props) {
       {/* Toggle header */}
       <button
         onClick={() => setExpanded((p) => !p)}
-        className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
+        className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 active:scale-[0.97] transition-all duration-150"
       >
         <span className="flex items-center gap-2">
           <Plus size={15} weight="bold" aria-hidden />

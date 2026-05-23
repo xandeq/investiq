@@ -107,7 +107,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={copy}
-      className="ml-1 inline-flex items-center text-zinc-400 hover:text-zinc-700 transition-colors"
+      className="ml-1 inline-flex items-center text-zinc-400 hover:text-zinc-700 active:scale-[0.97] transition-all duration-150"
       title="Copiar"
     >
       {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}

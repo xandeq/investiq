@@ -217,7 +217,7 @@ export function UploadDropzone({ onJobCreated }: UploadDropzoneProps) {
           <button
             key={t.id}
             onClick={() => { setActiveTab(t.id); setError(null); setLimitError(null); }}
-            className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
+            className={`px-3 py-2 text-sm font-medium border-b-2 active:scale-[0.97] transition-all duration-150 ${
               activeTab === t.id
                 ? "border-primary text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -287,7 +287,7 @@ export function UploadDropzone({ onJobCreated }: UploadDropzoneProps) {
             <button
               onClick={handleJsonPasteSubmit}
               disabled={uploading || !jsonPasteText.trim()}
-              className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.97] transition-all duration-150"
             >
               {uploading ? "Enviando..." : "Importar JSON colado"}
             </button>

@@ -148,7 +148,7 @@ function TransactionModal({ initial, onClose, onSave, loading, error }: ModalPro
           <h2 className="text-base font-bold tracking-tight">
             {isEdit ? "Editar transação" : "Nova transação"}
           </h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xl leading-none transition-colors">×</button>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xl leading-none active:scale-[0.97] transition-all duration-150">×</button>
         </div>
 
         <form onSubmit={handleSubmit} className="px-6 py-5 flex flex-col gap-4">
@@ -440,7 +440,7 @@ export function TransactionsContent() {
           {ASSET_CLASSES.map((ac) => <option key={ac} value={ac}>{ASSET_LABEL[ac] ?? ac}</option>)}
         </select>
         {(filterTicker || filterType || filterClass) && (
-          <button onClick={() => { setFilterTicker(""); setFilterType(""); setFilterClass(""); }} className="text-sm text-muted-foreground hover:text-foreground px-2 transition-colors">
+          <button onClick={() => { setFilterTicker(""); setFilterType(""); setFilterClass(""); }} className="text-sm text-muted-foreground hover:text-foreground px-2 active:scale-[0.97] transition-all duration-150">
             Limpar filtros
           </button>
         )}
@@ -460,7 +460,7 @@ export function TransactionsContent() {
           </button>
           <button
             onClick={() => setSelectedIds(new Set())}
-            className="text-xs text-blue-600 hover:text-blue-800 transition-colors ml-auto"
+            className="text-xs text-blue-600 hover:text-blue-800 active:scale-[0.97] transition-all duration-150 ml-auto"
           >
             Desmarcar tudo
           </button>
@@ -506,7 +506,7 @@ export function TransactionsContent() {
                 <tr>
                   <td colSpan={9} className="px-4 py-8 text-center text-zinc-400 text-sm">
                     Nenhuma transação encontrada.{" "}
-                    <button onClick={() => setShowNew(true)} className="text-blue-500 hover:text-blue-600 font-medium transition-colors">
+                    <button onClick={() => setShowNew(true)} className="text-blue-500 hover:text-blue-600 font-medium active:scale-[0.97] transition-all duration-150">
                       Adicionar a primeira
                     </button>
                   </td>

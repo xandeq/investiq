@@ -70,7 +70,7 @@ export function LoginForm() {
           <button
             type="button"
             onClick={() => setShowPw(!showPw)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 active:scale-[0.97] transition-all duration-150"
           >
             {showPw ? <EyeSlash className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>

@@ -107,7 +107,7 @@ export function ActionInbox() {
         <button
           onClick={() => refetch()}
           disabled={isFetching}
-          className="p-1.5 rounded-md hover:bg-zinc-100 text-zinc-400 transition-colors disabled:opacity-40"
+          className="p-1.5 rounded-md hover:bg-zinc-100 text-zinc-400 active:scale-[0.97] transition-all duration-150 disabled:opacity-40"
           title="Atualizar"
           aria-label="Atualizar caixa de entrada"
         >

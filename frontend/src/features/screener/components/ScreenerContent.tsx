@@ -40,7 +40,7 @@ function StockCard({ stock, index }: { stock: StockAnalysis; index: number }) {
     >
       <button
         onClick={() => setExpanded((v) => !v)}
-        className="w-full text-left px-5 py-4 flex items-start justify-between gap-4 hover:bg-zinc-50 transition-colors duration-150"
+        className="w-full text-left px-5 py-4 flex items-start justify-between gap-4 hover:bg-zinc-50 active:scale-[0.97] transition-all duration-150"
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">

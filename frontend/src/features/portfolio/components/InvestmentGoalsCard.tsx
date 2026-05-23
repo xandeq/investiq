@@ -72,7 +72,7 @@ function ErrorBanner({ message, onRetry }: { message: string; onRetry?: () => vo
       {onRetry && (
         <button
           onClick={onRetry}
-          className="flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-800 shrink-0 transition-colors"
+          className="flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-800 shrink-0 active:scale-[0.97] transition-all duration-150"
         >
           <ArrowClockwise size={12} />
           Tentar novamente
@@ -281,7 +281,7 @@ function GoalRow({
           <button
             onClick={onEdit}
             disabled={isDeleting}
-            className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 disabled:opacity-40 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 disabled:opacity-40 active:scale-[0.97] transition-all duration-150"
             title="Editar"
           >
             <PencilSimple size={14} />
@@ -289,7 +289,7 @@ function GoalRow({
           <button
             onClick={onDelete}
             disabled={isDeleting}
-            className="p-1.5 rounded-lg hover:bg-red-50 text-zinc-400 hover:text-red-600 disabled:opacity-40 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-red-50 text-zinc-400 hover:text-red-600 disabled:opacity-40 active:scale-[0.97] transition-all duration-150"
             title="Excluir"
           >
             {isDeleting

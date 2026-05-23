@@ -401,7 +401,7 @@ export function RadarReportView({
         </div>
         <button
           onClick={onRefresh}
-          className="text-xs text-blue-600 hover:text-blue-800 border border-blue-200 rounded-md px-3 py-1.5 transition-colors hover:bg-blue-50"
+          className="text-xs text-blue-600 hover:text-blue-800 border border-blue-200 rounded-md px-3 py-1.5 active:scale-[0.97] transition-all duration-150 hover:bg-blue-50"
         >
           ↻ Atualizar
         </button>

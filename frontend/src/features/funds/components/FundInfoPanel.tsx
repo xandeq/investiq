@@ -31,7 +31,7 @@ export function FundInfoPanel({ cnpj, onClose }: Props) {
         </div>
         <button
           onClick={onClose}
-          className="p-1 rounded-md text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+          className="p-1 rounded-md text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 active:scale-[0.97] transition-all duration-150"
         >
           <X size={14} />
         </button>

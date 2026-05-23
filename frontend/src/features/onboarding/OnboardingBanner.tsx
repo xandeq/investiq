@@ -91,7 +91,7 @@ export function OnboardingBanner() {
               onClick={dismiss}
               aria-label="Ocultar por 7 dias"
               title="Ocultar por 7 dias"
-              className="text-zinc-500 hover:text-zinc-300 transition-colors p-0.5 rounded"
+              className="text-zinc-500 hover:text-zinc-300 p-0.5 rounded active:scale-[0.97] transition-all duration-150"
             >
               <X size={14} />
             </button>

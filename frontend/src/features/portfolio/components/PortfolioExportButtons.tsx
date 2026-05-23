@@ -91,7 +91,7 @@ export function PortfolioExportButtons({ pnl }: PortfolioExportButtonsProps) {
                 <button
                   key={fmt}
                   onClick={() => handleExport(fmt)}
-                  className="w-full text-left flex items-center gap-2 px-4 py-2 text-xs text-zinc-700 hover:bg-zinc-50 transition-colors"
+                  className="w-full text-left flex items-center gap-2 px-4 py-2 text-xs text-zinc-700 hover:bg-zinc-50 active:scale-[0.97] transition-all duration-150"
                 >
                   <Icon size={14} className="text-zinc-400" />
                   <span>{FORMAT_LABELS[fmt]}</span>

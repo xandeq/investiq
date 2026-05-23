@@ -85,7 +85,7 @@ export function CloseOutcomeModal({ outcome, onClose, onConfirm, isPending }: Pr
               </div>
               <button
                 onClick={onClose}
-                className="ml-4 p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors"
+                className="ml-4 p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 active:scale-[0.97] transition-all duration-150"
               >
                 <X size={18} aria-label="Fechar" />
               </button>

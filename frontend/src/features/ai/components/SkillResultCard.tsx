@@ -29,7 +29,7 @@ export function SkillResultCard({ result, title, defaultOpen = false }: Props) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-zinc-50 transition-colors text-left"
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-zinc-50 active:scale-[0.97] transition-all duration-150 text-left"
       >
         <div className="flex items-center gap-3">
           {open ? (
