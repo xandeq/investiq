@@ -135,7 +135,7 @@ export function ActionInbox() {
           <p className="font-medium">Não foi possível carregar suas ações.</p>
           <button
             onClick={() => refetch()}
-            className="mt-2 underline hover:no-underline font-medium"
+            className="mt-2 underline hover:no-underline font-medium active:scale-[0.97] transition-all duration-150"
           >
             Tentar novamente
           </button>
@@ -144,7 +144,7 @@ export function ActionInbox() {
 
       {!isLoading && !error && data && data.cards.length === 0 && (
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <Tray className="h-8 w-8 text-zinc-200 mb-2" aria-hidden />
+          <Tray className="h-8 w-8 text-zinc-400 mb-2" aria-hidden />
           <p className="text-sm text-zinc-400">Sem ações pendentes no momento.</p>
           <p className="text-xs text-zinc-300 mt-1">Atualizamos a cada 15 minutos.</p>
         </div>
