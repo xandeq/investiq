@@ -107,13 +107,13 @@ export function FundPositionsCard() {
                     </p>
                     <p className="text-[10px] text-zinc-400">{formatCnpj(p.cnpj)}</p>
                   </td>
-                  <td className="text-right text-zinc-500 py-2 text-xs">
+                  <td className="text-right tabular-nums text-zinc-500 py-2 text-xs">
                     {parseFloat(p.quantity).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                   </td>
-                  <td className="text-right text-zinc-500 py-2 text-xs">
+                  <td className="text-right tabular-nums text-zinc-500 py-2 text-xs">
                     {fmtBrl(p.cmp)}
                   </td>
-                  <td className="text-right py-2 text-xs">
+                  <td className="text-right tabular-nums py-2 text-xs">
                     {p.nav_stale ? (
                       <span className="text-zinc-400 italic">—</span>
                     ) : (
@@ -127,10 +127,10 @@ export function FundPositionsCard() {
                       </>
                     )}
                   </td>
-                  <td className="text-right py-2 text-xs font-medium">
+                  <td className="text-right tabular-nums py-2 text-xs font-medium">
                     {currentValue !== null ? fmtBrl(currentValue) : fmtBrl(p.total_cost)}
                   </td>
-                  <td className="text-right py-2 text-xs">
+                  <td className="text-right tabular-nums py-2 text-xs">
                     {p.unrealized_pnl !== null ? (
                       <span className={`font-semibold ${pnlColor(p.unrealized_pnl)}`}>
                         {fmtPct(p.unrealized_pnl_pct)}

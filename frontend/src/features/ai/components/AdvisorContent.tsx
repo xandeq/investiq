@@ -306,13 +306,13 @@ function SmartScreenerSection({
                     </a>
                   </td>
                   <td className="px-4 py-2.5 text-xs text-zinc-400">{a.sector ?? "—"}</td>
-                  <td className="text-right px-4 py-2.5 text-xs font-medium text-emerald-600">
+                  <td className="text-right px-4 py-2.5 text-xs font-medium tabular-nums text-emerald-600">
                     {dyPct != null ? `${dyPct}%` : "—"}
                   </td>
-                  <td className={`text-right px-4 py-2.5 text-xs font-medium ${isPositive ? "text-emerald-600" : "text-red-500"}`}>
+                  <td className={`text-right px-4 py-2.5 text-xs font-medium tabular-nums ${isPositive ? "text-emerald-600" : "text-red-500"}`}>
                     {varPct != null ? `${isPositive ? "+" : ""}${varPct}%` : "—"}
                   </td>
-                  <td className="text-right px-4 py-2.5 text-xs">
+                  <td className="text-right px-4 py-2.5 text-xs tabular-nums">
                     {a.preco_atual != null ? `R$ ${a.preco_atual.toFixed(2)}` : "—"}
                   </td>
                 </motion.tr>
@@ -360,13 +360,13 @@ function SignalTable({ signals }: { signals: EntrySignal[] }) {
                   {signal.ticker}
                 </a>
               </td>
-              <td className="text-right px-4 py-2.5 text-xs">
+              <td className="text-right px-4 py-2.5 text-xs tabular-nums">
                 R$ {parseFloat(signal.suggested_amount_brl).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
               </td>
-              <td className={`text-right px-4 py-2.5 text-xs font-medium ${signal.target_upside_pct > 0 ? "text-emerald-600" : "text-red-500"}`}>
+              <td className={`text-right px-4 py-2.5 text-xs font-medium tabular-nums ${signal.target_upside_pct > 0 ? "text-emerald-600" : "text-red-500"}`}>
                 {signal.target_upside_pct > 0 ? "+" : ""}{signal.target_upside_pct.toFixed(1)}%
               </td>
-              <td className="text-right px-4 py-2.5 text-xs text-red-500 hidden md:table-cell">
+              <td className="text-right px-4 py-2.5 text-xs tabular-nums text-red-500 hidden md:table-cell">
                 -{signal.stop_loss_pct.toFixed(1)}%
               </td>
               <td className="text-right px-4 py-2.5">

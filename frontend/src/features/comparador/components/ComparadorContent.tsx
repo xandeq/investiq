@@ -183,8 +183,8 @@ export function ComparadorContent() {
                         )}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right">{fmt(row.taxaBrutaAnualPct)}%</td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-right tabular-nums">{fmt(row.taxaBrutaAnualPct)}%</td>
+                    <td className="px-4 py-3 text-right tabular-nums">
                       {row.isExempt ? (
                         <IRBadge isExempt={true} irPct={0} />
                       ) : (
@@ -194,17 +194,17 @@ export function ComparadorContent() {
                         </div>
                       )}
                     </td>
-                    <td className={`px-4 py-3 text-right font-semibold ${beatsCDI ? "text-emerald-600" : "text-zinc-700"}`}>
+                    <td className={`px-4 py-3 text-right tabular-nums font-semibold ${beatsCDI ? "text-emerald-600" : "text-zinc-700"}`}>
                       {fmt(row.retornoNominalPct)}%
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-right tabular-nums">
                       {!result.ipcaAvailable ? (
                         <span title="IPCA indisponível" className="text-zinc-400">—</span>
                       ) : (
                         <span>{fmt(row.retornoRealPct)}%</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold">{fmtBRL(row.totalAcumuladoBRL)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums font-semibold">{fmtBRL(row.totalAcumuladoBRL)}</td>
                   </tr>
                 );
               })}

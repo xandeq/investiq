@@ -66,11 +66,11 @@ export function CashParkingTable({ rows }: { rows: CashParkingRow[] }) {
                     </div>
                   )}
                 </td>
-                <td className="px-4 py-3 text-right text-zinc-700">{formatPct(row.gross_annual_pct)} a.a.</td>
-                <td className="px-4 py-3 text-right text-zinc-700">{formatPct(row.iof_pct, 100)}</td>
-                <td className="px-4 py-3 text-right text-zinc-700">{formatPct(row.ir_pct, 100)}</td>
-                <td className="px-4 py-3 text-right font-semibold text-zinc-900">{formatBRL(row.net_value_brl)}</td>
-                <td className={`px-4 py-3 text-right font-semibold ${isTop ? "text-emerald-700" : "text-zinc-700"}`}>
+                <td className="px-4 py-3 text-right tabular-nums text-zinc-700">{formatPct(row.gross_annual_pct)} a.a.</td>
+                <td className="px-4 py-3 text-right tabular-nums text-zinc-700">{formatPct(row.iof_pct, 100)}</td>
+                <td className="px-4 py-3 text-right tabular-nums text-zinc-700">{formatPct(row.ir_pct, 100)}</td>
+                <td className="px-4 py-3 text-right tabular-nums font-semibold text-zinc-900">{formatBRL(row.net_value_brl)}</td>
+                <td className={`px-4 py-3 text-right tabular-nums font-semibold ${isTop ? "text-emerald-700" : "text-zinc-700"}`}>
                   {formatPct(row.net_pct)}
                 </td>
               </tr>
