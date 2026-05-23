@@ -223,20 +223,20 @@ function WatchlistRow({ item, index }: { item: WatchlistQuote; index: number }) 
         <div className="flex items-center gap-1 justify-end">
           <Link
             href={tickerPath(item.ticker)}
-            className="text-xs text-zinc-400 hover:text-blue-500 px-2 py-1 rounded-md hover:bg-blue-50 transition-all duration-200"
+            className="text-xs text-zinc-400 hover:text-blue-500 px-2 py-1 rounded-md hover:bg-blue-50 active:scale-[0.97] transition-all duration-150"
           >
             Ver
           </Link>
           <Link
             href={`/ai?ticker=${item.ticker}`}
-            className="text-xs text-zinc-400 hover:text-blue-500 px-2 py-1 rounded-md hover:bg-blue-50 transition-all duration-200"
+            className="text-xs text-zinc-400 hover:text-blue-500 px-2 py-1 rounded-md hover:bg-blue-50 active:scale-[0.97] transition-all duration-150"
           >
             IA
           </Link>
           <button
             onClick={() => removeMut.mutate(item.ticker)}
             disabled={removeMut.isPending}
-            className="text-xs text-zinc-400 hover:text-red-500 px-2 py-1 rounded-md hover:bg-red-50 transition-all duration-200"
+            className="text-xs text-zinc-400 hover:text-red-500 px-2 py-1 rounded-md hover:bg-red-50 active:scale-[0.97] transition-all duration-150"
           >
             Remover
           </button>
