@@ -113,7 +113,7 @@ export function SwingTradeContent() {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`relative flex items-center gap-1.5 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors duration-200 ${
+                className={`relative flex items-center gap-1.5 px-4 py-3 text-sm font-medium whitespace-nowrap active:scale-[0.97] transition-all duration-150 ${
                   active
                     ? "text-blue-600"
                     : "text-zinc-500 hover:text-zinc-700"

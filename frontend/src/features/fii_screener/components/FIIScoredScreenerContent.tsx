@@ -172,7 +172,7 @@ function FIIEmptyState({
 
       <button
         onClick={onClear}
-        className="px-4 py-2 rounded-md text-sm bg-blue-500 text-white hover:bg-blue-600 transition-colors font-medium"
+        className="px-4 py-2 rounded-md text-sm bg-blue-500 text-white hover:bg-blue-600 active:scale-[0.97] transition-all duration-150 font-medium"
       >
         {hasFilters ? "Limpar filtros" : "Recarregar"}
       </button>
@@ -256,7 +256,7 @@ export function FIIScoredScreenerContent() {
           <div className="flex items-end">
             <button
               onClick={() => filters.clear()}
-              className="px-4 py-2 rounded-md text-sm text-zinc-600 border border-zinc-200 hover:bg-zinc-50 transition-colors w-full sm:w-auto"
+              className="px-4 py-2 rounded-md text-sm text-zinc-600 border border-zinc-200 hover:bg-zinc-50 active:scale-[0.97] transition-all duration-150 w-full sm:w-auto"
             >
               Limpar filtros
             </button>

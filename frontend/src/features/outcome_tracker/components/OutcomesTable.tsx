@@ -152,7 +152,7 @@ export function OutcomesTable({ outcomes, isLoading, isError, onClose, closePend
           <button
             key={tab.key}
             onClick={() => setFilter(tab.key)}
-            className={`relative flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold transition-colors ${
+            className={`relative flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold active:scale-[0.97] transition-all duration-150 ${
               filter === tab.key ? "text-zinc-900" : "text-zinc-400 hover:text-zinc-600"
             }`}
           >

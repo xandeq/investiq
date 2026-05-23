@@ -147,7 +147,7 @@ function MetricCell({
   return (
     <div className="rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2">
       <p className="text-xs text-zinc-400">{label}</p>
-      <p className={`text-sm font-bold mt-0.5 ${valueClassName ?? ""}`}>{value}</p>
+      <p className={`text-sm font-bold mt-0.5 tabular-nums ${valueClassName ?? ""}`}>{value}</p>
       {sub && <p className="text-xs text-zinc-400 mt-0.5 leading-tight">{sub}</p>}
     </div>
   );
@@ -195,7 +195,7 @@ function ScreenerHistory({ onSelect }: { onSelect: (runId: string) => void }) {
           transition={{ duration: 0.22, delay: i * 0.04 }}
           onClick={() => run.status === "completed" && onSelect(run.id)}
           disabled={run.status !== "completed"}
-          className="w-full text-left rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm hover:bg-zinc-50 transition-all duration-200 disabled:opacity-50"
+          className="w-full text-left rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm hover:bg-zinc-50 active:scale-[0.97] transition-all duration-150 disabled:opacity-50"
         >
           <div className="flex items-center justify-between">
             <span className="font-semibold">
@@ -299,7 +299,7 @@ function ScreenerMain() {
         <button
           onClick={handleSubmit}
           disabled={isRunning}
-          className="px-6 py-3 rounded-md bg-blue-500 text-white hover:bg-blue-400 hover:scale-105 disabled:opacity-50 transition-all duration-200 font-semibold"
+          className="px-6 py-3 rounded-md bg-blue-500 text-white hover:bg-blue-400 hover:scale-105 active:scale-[0.97] disabled:opacity-50 transition-all duration-150 font-semibold"
         >
           {isRunning ? (
             <span className="flex items-center gap-2">

@@ -263,7 +263,7 @@ export function AcoesUniverseContent() {
               <button
                 onClick={() => toggleMcap("small")}
                 title="Menos de R$ 2B"
-                className={`px-3 py-2 rounded-md text-xs font-medium border transition-colors ${
+                className={`px-3 py-2 rounded-md text-xs font-medium border active:scale-[0.97] transition-all duration-150 ${
                   mcapTier === "small"
                     ? "bg-blue-500 text-white border-blue-500"
                     : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
@@ -274,7 +274,7 @@ export function AcoesUniverseContent() {
               <button
                 onClick={() => toggleMcap("mid")}
                 title="Entre R$ 2B e R$ 10B"
-                className={`px-3 py-2 rounded-md text-xs font-medium border transition-colors ${
+                className={`px-3 py-2 rounded-md text-xs font-medium border active:scale-[0.97] transition-all duration-150 ${
                   mcapTier === "mid"
                     ? "bg-blue-500 text-white border-blue-500"
                     : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
@@ -285,7 +285,7 @@ export function AcoesUniverseContent() {
               <button
                 onClick={() => toggleMcap("large")}
                 title="Mais de R$ 10B"
-                className={`px-3 py-2 rounded-md text-xs font-medium border transition-colors ${
+                className={`px-3 py-2 rounded-md text-xs font-medium border active:scale-[0.97] transition-all duration-150 ${
                   mcapTier === "large"
                     ? "bg-blue-500 text-white border-blue-500"
                     : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
@@ -390,7 +390,7 @@ export function AcoesUniverseContent() {
                         </td>
 
                         {/* Preco */}
-                        <td className="py-3 px-4 text-sm font-semibold">
+                        <td className="py-3 px-4 text-sm font-semibold tabular-nums">
                           {row.regular_market_price
                             ? `R$ ${fmt(row.regular_market_price, 2)}`
                             : "—"}
@@ -406,19 +406,19 @@ export function AcoesUniverseContent() {
                         </td>
 
                         {/* DY 12m — stored as decimal, show as % */}
-                        <td className="py-3 px-4 text-sm">
+                        <td className="py-3 px-4 text-sm tabular-nums">
                           {row.dy !== null
                             ? fmt(parseFloat(row.dy) * 100, 2, "%")
                             : "—"}
                         </td>
 
                         {/* P/L */}
-                        <td className="py-3 px-4 text-sm">
+                        <td className="py-3 px-4 text-sm tabular-nums">
                           {fmt(row.pl, 1)}
                         </td>
 
                         {/* Market Cap */}
-                        <td className="py-3 px-4 text-sm">
+                        <td className="py-3 px-4 text-sm tabular-nums">
                           {fmtBRL(row.market_cap)}
                         </td>
                       </tr>
@@ -448,14 +448,14 @@ export function AcoesUniverseContent() {
                 <button
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                   disabled={page === 0}
-                  className="px-3 py-1.5 rounded text-xs border border-zinc-200 disabled:opacity-40 hover:bg-zinc-50 transition-colors"
+                  className="px-3 py-1.5 rounded text-xs border border-zinc-200 disabled:opacity-40 hover:bg-zinc-50 active:scale-[0.97] transition-all duration-150"
                 >
                   Anterior
                 </button>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                   disabled={page >= totalPages - 1}
-                  className="px-3 py-1.5 rounded text-xs border border-zinc-200 disabled:opacity-40 hover:bg-zinc-50 transition-colors"
+                  className="px-3 py-1.5 rounded text-xs border border-zinc-200 disabled:opacity-40 hover:bg-zinc-50 active:scale-[0.97] transition-all duration-150"
                 >
                   Próxima
                 </button>
