@@ -228,7 +228,7 @@ function TransactionModal({ initial, onClose, onSave, loading, error }: ModalPro
           </div>
 
           <div className="flex justify-end gap-2 pt-1">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-md bg-zinc-100 hover:bg-zinc-200 font-medium transition-all duration-200">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-md bg-zinc-100 hover:bg-zinc-200 font-medium active:scale-[0.97] transition-all duration-150">
               Cancelar
             </button>
             <button type="submit" disabled={loading} className="px-4 py-2 text-sm rounded-md bg-blue-500 text-white hover:bg-blue-600 font-semibold disabled:opacity-60 active:scale-[0.97] transition-all duration-150">
@@ -254,10 +254,10 @@ function DeleteConfirm({ tx, onConfirm, onCancel, loading }: {
           Esta ação não pode ser desfeita.
         </p>
         <div className="flex gap-2 justify-end">
-          <button onClick={onCancel} className="px-4 py-2 text-sm rounded-md bg-zinc-100 hover:bg-zinc-200 font-medium transition-all duration-200">
+          <button onClick={onCancel} className="px-4 py-2 text-sm rounded-md bg-zinc-100 hover:bg-zinc-200 font-medium active:scale-[0.97] transition-all duration-150">
             Cancelar
           </button>
-          <button onClick={onConfirm} disabled={loading} className="px-4 py-2 text-sm rounded-md bg-red-500 text-white hover:bg-red-600 font-semibold disabled:opacity-60 transition-all duration-200">
+          <button onClick={onConfirm} disabled={loading} className="px-4 py-2 text-sm rounded-md bg-red-500 text-white hover:bg-red-600 font-semibold disabled:opacity-60 active:scale-[0.97] transition-all duration-150">
             {loading ? "Excluindo..." : "Excluir"}
           </button>
         </div>
@@ -280,10 +280,10 @@ function BulkDeleteConfirm({ count, onConfirm, onCancel, loading }: {
           Esta ação não pode ser desfeita.
         </p>
         <div className="flex gap-2 justify-end">
-          <button onClick={onCancel} className="px-4 py-2 text-sm rounded-md bg-zinc-100 hover:bg-zinc-200 font-medium transition-all duration-200">
+          <button onClick={onCancel} className="px-4 py-2 text-sm rounded-md bg-zinc-100 hover:bg-zinc-200 font-medium active:scale-[0.97] transition-all duration-150">
             Cancelar
           </button>
-          <button onClick={onConfirm} disabled={loading} className="px-4 py-2 text-sm rounded-md bg-red-500 text-white hover:bg-red-600 font-semibold disabled:opacity-60 transition-all duration-200">
+          <button onClick={onConfirm} disabled={loading} className="px-4 py-2 text-sm rounded-md bg-red-500 text-white hover:bg-red-600 font-semibold disabled:opacity-60 active:scale-[0.97] transition-all duration-150">
             {loading ? "Excluindo..." : `Excluir ${count}`}
           </button>
         </div>
@@ -395,7 +395,7 @@ export function TransactionsContent() {
           {transactions.length > 0 && (
             <button
               onClick={() => exportToCsv(transactions)}
-              className="px-3 py-2 text-sm rounded-md bg-zinc-100 hover:bg-zinc-200 font-medium transition-all duration-200"
+              className="px-3 py-2 text-sm rounded-md bg-zinc-100 hover:bg-zinc-200 font-medium active:scale-[0.97] transition-all duration-150"
               title="Exportar página atual para CSV"
             >
               ↓ CSV
@@ -551,10 +551,10 @@ export function TransactionsContent() {
                   <td className="px-4 py-3 text-right tabular-nums font-semibold">{fmtBRL(tx.total_value)}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 justify-end">
-                      <button onClick={() => { setMutError(""); setEditing(tx); }} className="text-xs text-zinc-400 hover:text-zinc-700 px-2 py-1 rounded-md hover:bg-zinc-100 transition-all duration-200">
+                      <button onClick={() => { setMutError(""); setEditing(tx); }} className="text-xs text-zinc-400 hover:text-zinc-700 px-2 py-1 rounded-md hover:bg-zinc-100 active:scale-[0.97] transition-all duration-150">
                         Editar
                       </button>
-                      <button onClick={() => setDeleting(tx)} className="text-xs text-zinc-400 hover:text-red-500 px-2 py-1 rounded-md hover:bg-red-50 transition-all duration-200">
+                      <button onClick={() => setDeleting(tx)} className="text-xs text-zinc-400 hover:text-red-500 px-2 py-1 rounded-md hover:bg-red-50 active:scale-[0.97] transition-all duration-150">
                         Excluir
                       </button>
                     </div>

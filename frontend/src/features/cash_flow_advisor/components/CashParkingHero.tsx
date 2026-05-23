@@ -80,11 +80,11 @@ export function CashParkingHero({ data }: { data: CashParkingResponse }) {
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-lg bg-white p-4 ring-1 ring-emerald-200">
             <p className="text-xs font-medium uppercase text-emerald-700">IOF</p>
-            <p className="mt-1 text-xl font-bold text-emerald-950">{formatPct(asNumber(top.iof_pct) * 100)}</p>
+            <p className="mt-1 text-xl font-bold tabular-nums text-emerald-950">{formatPct(asNumber(top.iof_pct) * 100)}</p>
           </div>
           <div className="rounded-lg bg-white p-4 ring-1 ring-emerald-200">
             <p className="text-xs font-medium uppercase text-emerald-700">IR</p>
-            <p className="mt-1 text-xl font-bold text-emerald-950">{formatPct(asNumber(top.ir_pct) * 100)}</p>
+            <p className="mt-1 text-xl font-bold tabular-nums text-emerald-950">{formatPct(asNumber(top.ir_pct) * 100)}</p>
           </div>
           <div className="col-span-2 rounded-lg bg-white p-4 ring-1 ring-emerald-200">
             <p className="flex items-center gap-2 text-xs font-medium uppercase text-emerald-700">

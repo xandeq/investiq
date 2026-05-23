@@ -83,7 +83,7 @@ export function MonthlyReturnHeatmap() {
             return (
               <div
                 key={month}
-                className={`rounded aspect-square flex items-center justify-center text-[10px] font-bold cursor-default transition-opacity hover:opacity-80 ${colorClass}`}
+                className={`rounded aspect-square flex items-center justify-center text-[10px] font-bold tabular-nums cursor-default transition-opacity hover:opacity-80 ${colorClass}`}
                 title={`${MONTH_LABELS[month - 1]}/${year}: ${isPositive ? "+" : ""}${point.return_pct.toFixed(2)}%`}
               >
                 {isPositive ? "+" : ""}
