@@ -53,7 +53,7 @@ function CatalogRow({ row, macroRates }: { row: FixedIncomeCatalogRow; macroRate
         </div>
         <div className="text-xs text-zinc-500 mt-0.5">{row.label}</div>
       </td>
-      <td className="py-3 px-4 text-sm font-semibold">{rateStr}</td>
+      <td className="py-3 px-4 text-sm font-semibold tabular-nums">{rateStr}</td>
       {periods.map((p) => {
         const bd = byPeriod[p];
         if (!bd) return <td key={p} className="py-3 px-4 text-zinc-400 text-xs">—</td>;
@@ -68,7 +68,7 @@ function CatalogRow({ row, macroRates }: { row: FixedIncomeCatalogRow; macroRate
 
         return (
           <td key={p} className="py-3 px-4">
-            <div className={`text-sm font-semibold ${bd.is_exempt ? "text-green-600" : "text-zinc-800"}`}>
+            <div className={`text-sm font-semibold tabular-nums ${bd.is_exempt ? "text-green-600" : "text-zinc-800"}`}>
               {fmt(bd.net_pct)}%
             </div>
             <div className="text-xs text-zinc-400 flex items-center gap-1">
@@ -99,10 +99,10 @@ function TesouroRow({ row }: { row: TesouroRateRow }) {
         <div className="text-sm font-semibold">{row.tipo_titulo}</div>
       </td>
       <td className="py-3 px-4 text-sm">{row.vencimento}</td>
-      <td className="py-3 px-4 text-sm font-bold text-blue-600">
+      <td className="py-3 px-4 text-sm font-bold text-blue-600 tabular-nums">
         {row.taxa_indicativa ? `${fmt(row.taxa_indicativa, 2)}%` : "—"}
       </td>
-      <td className="py-3 px-4 text-sm">
+      <td className="py-3 px-4 text-sm tabular-nums">
         {row.pu ? `R$ ${parseFloat(row.pu).toFixed(2)}` : "—"}
       </td>
       <td className="py-3 px-4 text-xs text-zinc-400">{row.data_base}</td>
