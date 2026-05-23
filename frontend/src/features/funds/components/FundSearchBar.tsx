@@ -63,7 +63,7 @@ export function FundSearchBar({ onSelect }: Props) {
               <button
                 key={fund.cnpj}
                 onMouseDown={() => handleSelect(fund)}
-                className="flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-zinc-50 transition-colors border-b border-zinc-100 last:border-0"
+                className="flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-zinc-50 active:scale-[0.97] transition-all duration-150 border-b border-zinc-100 last:border-0"
               >
                 <Bank size={16} className="shrink-0 mt-0.5 text-blue-400" />
                 <div className="min-w-0">

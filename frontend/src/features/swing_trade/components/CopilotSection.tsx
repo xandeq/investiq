@@ -263,7 +263,7 @@ function OpenOperationModal({
           </h2>
           <button
             onClick={onClose}
-            className="flex items-center justify-center h-7 w-7 rounded-full text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors"
+            className="flex items-center justify-center h-7 w-7 rounded-full text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 active:scale-[0.97] transition-all duration-150"
             aria-label="Fechar"
           >
             <X size={16} weight="bold" />
@@ -507,7 +507,7 @@ export function CopilotSection({
         <button
           onClick={onRefresh}
           disabled={isRefreshing}
-          className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50 transition-colors"
+          className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50 active:scale-[0.97] transition-all duration-150"
         >
           <ArrowClockwise
             size={14}
