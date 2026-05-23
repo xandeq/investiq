@@ -64,7 +64,7 @@ export function OpportunityAlerts() {
         <button
           onClick={() => refetch()}
           disabled={isFetching}
-          className="p-1.5 rounded-md hover:bg-zinc-100 text-zinc-400 transition-colors disabled:opacity-40"
+          className="p-1.5 rounded-md hover:bg-zinc-100 text-zinc-400 active:scale-[0.97] transition-all duration-150 disabled:opacity-40"
           title="Atualizar"
           aria-label="Atualizar oportunidades"
         >
@@ -126,7 +126,7 @@ export function OpportunityAlerts() {
                   <button
                     onClick={() => seenMut.mutate(insight.id)}
                     disabled={seenMut.isPending}
-                    className="flex-shrink-0 p-1 rounded hover:bg-white/50 text-zinc-400 hover:text-zinc-700 transition-colors"
+                    className="flex-shrink-0 p-1 rounded hover:bg-white/50 text-zinc-400 hover:text-zinc-700 active:scale-[0.97] transition-all duration-150"
                     title="Marcar como visto"
                     aria-label="Marcar como visto"
                   >

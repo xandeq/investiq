@@ -25,7 +25,7 @@ function MoverChip({ item, variant }: { item: MoverItem; variant: "gainer" | "lo
   return (
     <Link
       href={tickerPath(item.ticker)}
-      className={`flex items-center justify-between gap-3 px-3 py-2 rounded-lg border transition-colors hover:opacity-80 ${
+      className={`flex items-center justify-between gap-3 px-3 py-2 rounded-lg border active:scale-[0.97] transition-all duration-150 hover:opacity-80 ${
         isGain
           ? "bg-emerald-50 border-emerald-100"
           : "bg-red-50 border-red-100"

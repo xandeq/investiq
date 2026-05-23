@@ -64,7 +64,7 @@ export function DashboardContent() {
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-center gap-2 text-sm text-amber-800">
           <Warning size={16} weight="fill" className="text-amber-500 shrink-0" aria-hidden />
           <span>Cotações desatualizadas — os valores exibidos podem não refletir o mercado atual.</span>
-          <button onClick={() => refetch()} className="ml-auto underline hover:no-underline font-medium">Atualizar</button>
+          <button onClick={() => refetch()} className="ml-auto underline hover:no-underline font-medium active:scale-[0.97] transition-all duration-150">Atualizar</button>
         </div>
       )}
       {/* Empty portfolio — premium empty state */}
