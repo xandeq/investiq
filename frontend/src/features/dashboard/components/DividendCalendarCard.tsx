@@ -205,9 +205,14 @@ export function DividendCalendarCard() {
       )}
 
       {!isLoading && data && data.entries.length === 0 && (
-        <p className="py-6 text-center text-sm text-zinc-400">
-          Nenhum dividendo previsto para os próximos 90 dias
-        </p>
+        <div className="flex flex-col items-center gap-2 py-8 text-center">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-50 border border-zinc-100">
+            <svg viewBox="0 0 24 24" fill="none" className="h-4.5 w-4.5 text-zinc-400" aria-hidden>
+              <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <p className="text-sm text-zinc-400">Nenhum dividendo previsto nos próximos 90 dias</p>
+        </div>
       )}
     </div>
   );

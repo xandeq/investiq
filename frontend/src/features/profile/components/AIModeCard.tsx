@@ -2,6 +2,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { Sparkle, Lightning } from "@phosphor-icons/react";
+import NextLink from "next/link";
 import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 
 interface AIModeData {
@@ -104,7 +105,7 @@ export function AIModeCard() {
           {!isPro && (
             <p className="text-xs text-zinc-500 bg-zinc-50 rounded-lg px-3 py-2.5">
               Modo Ultra disponível no <strong>Plano Pro</strong>.{" "}
-              <a href="/planos" className="text-blue-500 hover:underline font-medium">Fazer upgrade</a>
+              <NextLink href="/planos" className="text-blue-500 hover:underline font-medium">Fazer upgrade</NextLink>
             </p>
           )}
 

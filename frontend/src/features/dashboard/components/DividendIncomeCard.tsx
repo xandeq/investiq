@@ -57,13 +57,21 @@ export function DividendIncomeCard() {
 
   if (!data || !data.data_available) {
     return (
-      <div className="rounded-xl border border-zinc-200 bg-white p-4">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-2">
+      <div className="rounded-xl border border-zinc-200 bg-white p-5">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-4">
           Proventos Recebidos
         </p>
-        <p className="text-sm text-zinc-400">
-          Nenhum provento registrado. Adicione transações do tipo Dividendo, JCP ou Amortização.
-        </p>
+        <div className="flex flex-col items-center gap-3 py-5 text-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 border border-emerald-100">
+            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 text-emerald-400" aria-hidden>
+              <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-zinc-700">Nenhum provento registrado</p>
+            <p className="text-xs text-zinc-400 mt-0.5">Adicione transações do tipo Dividendo, JCP ou Amortização</p>
+          </div>
+        </div>
       </div>
     );
   }

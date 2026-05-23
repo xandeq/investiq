@@ -2,6 +2,7 @@
 import { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { startAdvisorAnalysis } from "@/features/advisor/api";
 import { usePortfolioHealth } from "@/features/advisor/hooks/usePortfolioHealth";
 import { useAdvisorJob } from "@/features/advisor/hooks/useAdvisorJob";
@@ -301,9 +302,9 @@ function SmartScreenerSection({
                   className="hover:bg-zinc-50/60 transition-colors"
                 >
                   <td className="px-4 py-2.5">
-                    <a href={`/stock/${a.ticker}`} className="font-mono text-blue-600 hover:text-blue-500 hover:underline font-semibold">
+                    <Link href={`/stock/${a.ticker}`} className="font-mono text-blue-600 hover:text-blue-500 hover:underline font-semibold">
                       {a.ticker}
-                    </a>
+                    </Link>
                   </td>
                   <td className="px-4 py-2.5 text-xs text-zinc-400">{a.sector ?? "—"}</td>
                   <td className="text-right px-4 py-2.5 text-xs font-medium tabular-nums text-emerald-600">
@@ -356,9 +357,9 @@ function SignalTable({ signals }: { signals: EntrySignal[] }) {
               className="hover:bg-zinc-50/60 transition-colors"
             >
               <td className="px-4 py-2.5">
-                <a href={`/stock/${signal.ticker}`} className="font-mono text-blue-600 hover:text-blue-500 hover:underline font-semibold">
+                <Link href={`/stock/${signal.ticker}`} className="font-mono text-blue-600 hover:text-blue-500 hover:underline font-semibold">
                   {signal.ticker}
-                </a>
+                </Link>
               </td>
               <td className="text-right px-4 py-2.5 text-xs tabular-nums">
                 R$ {parseFloat(signal.suggested_amount_brl).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
