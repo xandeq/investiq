@@ -134,7 +134,7 @@ export function PnlTable() {
                     formatBRL((pos.current_price ?? "0") as string)
                   )}
                 </td>
-                <td className="py-2.5 px-3 text-right">
+                <td className="py-2.5 px-3 text-right tabular-nums">
                   <PnlCell value={pos.unrealized_pnl as string | null} pct={pos.unrealized_pnl_pct as string | null} />
                 </td>
               </motion.tr>
@@ -144,11 +144,11 @@ export function PnlTable() {
             <tr className="border-t-2 border-zinc-100 font-semibold bg-zinc-50/50">
               <td colSpan={4} className="py-2.5 px-3 text-[10px] font-bold uppercase tracking-wider text-zinc-400">Total</td>
               <td className="py-2.5 px-3 text-right tabular-nums font-bold">{formatBRL(pnl.total_portfolio_value)}</td>
-              <td className="py-2.5 px-3 text-right">
+              <td className="py-2.5 px-3 text-right tabular-nums">
                 <div className="text-[10px] text-zinc-400 font-normal">Realizado</div>
                 <PnlCell value={pnl.realized_pnl_total} pct={null} />
               </td>
-              <td className="py-2.5 px-3 text-right">
+              <td className="py-2.5 px-3 text-right tabular-nums">
                 <div className="text-[10px] text-zinc-400 font-normal">Não Realizado</div>
                 <PnlCell value={pnl.unrealized_pnl_total} pct={null} />
               </td>

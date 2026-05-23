@@ -200,11 +200,11 @@ export function RebalancingCard() {
                   <td className="py-2 font-medium text-zinc-800">
                     {CLASS_LABELS[s.asset_class] || s.asset_class}
                   </td>
-                  <td className="text-right text-zinc-500 py-2">
+                  <td className="text-right tabular-nums text-zinc-500 py-2">
                     {parseFloat(s.current_pct).toFixed(1)}%
                     <span className="block text-[10px] text-zinc-400">{fmtBrl(s.current_value)}</span>
                   </td>
-                  <td className="text-right py-2">
+                  <td className="text-right tabular-nums py-2">
                     {editing ? (
                       <input
                         type="number"
@@ -223,7 +223,7 @@ export function RebalancingCard() {
                     )}
                   </td>
                   {plan.has_targets && (
-                    <td className="text-right py-2">
+                    <td className="text-right tabular-nums py-2">
                       <span className={drift > 0 ? "text-red-600" : drift < 0 ? "text-emerald-600" : "text-zinc-400"}>
                         {drift === 0 ? "—" : `${drift > 0 ? "+" : ""}${fmtBrl(drift)}`}
                       </span>
