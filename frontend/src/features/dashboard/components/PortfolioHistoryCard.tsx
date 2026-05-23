@@ -156,7 +156,7 @@ export function PortfolioHistoryCard() {
             <button
               key={value}
               onClick={() => setRange(value)}
-              className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
+              className={`px-2 py-0.5 rounded text-xs font-medium active:scale-[0.97] transition-all duration-150 ${
                 range === value
                   ? "bg-blue-500 text-white"
                   : "text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100"
