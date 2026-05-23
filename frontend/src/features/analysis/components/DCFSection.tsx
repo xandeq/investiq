@@ -48,19 +48,19 @@ export function DCFSection({ data, isLoading }: Props) {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <div>
           <p className="text-xs text-muted-foreground">Valor Justo</p>
-          <p className="text-xl font-bold">R$ {r.fair_value.toFixed(2)}</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xl font-bold tabular-nums">R$ {r.fair_value.toFixed(2)}</p>
+          <p className="text-xs text-muted-foreground tabular-nums">
             R$ {r.fair_value_range.low.toFixed(2)} – R$ {r.fair_value_range.high.toFixed(2)}
           </p>
         </div>
         <div>
           <p className="text-xs text-muted-foreground">Preço Atual</p>
-          <p className="text-xl font-bold">R$ {r.current_price.toFixed(2)}</p>
+          <p className="text-xl font-bold tabular-nums">R$ {r.current_price.toFixed(2)}</p>
         </div>
         {upside !== null && (
           <div>
             <p className="text-xs text-muted-foreground">Upside/Downside</p>
-            <p className={`text-xl font-bold ${upsideColor}`}>
+            <p className={`text-xl font-bold tabular-nums ${upsideColor}`}>
               {upside >= 0 ? "+" : ""}
               {upside.toFixed(1)}%
             </p>
@@ -80,7 +80,7 @@ export function DCFSection({ data, isLoading }: Props) {
                 <div key={s} className="rounded-lg border bg-muted/30 p-3 text-center">
                   <p className="text-xs text-muted-foreground capitalize">{s}</p>
                   {fv !== undefined && (
-                    <p className="font-semibold">R$ {fv.toFixed(2)}</p>
+                    <p className="font-semibold tabular-nums">R$ {fv.toFixed(2)}</p>
                   )}
                 </div>
               );

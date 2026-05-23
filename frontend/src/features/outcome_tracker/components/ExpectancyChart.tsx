@@ -26,10 +26,10 @@ function CustomTooltip({ active, payload }: TooltipPayload) {
   return (
     <div className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs shadow-md">
       <p className="font-semibold text-zinc-800 mb-1">{d.pattern}</p>
-      <p className="text-zinc-500">Expectativa: <span className={d.expectancy >= 0 ? "text-emerald-600 font-medium" : "text-red-500 font-medium"}>{d.expectancy >= 0 ? "+" : ""}{d.expectancy.toFixed(2)}R</span></p>
-      <p className="text-zinc-500">Taxa de acerto: <span className="font-medium text-zinc-700">{(d.winrate * 100).toFixed(0)}%</span></p>
-      <p className="text-zinc-500">Média R: <span className="font-medium text-zinc-700">{d.avg_r >= 0 ? "+" : ""}{d.avg_r.toFixed(2)}</span></p>
-      <p className="text-zinc-500">Operações: <span className="font-medium text-zinc-700">{d.count}</span></p>
+      <p className="text-zinc-500">Expectativa: <span className={`tabular-nums ${d.expectancy >= 0 ? "text-emerald-600 font-medium" : "text-red-500 font-medium"}`}>{d.expectancy >= 0 ? "+" : ""}{d.expectancy.toFixed(2)}R</span></p>
+      <p className="text-zinc-500">Taxa de acerto: <span className="font-medium text-zinc-700 tabular-nums">{(d.winrate * 100).toFixed(0)}%</span></p>
+      <p className="text-zinc-500">Média R: <span className="font-medium text-zinc-700 tabular-nums">{d.avg_r >= 0 ? "+" : ""}{d.avg_r.toFixed(2)}</span></p>
+      <p className="text-zinc-500">Operações: <span className="font-medium text-zinc-700 tabular-nums">{d.count}</span></p>
     </div>
   );
 }

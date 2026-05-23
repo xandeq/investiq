@@ -40,7 +40,7 @@ export function EarningsSection({ data, isLoading }: Props) {
         {r.eps_cagr_5y !== null && (
           <div>
             <p className="text-xs text-muted-foreground">CAGR EPS 5 anos</p>
-            <p className="text-xl font-bold">
+            <p className="text-xl font-bold tabular-nums">
               {(r.eps_cagr_5y * 100).toFixed(1)}%
             </p>
           </div>
@@ -54,7 +54,7 @@ export function EarningsSection({ data, isLoading }: Props) {
             {r.quality_metrics.fcf_conversion !== null && (
               <div>
                 <p className="text-xs text-muted-foreground">Conversão FCF</p>
-                <p className="font-semibold">
+                <p className="font-semibold tabular-nums">
                   {((r.quality_metrics.fcf_conversion ?? 0) * 100).toFixed(1)}%
                 </p>
               </div>

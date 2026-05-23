@@ -98,7 +98,7 @@ function OutcomeRow({
 
       {/* Prices */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-3 text-xs text-zinc-500 font-mono">
+        <div className="flex items-center gap-3 text-xs text-zinc-500 font-mono tabular-nums">
           <span>E: <strong className="text-zinc-700">{entry.toFixed(2)}</strong></span>
           <span>S: <strong className="text-zinc-700">{stop.toFixed(2)}</strong></span>
           {t1 && <span><Target size={10} className="inline mr-0.5" aria-hidden /><strong className="text-zinc-700">{t1.toFixed(2)}</strong></span>}

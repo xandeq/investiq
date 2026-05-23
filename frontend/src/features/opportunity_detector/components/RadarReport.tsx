@@ -221,20 +221,20 @@ function CryptoSection({ items }: { items: RadarCryptoItem[] }) {
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div>
                 <p className="text-zinc-400">Preço atual</p>
-                <p className="font-bold text-zinc-900">
+                <p className="font-bold text-zinc-900 tabular-nums">
                   R$ {item.current_price_brl.toLocaleString("pt-BR")}
                 </p>
                 {item.current_price_usd && (
-                  <p className="text-zinc-400">US$ {item.current_price_usd.toLocaleString("pt-BR")}</p>
+                  <p className="text-zinc-400 tabular-nums">US$ {item.current_price_usd.toLocaleString("pt-BR")}</p>
                 )}
               </div>
               <div>
                 <p className="text-zinc-400">ATH histórico</p>
-                <p className="font-semibold text-zinc-700">
+                <p className="font-semibold text-zinc-700 tabular-nums">
                   R$ {item.ath_brl.toLocaleString("pt-BR")}
                 </p>
                 {item.ath_usd && (
-                  <p className="text-zinc-400">US$ {item.ath_usd.toLocaleString("pt-BR")}</p>
+                  <p className="text-zinc-400 tabular-nums">US$ {item.ath_usd.toLocaleString("pt-BR")}</p>
                 )}
               </div>
             </div>
@@ -243,7 +243,7 @@ function CryptoSection({ items }: { items: RadarCryptoItem[] }) {
               {item.change_24h_pct != null && (
                 <div>
                   <span className="text-zinc-400">24h </span>
-                  <span className={item.change_24h_pct >= 0 ? "text-emerald-600" : "text-red-600"}>
+                  <span className={`tabular-nums ${item.change_24h_pct >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                     {item.change_24h_pct >= 0 ? "+" : ""}{fmt(item.change_24h_pct, 1)}%
                   </span>
                 </div>
@@ -251,7 +251,7 @@ function CryptoSection({ items }: { items: RadarCryptoItem[] }) {
               {item.change_30d_pct != null && (
                 <div>
                   <span className="text-zinc-400">30d </span>
-                  <span className={item.change_30d_pct >= 0 ? "text-emerald-600" : "text-red-600"}>
+                  <span className={`tabular-nums ${item.change_30d_pct >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                     {item.change_30d_pct >= 0 ? "+" : ""}{fmt(item.change_30d_pct, 1)}%
                   </span>
                 </div>
@@ -259,7 +259,7 @@ function CryptoSection({ items }: { items: RadarCryptoItem[] }) {
               {item.change_1y_pct != null && (
                 <div>
                   <span className="text-zinc-400">1a </span>
-                  <span className={item.change_1y_pct >= 0 ? "text-emerald-600" : "text-red-600"}>
+                  <span className={`tabular-nums ${item.change_1y_pct >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                     {item.change_1y_pct >= 0 ? "+" : ""}{fmt(item.change_1y_pct, 1)}%
                   </span>
                 </div>

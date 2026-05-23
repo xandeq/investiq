@@ -138,9 +138,9 @@ export function StagingReviewTable({ jobId, onConfirmed, onCancelled }: StagingR
                 <td className="px-3 py-2 font-medium">{row.ticker}</td>
                 <td className="px-3 py-2 text-muted-foreground">{row.transaction_type}</td>
                 <td className="px-3 py-2 text-muted-foreground">{row.transaction_date}</td>
-                <td className="px-3 py-2">{row.quantity}</td>
-                <td className="px-3 py-2">R$ {parseFloat(row.unit_price).toFixed(2)}</td>
-                <td className="px-3 py-2">R$ {parseFloat(row.total_value).toFixed(2)}</td>
+                <td className="px-3 py-2 tabular-nums">{row.quantity}</td>
+                <td className="px-3 py-2 tabular-nums">R$ {parseFloat(row.unit_price).toFixed(2)}</td>
+                <td className="px-3 py-2 tabular-nums">R$ {parseFloat(row.total_value).toFixed(2)}</td>
                 <td className="px-3 py-2 text-muted-foreground">{row.asset_class}</td>
                 <td className="px-3 py-2 text-muted-foreground text-xs">{row.parser_source}</td>
                 <td className="px-3 py-2">

@@ -14,7 +14,7 @@ export function FIIPVPChart({ pvp, bookValue, priceHistory }: Props) {
         <h3 className="text-sm font-medium mb-2">P/VP</h3>
         {pvp != null ? (
           <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold">{pvp.toFixed(2)}</span>
+            <span className="text-2xl font-bold tabular-nums">{pvp.toFixed(2)}</span>
             <span className="text-sm text-muted-foreground">P/VP atual</span>
           </div>
         ) : (

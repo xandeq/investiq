@@ -17,7 +17,7 @@ function fmtBRL(n: number): string {
 
 function IRBadge({ isExempt, irPct }: { isExempt: boolean; irPct: number }) {
   if (isExempt) {
-    return <span className="text-xs text-green-600 font-semibold">Isento</span>;
+    return <span className="text-xs text-emerald-600 font-semibold">Isento</span>;
   }
   return <span className="text-xs text-zinc-600">{fmt(irPct)}%</span>;
 }

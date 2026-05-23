@@ -27,7 +27,7 @@ function typeBadge(type: string) {
 
 function IRBadge({ is_exempt, ir_rate_pct }: { is_exempt: boolean; ir_rate_pct: string }) {
   if (is_exempt) {
-    return <span className="text-xs text-green-600 font-semibold">Isento</span>;
+    return <span className="text-xs text-emerald-600 font-semibold">Isento</span>;
   }
   return <span className="text-xs text-zinc-600">{fmt(ir_rate_pct)}%</span>;
 }
@@ -68,7 +68,7 @@ function CatalogRow({ row, macroRates }: { row: FixedIncomeCatalogRow; macroRate
 
         return (
           <td key={p} className="py-3 px-4">
-            <div className={`text-sm font-semibold tabular-nums ${bd.is_exempt ? "text-green-600" : "text-zinc-800"}`}>
+            <div className={`text-sm font-semibold tabular-nums ${bd.is_exempt ? "text-emerald-600" : "text-zinc-800"}`}>
               {fmt(bd.net_pct)}%
             </div>
             <div className="text-xs text-zinc-400 flex items-center gap-1">
@@ -77,7 +77,7 @@ function CatalogRow({ row, macroRates }: { row: FixedIncomeCatalogRow; macroRate
             {(cdiForPeriod !== null || ipcaForPeriod !== null) && (
               <div className="text-xs mt-0.5">
                 {beatsCDI ? (
-                  <span className="text-green-600 font-medium">&#10003; CDI</span>
+                  <span className="text-emerald-600 font-medium">&#10003; CDI</span>
                 ) : beatsIPCA ? (
                   <span className="text-amber-500 font-medium">~ IPCA</span>
                 ) : (

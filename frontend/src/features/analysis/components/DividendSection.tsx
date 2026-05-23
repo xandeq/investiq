@@ -70,7 +70,7 @@ export function DividendSection({ data, isLoading }: Props) {
         </div>
         <div>
           <p className="text-xs text-muted-foreground">Consistência</p>
-          <p className="font-semibold">{r.consistency?.score?.toFixed(1) ?? "—"}</p>
+          <p className="font-semibold tabular-nums">{r.consistency?.score?.toFixed(1) ?? "—"}</p>
         </div>
       </div>
 

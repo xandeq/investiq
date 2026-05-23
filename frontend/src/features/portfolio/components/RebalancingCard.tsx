@@ -151,10 +151,10 @@ export function RebalancingCard() {
             <span className={`text-xs font-medium ${Math.abs(sumTargets - 100) > 1 ? "text-amber-600" : "text-emerald-600"}`}>
               Σ {sumTargets.toFixed(0)}%
             </span>
-            <button onClick={saveEdit} className="p-1 rounded text-emerald-600 hover:bg-emerald-50">
+            <button onClick={saveEdit} className="p-1 rounded text-emerald-600 hover:bg-emerald-50 active:scale-[0.97] transition-all duration-150" aria-label="Salvar metas">
               <Check className="h-3.5 w-3.5" />
             </button>
-            <button onClick={() => setEditing(false)} className="p-1 rounded text-red-500 hover:bg-red-50">
+            <button onClick={() => setEditing(false)} className="p-1 rounded text-red-500 hover:bg-red-50 active:scale-[0.97] transition-all duration-150" aria-label="Cancelar edição">
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
