@@ -31,7 +31,7 @@ function changeBadge(val: string | null) {
   if (isNaN(n)) return <span className="text-zinc-400">—</span>;
   const color = n >= 0 ? "text-emerald-600" : "text-red-500";
   return (
-    <span className={`font-medium ${color}`}>
+    <span className={`font-medium tabular-nums ${color}`}>
       {n >= 0 ? "+" : ""}
       {n.toFixed(2)}%
     </span>

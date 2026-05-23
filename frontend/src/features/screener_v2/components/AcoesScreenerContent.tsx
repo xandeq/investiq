@@ -94,7 +94,7 @@ function WatchlistButton({ ticker, inWatchlist }: { ticker: string; inWatchlist:
         else addMut.mutate({ ticker });
       }}
       title={inWatchlist ? "Remover da watchlist" : "Adicionar à watchlist"}
-      className={`p-1.5 rounded-md transition-colors disabled:opacity-50 ${
+      className={`p-1.5 rounded-md active:scale-[0.97] transition-all duration-150 disabled:opacity-50 ${
         inWatchlist
           ? "text-blue-500 hover:bg-blue-50"
           : "text-zinc-300 hover:text-blue-400 hover:bg-blue-50"
