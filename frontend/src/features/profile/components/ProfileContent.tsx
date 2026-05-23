@@ -60,7 +60,7 @@ function Step2({ form, onChange }: { form: Partial<InvestorProfileUpsert>; onCha
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {Object.entries(OBJETIVO_LABELS).map(([key, label]) => (
           <button key={key} type="button" onClick={() => onChange("objetivo", key)}
-            className={`rounded-md px-4 py-3 text-sm text-left transition-all duration-200 ${
+            className={`rounded-md px-4 py-3 text-sm text-left active:scale-[0.97] transition-all duration-150 ${
               form.objetivo === key
                 ? "bg-blue-500 text-white font-semibold"
                 : "bg-zinc-100 hover:bg-zinc-200 font-medium"
@@ -84,7 +84,7 @@ function Step3({ form, onChange }: { form: Partial<InvestorProfileUpsert>; onCha
       <div className="flex flex-col gap-3">
         {Object.entries(RISCO_LABELS).map(([key, { label, desc }]) => (
           <button key={key} type="button" onClick={() => onChange("tolerancia_risco", key)}
-            className={`rounded-md px-4 py-3 text-left transition-all duration-200 ${
+            className={`rounded-md px-4 py-3 text-left active:scale-[0.97] transition-all duration-150 ${
               form.tolerancia_risco === key
                 ? "bg-blue-500 text-white"
                 : "bg-zinc-100 hover:bg-zinc-200"
@@ -153,7 +153,7 @@ function ProfileSummary({ profile, onEdit }: { profile: ReturnType<typeof usePro
         ))}
       </div>
 
-      <button onClick={onEdit} className="px-4 py-2 text-sm rounded-md bg-zinc-100 hover:bg-zinc-200 font-medium transition-all duration-200 hover:scale-105">
+      <button onClick={onEdit} className="px-4 py-2 text-sm rounded-md bg-zinc-100 hover:bg-zinc-200 font-medium hover:scale-105 active:scale-[0.97] transition-all duration-150">
         Editar perfil
       </button>
     </div>
@@ -249,7 +249,7 @@ export function ProfileContent() {
               initial={{ scale: 0.85 }}
               animate={{ scale: 1 }}
               transition={{ duration: 0.2, delay: i * 0.06 }}
-              className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200 ${
+              className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold active:scale-[0.97] transition-all duration-150 ${
                 i < step ? "bg-blue-500 text-white" :
                 i === step ? "bg-blue-500 text-white" :
                 "bg-zinc-200 text-zinc-400"
@@ -282,7 +282,7 @@ export function ProfileContent() {
             if (step === 0) { setEditing(false); }
             else setStep((s) => s - 1);
           }}
-          className="px-4 py-2 text-sm rounded-md bg-zinc-100 hover:bg-zinc-200 font-medium transition-all duration-200"
+          className="px-4 py-2 text-sm rounded-md bg-zinc-100 hover:bg-zinc-200 font-medium active:scale-[0.97] transition-all duration-150"
         >
           {step === 0 ? "Cancelar" : "Anterior"}
         </button>
@@ -290,7 +290,7 @@ export function ProfileContent() {
           <button
             type="button"
             onClick={() => setStep((s) => s + 1)}
-            className="px-4 py-2 text-sm rounded-md bg-blue-500 text-white hover:bg-blue-600 font-semibold hover:scale-105 transition-all duration-200"
+            className="px-4 py-2 text-sm rounded-md bg-blue-500 text-white hover:bg-blue-600 font-semibold hover:scale-105 active:scale-[0.97] transition-all duration-150"
           >
             Próximo
           </button>
