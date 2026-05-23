@@ -10,7 +10,7 @@ interface Props {
 
 export function UpgradeCTA({
   label = "Fazer upgrade para Premium",
-  className = "rounded-md bg-primary text-primary-foreground px-5 py-2 text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-60",
+  className = "rounded-md bg-primary text-primary-foreground px-5 py-2 text-sm font-medium hover:bg-primary/90 active:scale-[0.97] transition-all duration-150 disabled:opacity-60",
 }: Props) {
   const [loading, setLoading] = useState(false);
 

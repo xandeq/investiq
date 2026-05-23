@@ -12,7 +12,7 @@ export function UpgradeBanner({ message, upgradeUrl = "/planos" }: Props) {
       <p className="flex-1 text-sm text-amber-900">{message}</p>
       <Link
         href={upgradeUrl}
-        className="shrink-0 rounded-md bg-primary text-primary-foreground px-4 py-1.5 text-sm font-medium hover:bg-primary/90 transition-colors text-center"
+        className="shrink-0 rounded-md bg-primary text-primary-foreground px-4 py-1.5 text-sm font-medium hover:bg-primary/90 active:scale-[0.97] transition-all duration-150 text-center"
       >
         Ver planos
       </Link>

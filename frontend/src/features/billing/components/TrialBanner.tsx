@@ -20,7 +20,7 @@ export function TrialBanner({ daysRemaining }: TrialBannerProps) {
       </span>
       <Link
         href="/planos"
-        className="shrink-0 bg-white text-blue-600 font-semibold text-xs px-3 py-1 rounded hover:bg-blue-50 transition-colors"
+        className="shrink-0 bg-white text-blue-600 font-semibold text-xs px-3 py-1 rounded hover:bg-blue-50 active:scale-[0.97] transition-all duration-150"
       >
         Fazer upgrade
       </Link>
