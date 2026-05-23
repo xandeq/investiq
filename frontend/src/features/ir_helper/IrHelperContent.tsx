@@ -737,10 +737,10 @@ function TaxLossTab() {
                           <td className="px-4 py-3 text-zinc-500 hidden sm:table-cell">
                             {ASSET_LABELS[item.asset_class] ?? item.asset_class}
                           </td>
-                          <td className="px-4 py-3 text-right font-mono">
+                          <td className="px-4 py-3 text-right tabular-nums font-mono">
                             {item.quantity.toLocaleString("pt-BR", { maximumFractionDigits: 4 })}
                           </td>
-                          <td className="px-4 py-3 text-right font-mono text-zinc-500">
+                          <td className="px-4 py-3 text-right tabular-nums font-mono text-zinc-500">
                             {fmt(item.avg_cost)}
                           </td>
                           <td className="px-4 py-3 text-right tabular-nums font-mono">
@@ -750,7 +750,7 @@ function TaxLossTab() {
                             <span className="text-red-600 font-semibold font-mono">
                               {fmt(item.unrealized_loss)}
                             </span>
-                            <span className="ml-1.5 text-xs text-red-400">
+                            <span className="ml-1.5 text-xs text-red-400 tabular-nums">
                               ({item.unrealized_loss_pct.toFixed(1)}%)
                             </span>
                           </td>
