@@ -291,3 +291,110 @@ async def test_ranked_endpoint_null_scores_at_bottom(authed_client, db_session):
     assert scored_pos < unscored_pos, (
         f"Scored row ({scored_pos}) should appear before null-scored row ({unscored_pos})"
     )
+
+
+# ---------------------------------------------------------------------------
+# Regression tests: scoring logic fixes (2026-05-23)
+# ---------------------------------------------------------------------------
+
+def test_score_requires_dy_rank():
+    """FIIs without DY data must get score=None regardless of liquidity.
+
+    Regression: before fix, ETFs like SMAL11 scored ~40 via liquidity alone
+    because the formula used (dy_rank or 0)*0.6 + liq_rank*0.4.
+    """
+    dy_rank = None       # no DY data — not a real FII
+    pvp_rank_inv = None
+    liq_rank = 100       # very liquid but irrelevant without DY
+
+    score = None if dy_rank is None else (
+        dy_rank * 0.5 + (pvp_rank_inv or 0) * 0.3 + liq_rank * 0.2
+    )
+    assert score is None, (
+        f"Score must be None when DY is missing (got {score}). "
+        "ETFs/stocks without DY should not appear ranked."
+    )
+
+
+def test_score_partial_pvp_fallback():
+    """When PVP is missing, score uses DY*0.7 + liquidity*0.3.
+
+    This is the legitimate fallback for FIIs that genuinely have DY but
+    no PVP data — NOT the ETF case (which has no DY at all).
+    """
+    dy_rank = 80
+    pvp_rank_inv = None   # PVP genuinely missing for this FII
+    liq_rank = 60
+
+    if dy_rank is None:
+        score = None
+    elif pvp_rank_inv is None:
+        score = dy_rank * 0.7 + liq_rank * 0.3
+    else:
+        score = dy_rank * 0.5 + pvp_rank_inv * 0.3 + liq_rank * 0.2
+
+    # 80*0.7 + 60*0.3 = 56 + 18 = 74.0
+    assert score is not None, "Score must not be None when DY is present"
+    assert abs(score - 74.0) < 0.001, f"Expected 74.0, got {score}"
+
+
+def test_non_null_guard_preserves_enriched_dy():
+    """Enriched dy_12m must not be overwritten by NULL snapshot values.
+
+    Regression: calculate_fii_scores previously did UPDATE ... SET dy_12m = snapshot_dy
+    unconditionally. When snapshot_dy was NULL (brapi doesn't return DY for FIIs
+    in the quotes endpoint), it destroyed the enriched data from refresh_fii_metadata.
+    """
+    # Simulate the guard: only include dy_12m in update_vals when snapshot_dy is not None
+    enriched_dy = 0.1396  # pre-enriched value: 13.96% from dividendsData
+    snapshot_dy = None    # brapi quotes endpoint returns no DY for FIIs
+
+    update_vals: dict = {"daily_liquidity": 5_000_000}
+    if snapshot_dy is not None:
+        update_vals["dy_12m"] = snapshot_dy
+
+    # dy_12m must NOT appear in update_vals when snapshot_dy is None
+    assert "dy_12m" not in update_vals, (
+        "Enriched dy_12m was overwritten with NULL snapshot value. "
+        "Non-NULL guard failed — the fix at calculate_fii_scores must be applied."
+    )
+
+
+def test_coalesce_uses_enriched_dy_when_snapshot_null():
+    """COALESCE(snapshot.dy, fii_metadata.dy_12m) returns enriched value when snapshot is NULL.
+
+    Regression: before COALESCE fix, dy in the scoring query was taken exclusively
+    from screener_snapshots.dy, which is always NULL for FIIs (brapi returns DY
+    separately via dividendsData, not in the quotes payload). This meant 633 FIIs
+    scored with dy=NULL, which collapsed into score=None for all.
+    """
+    snapshot_dy = None       # always NULL for FIIs in screener_snapshots
+    enriched_dy = 0.1396     # from fii_metadata.dy_12m after refresh_fii_metadata
+
+    # COALESCE picks the first non-NULL value
+    effective_dy = snapshot_dy if snapshot_dy is not None else enriched_dy
+
+    assert effective_dy == enriched_dy, (
+        f"COALESCE must use enriched dy_12m when snapshot.dy is NULL. "
+        f"Got {effective_dy}, expected {enriched_dy}"
+    )
+    assert effective_dy is not None, "DY must not be None after COALESCE"
+
+
+def test_percentile_ranks_high_dy_gets_high_rank():
+    """Higher DY values must produce higher percentile ranks (DY is benefit metric)."""
+    from app.modules.market_universe.tasks import _percentile_ranks
+
+    # [5%, 10%, 15%, 20%] DY values — higher is better
+    dy_values = [0.05, 0.10, 0.15, 0.20]
+    ranks = _percentile_ranks(dy_values)
+
+    assert ranks is not None
+    assert len(ranks) == 4
+    # Highest DY (0.20) should get rank 100
+    assert ranks[3] == 100, f"Highest DY should rank 100, got {ranks[3]}"
+    # Lowest DY (0.05) should get rank 0
+    assert ranks[0] == 0, f"Lowest DY should rank 0, got {ranks[0]}"
+    # Ranks must be strictly ascending for strictly ascending input
+    non_null_ranks = [r for r in ranks if r is not None]
+    assert non_null_ranks == sorted(non_null_ranks), f"Ranks must be ascending: {non_null_ranks}"

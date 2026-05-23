@@ -9,6 +9,7 @@ import type { FIIRow, FIIScreenerParams } from "../types";
 import { useSortedData } from "@/hooks/useSort";
 import { SortableHeader } from "@/components/ui/SortableHeader";
 import { useWatchlist, useAddToWatchlist, useRemoveFromWatchlist } from "@/features/watchlist/hooks/useWatchlist";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 
 const SEGMENTOS = ["Tijolo", "Papel", "Híbrido", "FoF", "Agro"];
 const PAGE_SIZE = 50;
@@ -103,6 +104,15 @@ function FIIWatchlistButton({ ticker, inWatchlist }: { ticker: string; inWatchli
 
 function FIITableRow({ row, watchlistTickers }: { row: FIIRow; watchlistTickers: Set<string> }) {
   const inWatchlist = watchlistTickers.has(row.ticker);
+  const dyVal = row.dy ? parseFloat(row.dy) : null;
+  const pvpVal = row.pvp ? parseFloat(row.pvp) : null;
+  const dyClass = dyVal !== null
+    ? dyVal >= 10 ? "text-emerald-600 font-medium" : dyVal >= 6 ? "text-zinc-800" : "text-zinc-500"
+    : "text-zinc-400";
+  const pvpClass = pvpVal !== null
+    ? pvpVal < 1 ? "text-emerald-600 font-medium" : pvpVal > 1.3 ? "text-amber-600" : "text-zinc-700"
+    : "text-zinc-400";
+
   return (
     <tr className="border-b border-zinc-100 hover:bg-zinc-50 transition-colors">
       <td className="py-3 px-4">
@@ -112,16 +122,16 @@ function FIITableRow({ row, watchlistTickers }: { row: FIIRow; watchlistTickers:
         </Link>
       </td>
       <td className="py-3 px-4">{segmentoBadge(row.segmento)}</td>
-      <td className="py-3 px-4 text-sm font-semibold">
+      <td className="py-3 px-4 text-sm font-semibold tabular-nums">
         {row.price ? `R$ ${parseFloat(row.price).toFixed(2)}` : "—"}
       </td>
       <td className="py-3 px-4">{changeBadge(row.change_pct)}</td>
-      <td className="py-3 px-4 text-sm">{fmt(row.dy, 2, "%")}</td>
-      <td className="py-3 px-4 text-sm">{fmt(row.pvp)}</td>
-      <td className="py-3 px-4 text-sm">
+      <td className={`py-3 px-4 text-sm tabular-nums ${dyClass}`}>{fmt(row.dy, 2, "%")}</td>
+      <td className={`py-3 px-4 text-sm tabular-nums ${pvpClass}`}>{fmt(row.pvp)}</td>
+      <td className="py-3 px-4 text-sm tabular-nums text-zinc-600">
         {row.vacancia_financeira ? `${fmt(row.vacancia_financeira)}%` : "—"}
       </td>
-      <td className="py-3 px-4 text-sm">
+      <td className="py-3 px-4 text-sm tabular-nums text-zinc-600">
         {row.num_cotistas ? row.num_cotistas.toLocaleString("pt-BR") : "—"}
       </td>
       <td className="py-3 px-2">
@@ -422,11 +432,18 @@ export function FIIScreenerContent() {
                 {isLoading
                   ? Array.from({ length: 8 }).map((_, i) => (
                       <tr key={i} className="border-b border-zinc-100">
-                        {Array.from({ length: 9 }).map((_, j) => (
-                          <td key={j} className="py-3 px-4">
-                            <div className="h-4 bg-zinc-100 rounded" />
-                          </td>
-                        ))}
+                        <td className="py-3 px-4 space-y-1.5">
+                          <ShimmerSkeleton className="h-3.5 w-16" />
+                          <ShimmerSkeleton className="h-3 w-28" />
+                        </td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-5 w-20 rounded-full" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3.5 w-14" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3.5 w-12" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3.5 w-10" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3.5 w-10" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3.5 w-8" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3.5 w-14" /></td>
+                        <td className="py-3 px-2"><ShimmerSkeleton className="h-6 w-6 rounded-md" /></td>
                       </tr>
                     ))
                   : sortedFIIs.map((row) => (
@@ -434,8 +451,24 @@ export function FIIScreenerContent() {
                     ))}
                 {!isLoading && data?.results.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="py-12 text-center text-sm text-zinc-500">
-                      Nenhum FII encontrado com os filtros aplicados
+                    <td colSpan={9} className="py-12 px-6">
+                      <div className="flex flex-col items-center gap-4 max-w-sm mx-auto text-center">
+                        <div className="text-3xl select-none">🏢</div>
+                        <div>
+                          <p className="text-sm font-medium text-zinc-700">Nenhum FII encontrado</p>
+                          {activeCount > 0 && (
+                            <p className="text-xs text-zinc-500 mt-1">
+                              {activeCount === 1 ? "1 filtro ativo está" : `${activeCount} filtros ativos estão`} restringindo os resultados.
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          onClick={clearFilters}
+                          className="px-4 py-2 rounded-md text-sm bg-blue-500 text-white hover:bg-blue-600 transition-colors font-medium"
+                        >
+                          Limpar filtros
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )}

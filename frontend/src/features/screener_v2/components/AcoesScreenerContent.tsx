@@ -9,6 +9,7 @@ import type { AcaoRow, AcaoScreenerParams } from "../types";
 import { useSortedData } from "@/hooks/useSort";
 import { SortableHeader } from "@/components/ui/SortableHeader";
 import { useWatchlist, useAddToWatchlist, useRemoveFromWatchlist } from "@/features/watchlist/hooks/useWatchlist";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 
 const SECTORS = [
   "Financeiro", "Energia", "Tecnologia", "Consumo", "Saúde",
@@ -104,8 +105,27 @@ function WatchlistButton({ ticker, inWatchlist }: { ticker: string; inWatchlist:
   );
 }
 
+function valColor(val: string | null, low: number, high: number, invert = false): string {
+  if (!val) return "text-zinc-500";
+  const n = parseFloat(val);
+  if (isNaN(n)) return "text-zinc-500";
+  const good = invert ? n < low : n >= low;
+  const mid = invert ? n < high : n < high;
+  if (good && mid) return "text-emerald-600 font-medium";
+  if (mid) return "text-amber-600";
+  return invert ? "text-red-500" : "text-zinc-700";
+}
+
 function AcaoTableRow({ row, watchlistTickers }: { row: AcaoRow; watchlistTickers: Set<string> }) {
   const inWatchlist = watchlistTickers.has(row.ticker);
+  const dyClass = row.dy
+    ? parseFloat(row.dy) >= 5 ? "text-emerald-600 font-medium" : parseFloat(row.dy) >= 3 ? "text-zinc-700" : "text-zinc-500"
+    : "text-zinc-400";
+  const plClass = valColor(row.pl, 0, 25, true);
+  const pvpClass = row.pvp
+    ? parseFloat(row.pvp) < 1 ? "text-emerald-600 font-medium" : parseFloat(row.pvp) > 2.5 ? "text-red-500" : "text-zinc-700"
+    : "text-zinc-500";
+
   return (
     <tr className="border-b border-zinc-100 hover:bg-zinc-50 transition-colors">
       <td className="py-3 px-4">
@@ -115,19 +135,106 @@ function AcaoTableRow({ row, watchlistTickers }: { row: AcaoRow; watchlistTicker
         </Link>
       </td>
       <td className="py-3 px-4 text-xs text-zinc-600">{row.sector ?? "—"}</td>
-      <td className="py-3 px-4 text-sm font-semibold">
+      <td className="py-3 px-4 text-sm font-semibold tabular-nums">
         {row.price ? `R$ ${parseFloat(row.price).toFixed(2)}` : "—"}
       </td>
       <td className="py-3 px-4">{changeBadge(row.change_pct)}</td>
-      <td className="py-3 px-4 text-sm">{fmt(row.dy, 2, "%")}</td>
-      <td className="py-3 px-4 text-sm">{fmt(row.pl)}</td>
-      <td className="py-3 px-4 text-sm">{fmt(row.pvp)}</td>
-      <td className="py-3 px-4 text-sm">{fmt(row.ev_ebitda)}</td>
-      <td className="py-3 px-4 text-xs text-zinc-500">{fmtBRL(row.market_cap)}</td>
+      <td className={`py-3 px-4 text-sm tabular-nums ${dyClass}`}>{fmt(row.dy, 2, "%")}</td>
+      <td className={`py-3 px-4 text-sm tabular-nums ${plClass}`}>{fmt(row.pl)}</td>
+      <td className={`py-3 px-4 text-sm tabular-nums ${pvpClass}`}>{fmt(row.pvp)}</td>
+      <td className="py-3 px-4 text-sm tabular-nums text-zinc-700">{fmt(row.ev_ebitda)}</td>
+      <td className="py-3 px-4 text-xs text-zinc-500 tabular-nums">{fmtBRL(row.market_cap)}</td>
       <td className="py-3 px-2">
         <WatchlistButton ticker={row.ticker} inWatchlist={inWatchlist} />
       </td>
     </tr>
+  );
+}
+
+const FILTER_LABELS: Record<string, string> = {
+  min_dy: "DY mínimo",
+  max_pl: "P/L máximo",
+  max_pvp: "P/VP máximo",
+  max_ev_ebitda: "EV/EBITDA máximo",
+  min_market_cap: "Market cap mínimo",
+  sector: "Setor",
+};
+
+function AcoesEmptyState({
+  applied,
+  activeCount,
+  onClear,
+  onPreset,
+  presets,
+}: {
+  applied: AcaoScreenerParams;
+  activeCount: number;
+  onClear: () => void;
+  onPreset: (p: AcaoScreenerParams) => void;
+  presets: { label: string; filters: AcaoScreenerParams }[];
+}) {
+  const activeFilters = (Object.keys(applied) as (keyof AcaoScreenerParams)[]).filter(
+    (k) => applied[k] !== undefined && applied[k] !== null && applied[k] !== ""
+  );
+
+  return (
+    <div className="flex flex-col items-center gap-4 py-4 max-w-sm mx-auto text-center">
+      <div className="text-3xl select-none">🔍</div>
+      <div>
+        <p className="text-sm font-medium text-zinc-700">Nenhuma ação encontrada</p>
+        {activeCount > 0 && (
+          <p className="text-xs text-zinc-500 mt-1">
+            {activeCount === 1
+              ? "1 filtro ativo está"
+              : `${activeCount} filtros ativos estão`}{" "}
+            restringindo os resultados.
+          </p>
+        )}
+      </div>
+
+      {activeFilters.length > 0 && (
+        <div className="flex flex-wrap justify-center gap-1.5">
+          {activeFilters.map((k) => (
+            <span
+              key={k}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-xs text-amber-700"
+            >
+              {FILTER_LABELS[k] ?? k}:{" "}
+              <span className="font-medium">
+                {k === "min_market_cap"
+                  ? fmtBRL(Number(applied[k]))
+                  : String(applied[k])}
+              </span>
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="flex flex-col gap-2 w-full">
+        <button
+          onClick={onClear}
+          className="w-full px-4 py-2 rounded-md text-sm bg-blue-500 text-white hover:bg-blue-600 transition-colors font-medium"
+        >
+          Limpar filtros
+        </button>
+        {presets.length > 0 && (
+          <div className="flex flex-col gap-1">
+            <span className="text-xs text-zinc-400">Ou tente um preset:</span>
+            <div className="flex flex-wrap justify-center gap-1.5">
+              {presets.map((p) => (
+                <button
+                  key={p.label}
+                  onClick={() => onPreset(p.filters)}
+                  className="px-3 py-1 text-xs rounded-full border border-zinc-200 text-zinc-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -433,11 +540,19 @@ export function AcoesScreenerContent() {
                 {isLoading
                   ? Array.from({ length: 8 }).map((_, i) => (
                       <tr key={i} className="border-b border-zinc-100">
-                        {Array.from({ length: 10 }).map((_, j) => (
-                          <td key={j} className="py-3 px-4">
-                            <div className="h-4 bg-zinc-100 rounded" />
-                          </td>
-                        ))}
+                        <td className="py-3 px-4 space-y-1.5">
+                          <ShimmerSkeleton className="h-3.5 w-16" />
+                          <ShimmerSkeleton className="h-3 w-28" />
+                        </td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3.5 w-20" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3.5 w-14" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3.5 w-12" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3.5 w-10" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3.5 w-10" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3.5 w-10" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3.5 w-14" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3.5 w-16" /></td>
+                        <td className="py-3 px-2"><ShimmerSkeleton className="h-6 w-6 rounded-md" /></td>
                       </tr>
                     ))
                   : sortedAcoes.map((row) => (
@@ -445,8 +560,8 @@ export function AcoesScreenerContent() {
                     ))}
                 {!isLoading && data?.results.length === 0 && (
                   <tr>
-                    <td colSpan={10} className="py-12 text-center text-sm text-zinc-500">
-                      Nenhuma ação encontrada com os filtros aplicados
+                    <td colSpan={10} className="py-12 px-6">
+                      <AcoesEmptyState applied={applied} activeCount={activeCount} onClear={clearFilters} onPreset={applyPreset} presets={PRESETS} />
                     </td>
                   </tr>
                 )}

@@ -2,6 +2,7 @@
 import { useState, useMemo } from "react";
 import { useFixedIncomeCatalog, useTesouroRates, useMacroRates } from "../hooks/useRendaFixa";
 import type { FixedIncomeCatalogRow, TesouroRateRow, MacroRatesResponse } from "../types";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 
 function fmt(val: string | null, decimals = 2, suffix = ""): string {
   if (val === null || val === undefined) return "—";
@@ -256,7 +257,7 @@ export function RendaFixaContent() {
                           <tr key={i} className="border-b border-zinc-100">
                             {Array.from({ length: 6 }).map((_, j) => (
                               <td key={j} className="py-3 px-4">
-                                <div className="h-4 bg-zinc-100 rounded" />
+                                <ShimmerSkeleton className="h-3.5 w-full" />
                               </td>
                             ))}
                           </tr>
@@ -316,7 +317,7 @@ export function RendaFixaContent() {
                           <tr key={i} className="border-b border-zinc-100">
                             {Array.from({ length: 6 }).map((_, j) => (
                               <td key={j} className="py-3 px-4">
-                                <div className="h-4 bg-zinc-100 rounded" />
+                                <ShimmerSkeleton className="h-3.5 w-full" />
                               </td>
                             ))}
                           </tr>

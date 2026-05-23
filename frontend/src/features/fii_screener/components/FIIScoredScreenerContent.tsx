@@ -6,6 +6,7 @@ import type { FIIScoredRow } from "../types";
 import { useSortedData } from "@/hooks/useSort";
 import { SortableHeader } from "@/components/ui/SortableHeader";
 import { useFilterState } from "@/hooks/useFilterState";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 
 const FII_FILTER_DEFAULTS = { seg: "", dy: "" } as const;
 type FIIFilterKey = keyof typeof FII_FILTER_DEFAULTS;
@@ -56,6 +57,31 @@ function segmentoBadge(seg: string | null) {
   );
 }
 
+function fmtLiquidity(val: number | null | undefined): string {
+  if (val === null || val === undefined) return "—";
+  if (val >= 1_000_000_000) return `R$ ${(val / 1_000_000_000).toFixed(1)}B`;
+  if (val >= 1_000_000) return `R$ ${(val / 1_000_000).toFixed(1)}M`;
+  if (val >= 1_000) return `R$ ${(val / 1_000).toFixed(0)}K`;
+  return `R$ ${val.toLocaleString("pt-BR")}`;
+}
+
+function ScoreBar({ score }: { score: string | null | undefined }) {
+  if (score === null || score === undefined) return <span className="text-zinc-400 text-sm">—</span>;
+  const n = parseFloat(score);
+  if (isNaN(n)) return <span className="text-zinc-400 text-sm">—</span>;
+  const pct = Math.min(100, Math.max(0, n));
+  const color =
+    pct >= 80 ? "bg-emerald-500" : pct >= 60 ? "bg-blue-500" : pct >= 40 ? "bg-amber-400" : "bg-zinc-300";
+  return (
+    <div className="flex items-center gap-2 min-w-[80px]">
+      <div className="flex-1 h-1.5 rounded-full bg-zinc-100 overflow-hidden">
+        <div className={`h-full rounded-full ${color} transition-all`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-sm font-semibold tabular-nums w-8 text-right">{n.toFixed(1)}</span>
+    </div>
+  );
+}
+
 function FIIScoredTableRow({
   row,
   rank,
@@ -68,41 +94,91 @@ function FIIScoredTableRow({
       ? (parseFloat(row.dy_12m) * 100).toFixed(2) + "%"
       : "—";
 
+  const dyColor =
+    row.dy_12m !== null && row.dy_12m !== undefined
+      ? parseFloat(row.dy_12m) * 100 >= 10
+        ? "text-emerald-600 font-semibold"
+        : "text-zinc-800"
+      : "";
+
   const pvpFmt = fmt(row.pvp);
-  const scoreFmt = row.score !== null && row.score !== undefined
-    ? parseFloat(row.score).toFixed(1)
-    : "—";
+  const pvpVal = row.pvp ? parseFloat(row.pvp) : null;
+  const pvpColor = pvpVal !== null ? (pvpVal < 1 ? "text-emerald-600" : pvpVal > 1.5 ? "text-red-500" : "text-zinc-800") : "";
 
   return (
     <tr className="border-b border-zinc-100 hover:bg-zinc-50 transition-colors">
-      <td className="py-3 px-4 text-sm text-zinc-500 tabular-nums">{rank}</td>
+      <td className="py-3 px-4 text-xs text-zinc-400 tabular-nums w-8">{rank}</td>
       <td className="py-3 px-4">
         <Link
           href={`/fii/${row.ticker}`}
-          className="font-mono font-bold text-sm text-blue-600 hover:underline"
+          className="group"
         >
-          {row.ticker}
+          <div className="font-mono font-bold text-sm group-hover:text-blue-600 transition-colors">{row.ticker}</div>
+          {row.short_name && (
+            <div className="text-xs text-zinc-500 truncate max-w-[140px]">
+              {row.short_name}
+            </div>
+          )}
         </Link>
-        {row.short_name && (
-          <div className="text-xs text-zinc-500 truncate max-w-[140px]">
-            {row.short_name}
-          </div>
-        )}
       </td>
       <td className="py-3 px-4">{segmentoBadge(row.segmento)}</td>
-      <td className="py-3 px-4 text-sm font-medium">{dyPct}</td>
-      <td className="py-3 px-4 text-sm">{pvpFmt}</td>
-      <td className="py-3 px-4 text-sm">
-        {row.daily_liquidity !== null && row.daily_liquidity !== undefined
-          ? `R$ ${row.daily_liquidity.toLocaleString("pt-BR")}`
-          : "—"}
-      </td>
-      <td className="py-3 px-4 text-sm font-semibold">{scoreFmt}</td>
+      <td className={`py-3 px-4 text-sm tabular-nums ${dyColor}`}>{dyPct}</td>
+      <td className={`py-3 px-4 text-sm tabular-nums ${pvpColor}`}>{pvpFmt}</td>
+      <td className="py-3 px-4 text-xs text-zinc-600 tabular-nums">{fmtLiquidity(row.daily_liquidity)}</td>
+      <td className="py-3 px-4"><ScoreBar score={row.score} /></td>
     </tr>
   );
 }
 
 const TH = "text-left py-3 px-4 text-xs font-semibold text-zinc-600";
+
+function FIIEmptyState({
+  hasFilters,
+  segmento,
+  minDy,
+  onClear,
+}: {
+  hasFilters: boolean;
+  segmento: string;
+  minDy: string;
+  onClear: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-4 py-4 max-w-sm mx-auto text-center">
+      <div className="text-3xl select-none">🏢</div>
+      <div>
+        <p className="text-sm font-medium text-zinc-700">Nenhum FII encontrado</p>
+        {hasFilters && (
+          <p className="text-xs text-zinc-500 mt-1">
+            Os filtros aplicados não retornaram resultados.
+          </p>
+        )}
+      </div>
+
+      {hasFilters && (
+        <div className="flex flex-wrap justify-center gap-1.5">
+          {segmento && (
+            <span className="px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-xs text-amber-700 font-medium">
+              Segmento: {segmento}
+            </span>
+          )}
+          {minDy && (
+            <span className="px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-xs text-amber-700 font-medium">
+              DY mín: {minDy}%
+            </span>
+          )}
+        </div>
+      )}
+
+      <button
+        onClick={onClear}
+        className="px-4 py-2 rounded-md text-sm bg-blue-500 text-white hover:bg-blue-600 transition-colors font-medium"
+      >
+        {hasFilters ? "Limpar filtros" : "Recarregar"}
+      </button>
+    </div>
+  );
+}
 
 export function FIIScoredScreenerContent() {
   const { data, isLoading, error } = useFIIScoredScreener();
@@ -227,11 +303,16 @@ export function FIIScoredScreenerContent() {
                 {isLoading
                   ? Array.from({ length: 8 }).map((_, i) => (
                       <tr key={i} className="border-b border-zinc-100">
-                        {Array.from({ length: 7 }).map((_, j) => (
-                          <td key={j} className="py-3 px-4">
-                            <div className="h-4 bg-zinc-100 rounded" />
-                          </td>
-                        ))}
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3 w-4" /></td>
+                        <td className="py-3 px-4 space-y-1.5">
+                          <ShimmerSkeleton className="h-3.5 w-16" />
+                          <ShimmerSkeleton className="h-3 w-28" />
+                        </td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-5 w-20 rounded-full" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3.5 w-12" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3.5 w-10" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-3.5 w-16" /></td>
+                        <td className="py-3 px-4"><ShimmerSkeleton className="h-2 w-24 rounded-full" /></td>
                       </tr>
                     ))
                   : sortedFiis.map((row, idx) => (
@@ -239,11 +320,13 @@ export function FIIScoredScreenerContent() {
                     ))}
                 {!isLoading && data && filtered.length === 0 && (
                   <tr>
-                    <td
-                      colSpan={7}
-                      className="py-12 text-center text-sm text-zinc-500"
-                    >
-                      Nenhum FII encontrado com os filtros selecionados
+                    <td colSpan={7} className="py-12 px-6">
+                      <FIIEmptyState
+                        hasFilters={!!(segmentoFilter || minDyFilter)}
+                        segmento={segmentoFilter}
+                        minDy={minDyFilter}
+                        onClear={() => filters.clear()}
+                      />
                     </td>
                   </tr>
                 )}
