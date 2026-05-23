@@ -39,7 +39,7 @@ function CustomTooltip({ active, payload }: any) {
   return (
     <div className="bg-white border border-zinc-200 rounded-lg shadow-lg px-3 py-2 text-xs">
       <p className="font-semibold text-zinc-800">{d.label}</p>
-      <p className="text-zinc-500 mt-0.5">
+      <p className="text-zinc-500 mt-0.5 tabular-nums">
         {fmtBRL(d.value)} · {parseFloat(d.pct).toFixed(1)}%
       </p>
     </div>

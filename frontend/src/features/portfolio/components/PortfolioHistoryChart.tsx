@@ -61,7 +61,7 @@ function CustomTooltip({ active, payload, label }: any) {
             const retPct = ((val - inv) / inv * 100).toFixed(2);
             const positive = parseFloat(retPct) >= 0;
             return (
-              <span className={positive ? "text-emerald-600 font-semibold" : "text-red-500 font-semibold"}>
+              <span className={positive ? "text-emerald-600 font-semibold tabular-nums" : "text-red-500 font-semibold tabular-nums"}>
                 Retorno: {positive ? "+" : ""}{retPct}%
               </span>
             );
@@ -105,7 +105,7 @@ export function PortfolioHistoryChart() {
             Evolução do Patrimônio
           </h3>
           {periodReturn !== null && (
-            <p className={`text-xs mt-1 font-semibold ${periodReturn >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+            <p className={`text-xs mt-1 font-semibold tabular-nums ${periodReturn >= 0 ? "text-emerald-600" : "text-red-500"}`}>
               {periodReturn >= 0 ? "+" : ""}{periodReturn.toFixed(2)}% no período
             </p>
           )}
