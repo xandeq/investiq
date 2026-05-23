@@ -4,6 +4,7 @@ import { useMacroRates } from "@/features/screener_v2/hooks/useRendaFixa";
 import { useSimuladorCalc } from "../hooks/useSimuladorCalc";
 import { useSimuladorPortfolio } from "../hooks/useSimuladorPortfolio";
 import type { ScenarioKey, ScenarioResult } from "../types";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 
 // ── Local formatting utilities ───────────────────────────────────────────────
 
@@ -280,14 +281,14 @@ export function SimuladorContent() {
         {/* CDI indicator */}
         <div className="ml-auto text-xs text-zinc-500 self-center">
           CDI:{" "}
-          <strong>
+          <strong className="tabular-nums">
             {macro?.cdi ? `${parseFloat(macro.cdi).toFixed(2)}% a.a.` : "—"}
           </strong>
         </div>
       </div>
 
       {/* Loading skeleton */}
-      {loadingMacro && <div className="h-40 rounded-lg bg-zinc-100" />}
+      {loadingMacro && <ShimmerSkeleton className="h-40 w-full rounded-xl" />}
 
       {/* Scenario cards */}
       {!loadingMacro && (

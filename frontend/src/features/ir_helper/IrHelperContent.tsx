@@ -186,12 +186,12 @@ function DarfTab() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-white border border-zinc-200 rounded-xl p-5">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Total Vendas</p>
-              <p className="text-xl font-bold mt-1">{fmt(summary.total_vendas)}</p>
+              <p className="text-xl font-bold mt-1 tabular-nums">{fmt(summary.total_vendas)}</p>
               <p className="text-xs text-zinc-500 mt-1">{summary.transactions_count} operações</p>
             </div>
             <div className="bg-white border border-zinc-200 rounded-xl p-5">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Lucro Bruto</p>
-              <p className={`text-xl font-bold mt-1 ${summary.lucro_bruto >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+              <p className={`text-xl font-bold mt-1 tabular-nums ${summary.lucro_bruto >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                 {fmt(summary.lucro_bruto)}
               </p>
               {summary.lucro_bruto >= 0 ? (
@@ -202,14 +202,14 @@ function DarfTab() {
             </div>
             <div className="bg-white border border-zinc-200 rounded-xl p-5">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Prejuízo Acumulado</p>
-              <p className={`text-xl font-bold mt-1 ${summary.prejuizo_acumulado > 0 ? "text-red-600" : "text-zinc-400"}`}>
+              <p className={`text-xl font-bold mt-1 tabular-nums ${summary.prejuizo_acumulado > 0 ? "text-red-600" : "text-zinc-400"}`}>
                 {summary.prejuizo_acumulado > 0 ? `−${fmt(summary.prejuizo_acumulado)}` : "—"}
               </p>
               <p className="text-xs text-zinc-500 mt-1">meses anteriores</p>
             </div>
             <div className={`rounded-xl p-5 border ${summary.darf_gerado ? "bg-red-50 border-red-200" : "bg-white border-zinc-200"}`}>
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">DARF</p>
-              <p className={`text-xl font-bold mt-1 ${summary.darf_gerado ? "text-red-600" : "text-zinc-400"}`}>
+              <p className={`text-xl font-bold mt-1 tabular-nums ${summary.darf_gerado ? "text-red-600" : "text-zinc-400"}`}>
                 {summary.darf_gerado ? fmt(summary.darf_valor) : "—"}
               </p>
               <p className="text-xs text-zinc-500 mt-1">
@@ -452,14 +452,14 @@ function DeclarationTab() {
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
                 Situação em 31/12/{year - 1}
               </p>
-              <p className="text-xl font-bold mt-1">{fmt(data.total_declarado_anterior)}</p>
+              <p className="text-xl font-bold mt-1 tabular-nums">{fmt(data.total_declarado_anterior)}</p>
               <p className="text-xs text-zinc-500 mt-1">ano anterior</p>
             </div>
             <div className="bg-white border border-zinc-200 rounded-xl p-5">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
                 Situação em 31/12/{year}
               </p>
-              <p className="text-xl font-bold mt-1">{fmt(data.total_declarado_atual)}</p>
+              <p className="text-xl font-bold mt-1 tabular-nums">{fmt(data.total_declarado_atual)}</p>
               <p className="text-xs text-zinc-500 mt-1">ano-base (declarar este valor)</p>
             </div>
           </div>
@@ -668,21 +668,21 @@ function TaxLossTab() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-white border border-zinc-200 rounded-xl p-5">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Ganho tributável — {data.current_month}</p>
-              <p className={`text-xl font-bold mt-1 ${data.accumulated_gain_month > 0 ? "text-red-600" : "text-zinc-400"}`}>
+              <p className={`text-xl font-bold mt-1 tabular-nums ${data.accumulated_gain_month > 0 ? "text-red-600" : "text-zinc-400"}`}>
                 {data.accumulated_gain_month > 0 ? fmt(data.accumulated_gain_month) : "—"}
               </p>
               <p className="text-xs text-zinc-500 mt-1">lucro líquido do mês</p>
             </div>
             <div className="bg-white border border-zinc-200 rounded-xl p-5">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Prejuízo latente total</p>
-              <p className={`text-xl font-bold mt-1 ${data.total_unrealized_loss < 0 ? "text-orange-600" : "text-zinc-400"}`}>
+              <p className={`text-xl font-bold mt-1 tabular-nums ${data.total_unrealized_loss < 0 ? "text-orange-600" : "text-zinc-400"}`}>
                 {data.total_unrealized_loss < 0 ? fmt(data.total_unrealized_loss) : "—"}
               </p>
               <p className="text-xs text-zinc-500 mt-1">{data.items.length} posição{data.items.length !== 1 ? "s" : ""} candidata{data.items.length !== 1 ? "s" : ""}</p>
             </div>
             <div className={`rounded-xl p-5 border ${data.max_potential_saving > 0 ? "bg-emerald-50 border-emerald-200" : "bg-white border-zinc-200"}`}>
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Economia potencial</p>
-              <p className={`text-xl font-bold mt-1 ${data.max_potential_saving > 0 ? "text-emerald-700" : "text-zinc-400"}`}>
+              <p className={`text-xl font-bold mt-1 tabular-nums ${data.max_potential_saving > 0 ? "text-emerald-700" : "text-zinc-400"}`}>
                 {data.max_potential_saving > 0 ? fmt(data.max_potential_saving) : "—"}
               </p>
               <p className="text-xs text-zinc-500 mt-1">economia máxima em DARF</p>
