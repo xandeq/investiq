@@ -213,6 +213,164 @@ async def evaluate_ticker_signal(
     }
 
 
+_RATIONALE_CACHE_PREFIX = "copilot:rationale:"
+_RATIONALE_CACHE_TTL = 6 * 3600  # 6h
+
+
+@router.get("/{ticker}/rationale")
+@limiter.limit("10/minute")
+async def get_ticker_rationale(
+    request: Request,
+    ticker: str,
+    current_user: dict = Depends(get_current_user),
+):
+    """Generate an AI rationale for a ticker's signal state.
+
+    Uses signal evaluation + sentiment context to produce a 2-3 sentence
+    investor-friendly explanation. Cached in Redis for 6h to control LLM costs.
+    Falls back to a template string if the LLM call fails.
+    """
+    ticker = ticker.upper()
+    if not ticker or len(ticker) > 10:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid ticker")
+
+    brapi_token = os.environ.get("BRAPI_TOKEN", "")
+    redis_client = _get_async_redis()
+
+    # Check cache first
+    cache_key = f"{_RATIONALE_CACHE_PREFIX}{ticker}"
+    if redis_client is not None:
+        try:
+            cached = await redis_client.get(cache_key)
+            if cached:
+                import json as _json
+                data = _json.loads(cached)
+                data["cached"] = True
+                return data
+        except Exception:
+            pass
+
+    # Fetch signal evaluation and sentiment concurrently
+    try:
+        analysis = await analyze(ticker, brapi_token=brapi_token, redis_client=redis_client)
+    except Exception as exc:
+        logger.warning("rationale: analyze failed for %s: %s", ticker, exc)
+        analysis = {}
+
+    evaluation = evaluate_signal(ticker, analysis)
+
+    sentiment_score: float | None = None
+    reddit_mentions: int = 0
+    try:
+        from app.modules.briefing_engine.context_assembler import get_context_batch
+        batch = await get_context_batch([ticker], hours=24, redis_client=redis_client)
+        ctx = batch.get(ticker, {})
+        sentiment_score = ctx.get("sentiment_score")
+        reddit_mentions = ctx.get("reddit_mentions", 0)
+    except Exception as exc:
+        logger.debug("rationale: sentiment fetch failed for %s: %s", ticker, exc)
+
+    if redis_client is not None:
+        try:
+            await redis_client.aclose()
+        except Exception:
+            pass
+
+    # Build context for LLM prompt
+    grade = evaluation.grade
+    setup = evaluation.setup
+    passed = evaluation.passed_gates
+    total = evaluation.total_gates
+    is_a_plus = evaluation.is_a_plus
+
+    sentiment_label = "neutro"
+    if sentiment_score is not None:
+        if sentiment_score > 0.3:
+            sentiment_label = "positivo"
+        elif sentiment_score < -0.2:
+            sentiment_label = "negativo"
+
+    setup_block = ""
+    if setup:
+        setup_block = (
+            f"Padrão: {setup.get('pattern', '?')}, R/R: {float(setup.get('rr', 0)):.1f}x, "
+            f"entrada: {float(setup.get('entry', 0)):.2f}, stop: {float(setup.get('stop', 0)):.2f}, "
+            f"alvo: {float(setup.get('target_1', 0)):.2f}."
+        )
+
+    prompt = (
+        f"Você é um analista técnico sênior explicando uma análise para um investidor brasileiro.\n\n"
+        f"Ticker: {ticker}\n"
+        f"Nota técnica: {grade} ({passed}/{total} condições satisfeitas)\n"
+        f"Setup ativo: {'sim' if is_a_plus else 'não'}\n"
+        f"{setup_block}\n"
+        f"Sentimento social (últimas 24h): {sentiment_label}"
+        + (f" (score={sentiment_score:+.2f}, {reddit_mentions} menções)" if sentiment_score is not None else "")
+        + "\n\n"
+        "Escreva 2-3 frases concisas explicando o estado atual do setup em linguagem simples para o investidor. "
+        "Mencione o que está favorável ou desfavorável. Não use markdown. Não use listas. "
+        "Tom analítico, objetivo, sem promessas de retorno."
+    )
+
+    # Determine confidence string
+    confidence = "baixa"
+    if is_a_plus and sentiment_score is not None and sentiment_score > 0.3:
+        confidence = "alta"
+    elif is_a_plus or (sentiment_score is not None and sentiment_score > 0.1):
+        confidence = "média"
+
+    rationale: str
+    try:
+        from app.modules.ai.provider import call_llm
+        rationale = await call_llm(
+            prompt=prompt,
+            system="Responda apenas com o texto do analista, sem introduções ou assinaturas.",
+            tier="free",
+            max_tokens=200,
+        )
+        rationale = rationale.strip()
+    except Exception as exc:
+        logger.warning("rationale: LLM call failed for %s: %s", ticker, exc)
+        # Fallback template
+        pattern = setup.get("pattern", "completo") if setup else "completo"
+        if is_a_plus and sentiment_label == "positivo":
+            rationale = (
+                f"Setup técnico {grade} ({pattern}) confirmado com "
+                f"sentimento positivo nas redes sociais. Condições técnicas e de mercado convergem — "
+                f"aguardar entrada na zona definida com stop respeitado."
+            )
+        elif is_a_plus:
+            rationale = (
+                f"Setup técnico {grade} confirmado ({pattern}), "
+                f"mas o sentimento nas redes está {sentiment_label}. "
+                "Aguardar confluência antes de entrar."
+            )
+        else:
+            rationale = (
+                f"{passed} de {total} condições técnicas satisfeitas — setup ainda incompleto. "
+                "Monitorar para formação de confluências adicionais."
+            )
+
+    result = {"ticker": ticker, "rationale": rationale, "confidence": confidence, "cached": False}
+
+    # Cache successful result
+    if redis_client is not None or True:  # write via a new connection
+        new_redis = _get_async_redis()
+        if new_redis is not None:
+            try:
+                import json as _json
+                await new_redis.setex(cache_key, _RATIONALE_CACHE_TTL, _json.dumps(result))
+            except Exception:
+                pass
+            finally:
+                try:
+                    await new_redis.aclose()
+                except Exception:
+                    pass
+
+    return result
+
+
 class SizingRequest(BaseModel):
     book_value: Decimal
     entry: Decimal

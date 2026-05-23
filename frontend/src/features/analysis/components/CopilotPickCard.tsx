@@ -1,6 +1,7 @@
 "use client";
 import { useSignalEval } from "@/hooks/useSignalEval";
 import { useSentiment } from "@/hooks/useSentiment";
+import { useCopilotRationale } from "@/hooks/useCopilotRationale";
 
 interface Props {
   ticker: string;
@@ -38,17 +39,46 @@ function PriceRow({ label, value, color }: { label: string; value: number; color
   );
 }
 
+function RationaleSkeleton() {
+  return (
+    <div className="space-y-1.5 animate-pulse">
+      <div className="h-3 bg-zinc-200/80 rounded w-full" />
+      <div className="h-3 bg-zinc-200/80 rounded w-5/6" />
+      <div className="h-3 bg-zinc-200/80 rounded w-2/3" />
+    </div>
+  );
+}
+
+function AILabel() {
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] text-zinc-400 font-medium">
+      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" className="text-zinc-400" aria-hidden="true">
+        <path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2Z" fill="currentColor" />
+      </svg>
+      Gerado por IA
+    </span>
+  );
+}
+
 export function CopilotPickCard({ ticker }: Props) {
   const { data: signal, isLoading: signalLoading } = useSignalEval(ticker);
   const { data: sentiment, isLoading: sentimentLoading } = useSentiment(ticker);
+
+  const isAPlus = signal?.is_a_plus ?? false;
+  const hasPositiveSentiment = (sentiment?.score ?? 0) > 0.2;
+
+  // Only fetch rationale when signal is available to avoid wasted LLM calls
+  const { data: rationaleData, isLoading: rationaleLoading } = useCopilotRationale(
+    ticker,
+    !signalLoading && !!signal,
+  );
 
   if (signalLoading || sentimentLoading) return null;
   if (!signal) return null;
 
   const sentimentScore = sentiment?.score ?? 0;
-  const isAPlus = signal.is_a_plus;
   const setup = signal.setup;
-  const hasPositiveSentiment = sentimentScore > 0.2;
+  const rationale = rationaleData?.rationale ?? null;
 
   // Strong bullish: A+ setup AND positive sentiment alignment
   if (isAPlus && setup && hasPositiveSentiment) {
@@ -56,7 +86,7 @@ export function CopilotPickCard({ ticker }: Props) {
     const entry = Number(setup.entry);
     const stop = Number(setup.stop);
     const target1 = Number(setup.target_1);
-    const confidence = confidenceLevel(rr, sentimentScore);
+    const confidence = rationaleData?.confidence ?? confidenceLevel(rr, sentimentScore);
     const entryLow = entry * 0.995;
     const entryHigh = entry * 1.005;
 
@@ -72,11 +102,22 @@ export function CopilotPickCard({ ticker }: Props) {
           </div>
         </div>
 
-        <p className="text-xs text-zinc-500 mb-3 leading-relaxed">
-          Setup técnico A+ ({setup.pattern}) alinhado com sentimento{" "}
-          <span className="font-medium text-emerald-700">positivo</span> nas redes sociais.
-          Condições técnicas e de mercado convergem.
-        </p>
+        <div className="mb-3">
+          {rationaleLoading ? (
+            <RationaleSkeleton />
+          ) : rationale ? (
+            <div className="space-y-1">
+              <p className="text-xs text-zinc-600 leading-relaxed">{rationale}</p>
+              <AILabel />
+            </div>
+          ) : (
+            <p className="text-xs text-zinc-500 leading-relaxed">
+              Setup técnico A+ ({setup.pattern}) alinhado com sentimento{" "}
+              <span className="font-medium text-emerald-700">positivo</span> nas redes sociais.
+              Condições técnicas e de mercado convergem.
+            </p>
+          )}
+        </div>
 
         <div className="grid grid-cols-2 gap-x-4 mb-3">
           <div>
@@ -116,12 +157,23 @@ export function CopilotPickCard({ ticker }: Props) {
             Setup parcial
           </span>
         </div>
-        <p className="text-xs text-zinc-600 leading-relaxed">
-          Setup técnico A+ confirmado ({setup.pattern}), mas o sentimento nas redes
-          {sentimentScore < -0.1
-            ? " está negativo — atenção à assimetria entre técnico e mercado."
-            : " está neutro — aguardar confluência antes de entrar."}
-        </p>
+        <div>
+          {rationaleLoading ? (
+            <RationaleSkeleton />
+          ) : rationale ? (
+            <div className="space-y-1">
+              <p className="text-xs text-zinc-600 leading-relaxed">{rationale}</p>
+              <AILabel />
+            </div>
+          ) : (
+            <p className="text-xs text-zinc-600 leading-relaxed">
+              Setup técnico A+ confirmado ({setup.pattern}), mas o sentimento nas redes
+              {sentimentScore < -0.1
+                ? " está negativo — atenção à assimetria entre técnico e mercado."
+                : " está neutro — aguardar confluência antes de entrar."}
+            </p>
+          )}
+        </div>
         <div className="mt-3 flex items-center justify-between text-xs text-zinc-500">
           <span>Stop: <span className="font-semibold tabular-nums text-red-600">
             {Number(setup.stop).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
@@ -144,11 +196,22 @@ export function CopilotPickCard({ ticker }: Props) {
           Sem setup
         </span>
       </div>
-      <p className="text-xs text-zinc-400 leading-relaxed">
-        {signal.passed_gates === 0
-          ? "Nenhuma condição técnica satisfeita no momento. Aguardar formação de setup."
-          : `${signal.passed_gates} de ${signal.total_gates} condições técnicas satisfeitas — setup ainda incompleto.`}
-      </p>
+      <div>
+        {rationaleLoading ? (
+          <RationaleSkeleton />
+        ) : rationale ? (
+          <div className="space-y-1">
+            <p className="text-xs text-zinc-500 leading-relaxed">{rationale}</p>
+            <AILabel />
+          </div>
+        ) : (
+          <p className="text-xs text-zinc-400 leading-relaxed">
+            {signal.passed_gates === 0
+              ? "Nenhuma condição técnica satisfeita no momento. Aguardar formação de setup."
+              : `${signal.passed_gates} de ${signal.total_gates} condições técnicas satisfeitas — setup ainda incompleto.`}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
