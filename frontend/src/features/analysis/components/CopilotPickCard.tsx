@@ -42,10 +42,10 @@ function PriceRow({ label, value, color }: { label: string; value: number; color
 
 function RationaleSkeleton() {
   return (
-    <div className="space-y-1.5 animate-pulse">
-      <div className="h-3 bg-zinc-200/80 rounded w-full" />
-      <div className="h-3 bg-zinc-200/80 rounded w-5/6" />
-      <div className="h-3 bg-zinc-200/80 rounded w-2/3" />
+    <div className="space-y-1.5">
+      <ShimmerSkeleton className="h-3 w-full rounded" />
+      <ShimmerSkeleton className="h-3 w-5/6 rounded" />
+      <ShimmerSkeleton className="h-3 w-2/3 rounded" />
     </div>
   );
 }
@@ -194,7 +194,7 @@ export function CopilotPickCard({ ticker }: Props) {
           <span>Alvo: <span className="font-semibold tabular-nums text-emerald-600">
             {Number(setup.target_1).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
           </span></span>
-          <span>R/R: <span className="font-semibold">{Number(setup.rr).toFixed(1)}x</span></span>
+          <span>R/R: <span className="font-semibold tabular-nums">{Number(setup.rr).toFixed(1)}x</span></span>
         </div>
       </div>
     );
