@@ -37,7 +37,7 @@ export function DashboardContent() {
             </p>
             <button
               onClick={() => refetch()}
-              className="mt-3 px-4 py-1.5 text-sm font-medium bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
+              className="mt-3 px-4 py-1.5 text-sm font-medium bg-amber-600 text-white rounded-lg hover:bg-amber-700 active:scale-[0.97] transition-all duration-150"
             >
               Tentar novamente
             </button>

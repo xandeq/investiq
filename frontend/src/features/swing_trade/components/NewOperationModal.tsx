@@ -242,7 +242,7 @@ export function NewOperationModal({ open, onClose, onSubmit, isPending }: Props)
             <button
               type="button"
               onClick={handleClose}
-              className="px-4 py-2 rounded-md text-sm text-zinc-600 border border-zinc-200 hover:bg-zinc-50 transition-colors"
+              className="px-4 py-2 rounded-md text-sm text-zinc-600 border border-zinc-200 hover:bg-zinc-50 active:scale-[0.97] transition-all duration-150"
               disabled={isPending}
             >
               Cancelar
@@ -250,7 +250,7 @@ export function NewOperationModal({ open, onClose, onSubmit, isPending }: Props)
             <button
               type="submit"
               disabled={isPending}
-              className="px-4 py-2 rounded-md text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 rounded-md text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.97] transition-all duration-150"
             >
               {isPending ? "Salvando..." : "Criar Operação"}
             </button>

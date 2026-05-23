@@ -592,7 +592,7 @@ function AdvisorMain() {
           <button
             onClick={handleAnalyze}
             disabled={isRunning}
-            className="px-5 py-2.5 rounded-md bg-zinc-100 text-sm font-medium hover:bg-zinc-200 disabled:opacity-50 transition-colors"
+            className="px-5 py-2.5 rounded-md bg-zinc-100 text-sm font-medium hover:bg-zinc-200 disabled:opacity-50 active:scale-[0.97] transition-all duration-150"
           >
             {isRunning ? "Atualizando..." : "Atualizar diagnóstico"}
           </button>

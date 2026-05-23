@@ -171,7 +171,7 @@ export function StagingReviewTable({ jobId, onConfirmed, onCancelled }: StagingR
         <button
           onClick={handleConfirm}
           disabled={confirming}
-          className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+          className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 active:scale-[0.97] transition-all duration-150 disabled:opacity-50 flex items-center gap-2"
         >
           {confirming && (
             <span className="h-3 w-3 animate-spin rounded-full border border-primary-foreground border-t-transparent" />

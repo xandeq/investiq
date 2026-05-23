@@ -213,7 +213,7 @@ function AcoesEmptyState({
       <div className="flex flex-col gap-2 w-full">
         <button
           onClick={onClear}
-          className="w-full px-4 py-2 rounded-md text-sm bg-blue-500 text-white hover:bg-blue-600 transition-colors font-medium"
+          className="w-full px-4 py-2 rounded-md text-sm bg-blue-500 text-white hover:bg-blue-600 active:scale-[0.97] transition-all duration-150 font-medium"
         >
           Limpar filtros
         </button>
@@ -486,7 +486,7 @@ export function AcoesScreenerContent() {
             </button>
             <button
               onClick={applyFilters}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm bg-blue-500 text-white hover:bg-blue-600 transition-colors font-medium"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm bg-blue-500 text-white hover:bg-blue-600 active:scale-[0.97] transition-all duration-150 font-medium"
             >
               Filtrar
               {activeCount > 0 && (
@@ -579,14 +579,14 @@ export function AcoesScreenerContent() {
                 <button
                   onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
                   disabled={offset === 0}
-                  className="px-3 py-1.5 rounded text-xs border border-zinc-200 disabled:opacity-40 hover:bg-zinc-50 transition-colors"
+                  className="px-3 py-1.5 rounded text-xs border border-zinc-200 disabled:opacity-40 hover:bg-zinc-50 active:scale-[0.97] transition-all duration-150"
                 >
                   Anterior
                 </button>
                 <button
                   onClick={() => setOffset(offset + PAGE_SIZE)}
                   disabled={currentPage >= totalPages}
-                  className="px-3 py-1.5 rounded text-xs border border-zinc-200 disabled:opacity-40 hover:bg-zinc-50 transition-colors"
+                  className="px-3 py-1.5 rounded text-xs border border-zinc-200 disabled:opacity-40 hover:bg-zinc-50 active:scale-[0.97] transition-all duration-150"
                 >
                   Próxima
                 </button>

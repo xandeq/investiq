@@ -60,7 +60,7 @@ export function AnalysisRequestForm() {
         <button
           type="submit"
           disabled={isRunning || !ticker.trim()}
-          className="rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+          className="rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 active:scale-[0.97] transition-all duration-150"
         >
           {isRunning ? (
             <span className="flex items-center gap-2">

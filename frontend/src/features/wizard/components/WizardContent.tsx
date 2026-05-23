@@ -182,7 +182,7 @@ export function WizardContent() {
                   <button
                     onClick={() => setStep(2)}
                     disabled={!valorInput || parseFloat(valorInput) < 100}
-                    className="px-6 py-2.5 rounded-lg bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600 disabled:opacity-50 transition-colors"
+                    className="px-6 py-2.5 rounded-lg bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600 disabled:opacity-50 active:scale-[0.97] transition-all duration-150"
                   >
                     Proximo
                   </button>
@@ -200,7 +200,7 @@ export function WizardContent() {
                     <button
                       key={p}
                       onClick={() => setPrazo(p)}
-                      className={`px-5 py-2 text-sm font-medium transition-colors ${
+                      className={`px-5 py-2 text-sm font-medium active:scale-[0.97] transition-all duration-150 ${
                         prazo === p
                           ? "bg-blue-500 text-white"
                           : "bg-white text-zinc-600 hover:bg-zinc-50"
@@ -213,13 +213,13 @@ export function WizardContent() {
                 <div className="flex justify-between mt-4">
                   <button
                     onClick={() => setStep(1)}
-                    className="px-6 py-2.5 rounded-lg border border-zinc-200 text-zinc-600 text-sm font-semibold hover:bg-zinc-50 transition-colors"
+                    className="px-6 py-2.5 rounded-lg border border-zinc-200 text-zinc-600 text-sm font-semibold hover:bg-zinc-50 active:scale-[0.97] transition-all duration-150"
                   >
                     Voltar
                   </button>
                   <button
                     onClick={() => setStep(3)}
-                    className="px-6 py-2.5 rounded-lg bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600 transition-colors"
+                    className="px-6 py-2.5 rounded-lg bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600 active:scale-[0.97] transition-all duration-150"
                   >
                     Proximo
                   </button>
@@ -260,14 +260,14 @@ export function WizardContent() {
                 <div className="flex justify-between mt-4">
                   <button
                     onClick={() => setStep(2)}
-                    className="px-6 py-2.5 rounded-lg border border-zinc-200 text-zinc-600 text-sm font-semibold hover:bg-zinc-50 transition-colors"
+                    className="px-6 py-2.5 rounded-lg border border-zinc-200 text-zinc-600 text-sm font-semibold hover:bg-zinc-50 active:scale-[0.97] transition-all duration-150"
                   >
                     Voltar
                   </button>
                   <button
                     onClick={handleSubmit}
                     disabled={!valorInput || parseFloat(valorInput) < 100}
-                    className="px-6 py-2.5 rounded-lg bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600 disabled:opacity-50 transition-colors"
+                    className="px-6 py-2.5 rounded-lg bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600 disabled:opacity-50 active:scale-[0.97] transition-all duration-150"
                   >
                     Analisar onde investir
                   </button>

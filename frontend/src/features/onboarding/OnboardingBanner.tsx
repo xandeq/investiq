@@ -136,7 +136,7 @@ export function OnboardingBanner() {
             </div>
             <Link
               href={next.href}
-              className="shrink-0 px-3 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-400 text-white text-xs font-semibold transition-colors"
+              className="shrink-0 px-3 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-400 text-white text-xs font-semibold active:scale-[0.97] transition-all duration-150"
             >
               Começar →
             </Link>

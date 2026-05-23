@@ -170,7 +170,7 @@ function DeltaSection({
           </p>
           <a
             href="/portfolio/transactions"
-            className="inline-block rounded-md bg-blue-500 text-white px-5 py-2 text-sm font-medium hover:bg-blue-600 transition-colors"
+            className="inline-block rounded-md bg-blue-500 text-white px-5 py-2 text-sm font-medium hover:bg-blue-600 active:scale-[0.97] transition-all duration-150"
           >
             Cadastrar transações
           </a>
