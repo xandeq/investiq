@@ -85,7 +85,7 @@ function AddForm() {
       <button
         type="submit"
         disabled={addMut.isPending || !ticker.trim()}
-        className="px-4 py-2 text-sm rounded-md bg-blue-500 text-white font-semibold hover:bg-blue-600 hover:scale-105 disabled:opacity-60 transition-all duration-200"
+        className="px-4 py-2 text-sm rounded-md bg-blue-500 text-white font-semibold hover:bg-blue-600 hover:scale-105 active:scale-[0.97] disabled:opacity-60 transition-all duration-150"
       >
         {addMut.isPending ? "..." : "+ Adicionar"}
       </button>

@@ -52,7 +52,7 @@ export function DividendHistory() {
         <p className="text-sm text-zinc-400">Erro ao carregar histórico de dividendos.</p>
         <button
           onClick={() => refetch()}
-          className="text-xs text-zinc-500 hover:text-blue-600 transition-colors underline underline-offset-2"
+          className="text-xs text-zinc-500 hover:text-blue-600 active:scale-[0.97] transition-all duration-150 underline underline-offset-2"
         >
           Tentar novamente
         </button>
@@ -86,18 +86,30 @@ export function DividendHistory() {
           ))}
         </select>
         {filtered.length > 0 && (
-          <span className="ml-auto text-sm font-medium text-green-600">
+          <span className="ml-auto text-sm font-medium text-emerald-600">
             Total filtrado: {formatBRL(totalFiltered)}
           </span>
         )}
       </div>
 
       {filtered.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          {dividends?.length === 0
-            ? "Nenhum provento registrado"
-            : "Nenhum resultado para os filtros selecionados"}
-        </p>
+        <div className="flex flex-col items-center gap-3 py-8 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-50 border border-zinc-200">
+              <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden>
+                <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="#A1A1AA" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-zinc-700">
+                {dividends?.length === 0 ? "Nenhum provento registrado" : "Nenhum resultado"}
+              </p>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                {dividends?.length === 0
+                  ? "Os proventos aparecerão aqui quando forem registrados."
+                  : "Tente ajustar os filtros de ano ou classe."}
+              </p>
+            </div>
+          </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -115,7 +127,7 @@ export function DividendHistory() {
             </thead>
             <tbody>
               {filtered.map((d) => (
-                <tr key={d.id} className="border-b last:border-0 hover:bg-muted/30">
+                <tr key={d.id} className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50 transition-colors">
                   <td className="py-2 pr-4 font-medium">{d.ticker}</td>
                   <td className="py-2 pr-4 text-muted-foreground">
                     {TX_TYPE_LABELS[d.transaction_type] ?? d.transaction_type}
@@ -127,7 +139,7 @@ export function DividendHistory() {
                     {parseFloat(d.quantity).toLocaleString("pt-BR")}
                   </td>
                   <td className="py-2 pr-4 text-right tabular-nums">{formatBRL(d.unit_price)}</td>
-                  <td className="py-2 pr-4 text-right tabular-nums font-medium text-green-600">
+                  <td className="py-2 pr-4 text-right tabular-nums font-medium text-emerald-600">
                     {formatBRL(d.total_value)}
                   </td>
                   <td className="py-2 pr-4 text-right tabular-nums text-muted-foreground">
@@ -135,7 +147,7 @@ export function DividendHistory() {
                   </td>
                   <td className="py-2 text-right tabular-nums">
                     {d.is_exempt ? (
-                      <span className="text-xs text-green-600">Sim</span>
+                      <span className="text-xs text-emerald-600">Sim</span>
                     ) : (
                       <span className="text-xs text-muted-foreground">Não</span>
                     )}

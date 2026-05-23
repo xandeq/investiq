@@ -30,7 +30,7 @@ export function FundsContent() {
           {selectedFund && (
             <button
               onClick={() => setSelectedFund(null)}
-              className="text-xs text-zinc-500 hover:text-zinc-700 underline transition-colors pt-2.5"
+              className="text-xs text-zinc-500 hover:text-zinc-700 underline pt-2.5 active:scale-[0.97] transition-all duration-150"
             >
               limpar
             </button>

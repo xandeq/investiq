@@ -108,7 +108,7 @@ export function TelegramCard() {
             onClick={handleDisconnect}
             disabled={mutation.isPending}
             data-testid="telegram-disconnect-btn"
-            className="inline-flex items-center gap-2 rounded-md bg-zinc-100 px-3 py-2 text-sm font-medium hover:bg-zinc-200 disabled:opacity-60 transition-all duration-200"
+            className="inline-flex items-center gap-2 rounded-md bg-zinc-100 px-3 py-2 text-sm font-medium hover:bg-zinc-200 disabled:opacity-60 active:scale-[0.97] transition-all duration-150"
           >
             <LinkBreak className="h-3.5 w-3.5" />
             {mutation.isPending ? "Desconectando..." : "Desconectar"}
@@ -139,7 +139,7 @@ export function TelegramCard() {
               onClick={handleConnect}
               disabled={mutation.isPending || !input.trim()}
               data-testid="telegram-connect-btn"
-              className="rounded-md bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-600 disabled:opacity-60 transition-all duration-200"
+              className="rounded-md bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-600 disabled:opacity-60 active:scale-[0.97] transition-all duration-150"
             >
               {mutation.isPending ? "Conectando..." : "Conectar"}
             </button>

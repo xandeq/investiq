@@ -274,7 +274,7 @@ function TickerSearch() {
       <button
         onClick={() => setOpen(true)}
         title="Buscar ticker"
-        className="flex items-center justify-center w-7 h-7 rounded-md text-zinc-400 hover:text-white hover:bg-white/10 transition-colors shrink-0"
+        className="flex items-center justify-center w-7 h-7 rounded-md text-zinc-400 hover:text-white hover:bg-white/10 active:scale-[0.97] transition-all duration-150 shrink-0"
       >
         <MagnifyingGlass size={14} />
       </button>
@@ -298,7 +298,7 @@ function TickerSearch() {
       </div>
       <button
         onClick={() => { setOpen(false); setValue(""); }}
-        className="text-zinc-500 hover:text-white transition-colors"
+        className="text-zinc-500 hover:text-white active:scale-[0.97] transition-all duration-150"
       >
         <X size={12} />
       </button>

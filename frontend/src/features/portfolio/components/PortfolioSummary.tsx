@@ -45,7 +45,7 @@ export function PortfolioSummary() {
         <p className="text-sm text-zinc-400">Erro ao carregar resumo do portfólio.</p>
         <button
           onClick={() => refetch()}
-          className="text-xs text-zinc-500 hover:text-blue-600 transition-colors underline underline-offset-2"
+          className="text-xs text-zinc-500 hover:text-blue-600 active:scale-[0.97] transition-all duration-150 underline underline-offset-2"
         >
           Tentar novamente
         </button>
