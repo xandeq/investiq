@@ -77,7 +77,7 @@ function changeBadge(val: string | null) {
   const n = parseFloat(val);
   if (isNaN(n)) return <span className="text-zinc-400">—</span>;
   const color = n >= 0 ? "text-emerald-600" : "text-red-500";
-  return <span className={`font-medium ${color}`}>{n >= 0 ? "+" : ""}{n.toFixed(2)}%</span>;
+  return <span className={`font-medium tabular-nums ${color}`}>{n >= 0 ? "+" : ""}{n.toFixed(2)}%</span>;
 }
 
 function FIIWatchlistButton({ ticker, inWatchlist }: { ticker: string; inWatchlist: boolean }) {
