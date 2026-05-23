@@ -812,7 +812,7 @@ export function IrHelperContent() {
       <div className="flex gap-1 border-b border-zinc-200 overflow-x-auto">
         <button
           onClick={() => setTab("darf")}
-          className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 whitespace-nowrap ${
+          className={`px-4 py-2.5 text-sm font-medium rounded-t-lg active:scale-[0.97] transition-all duration-150 -mb-px border-b-2 whitespace-nowrap ${
             tab === "darf"
               ? "border-blue-500 text-blue-700 bg-blue-50"
               : "border-transparent text-zinc-600 hover:text-zinc-900"
@@ -825,7 +825,7 @@ export function IrHelperContent() {
         </button>
         <button
           onClick={() => setTab("declaration")}
-          className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 whitespace-nowrap ${
+          className={`px-4 py-2.5 text-sm font-medium rounded-t-lg active:scale-[0.97] transition-all duration-150 -mb-px border-b-2 whitespace-nowrap ${
             tab === "declaration"
               ? "border-blue-500 text-blue-700 bg-blue-50"
               : "border-transparent text-zinc-600 hover:text-zinc-900"
@@ -838,7 +838,7 @@ export function IrHelperContent() {
         </button>
         <button
           onClick={() => setTab("tax-loss")}
-          className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 whitespace-nowrap ${
+          className={`px-4 py-2.5 text-sm font-medium rounded-t-lg active:scale-[0.97] transition-all duration-150 -mb-px border-b-2 whitespace-nowrap ${
             tab === "tax-loss"
               ? "border-blue-500 text-blue-700 bg-blue-50"
               : "border-transparent text-zinc-600 hover:text-zinc-900"

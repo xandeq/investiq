@@ -241,14 +241,14 @@ export function LogsContent() {
         <div className="flex items-center gap-2">
           <button
             onClick={load}
-            className="text-xs px-3 py-1.5 border border-border rounded hover:bg-muted transition-colors"
+            className="text-xs px-3 py-1.5 border border-border rounded hover:bg-muted active:scale-[0.97] transition-all duration-150"
           >
             Atualizar
           </button>
           <button
             onClick={handleClearAll}
             disabled={clearing || logs.length === 0}
-            className="text-xs px-3 py-1.5 border border-red-200 text-red-600 rounded hover:bg-red-50 transition-colors disabled:opacity-40"
+            className="text-xs px-3 py-1.5 border border-red-200 text-red-600 rounded hover:bg-red-50 active:scale-[0.97] transition-all duration-150 disabled:opacity-40"
           >
             {clearing ? "Limpando…" : "Limpar tudo"}
           </button>
@@ -261,7 +261,7 @@ export function LogsContent() {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            className={`px-4 py-2 text-sm font-medium active:scale-[0.97] transition-all duration-150 border-b-2 -mb-px ${
               filter === f
                 ? "border-primary text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"
