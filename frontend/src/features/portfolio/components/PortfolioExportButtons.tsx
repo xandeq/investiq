@@ -75,7 +75,7 @@ export function PortfolioExportButtons({ pnl }: PortfolioExportButtonsProps) {
         <button
           onClick={() => setDropdownOpen((v) => !v)}
           disabled={exporting}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 transition-colors disabled:opacity-50 shadow-sm"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 active:scale-[0.97] transition-all duration-150 disabled:opacity-50 shadow-sm"
           title="Exportar carteira"
         >
           <DownloadSimple size={13} weight="bold" />
@@ -106,7 +106,7 @@ export function PortfolioExportButtons({ pnl }: PortfolioExportButtonsProps) {
         onClick={handleCopy}
         disabled={copyState !== "idle"}
         title="Copiar para área de transferência (formato tabela)"
-        className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border transition-colors shadow-sm ${
+        className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border active:scale-[0.97] transition-all duration-150 shadow-sm ${
           copyState === "copied"
             ? "border-emerald-300 bg-emerald-50 text-emerald-700"
             : copyState === "error"

@@ -303,7 +303,7 @@ export function AcoesUniverseContent() {
                 filters.clear();
                 setPage(0);
               }}
-              className="px-4 py-2 rounded-md text-sm text-zinc-600 border border-zinc-200 hover:bg-zinc-50 transition-colors"
+              className="px-4 py-2 rounded-md text-sm text-zinc-600 border border-zinc-200 hover:bg-zinc-50 active:scale-[0.97] transition-all duration-150"
             >
               Limpar
             </button>
