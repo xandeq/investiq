@@ -4,7 +4,7 @@ import { createChart, AreaSeries } from "lightweight-charts";
 import { useQuery } from "@tanstack/react-query";
 import { getDashboardSummary } from "@/features/dashboard/api";
 import { useBenchmarks } from "@/features/portfolio/hooks/useBenchmarks";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 
 export function BenchmarkChart() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -66,7 +66,7 @@ export function BenchmarkChart() {
     };
   }, [timeseries]);
 
-  if (isLoading) return <Skeleton className="h-[320px] w-full rounded-xl" />;
+  if (isLoading) return <ShimmerSkeleton className="h-[320px] w-full rounded-xl" />;
 
   return (
     <div className="rounded-xl border bg-card p-6">

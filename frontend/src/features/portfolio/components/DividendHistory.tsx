@@ -2,7 +2,7 @@
 import { useState, useMemo } from "react";
 import { useDividends } from "@/features/portfolio/hooks/useDividends";
 import { formatBRL, formatDate } from "@/lib/formatters";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 
 const TX_TYPE_LABELS: Record<string, string> = {
   dividend: "Dividendo", jscp: "JSCP", amortization: "Amortização",
@@ -44,7 +44,7 @@ export function DividendHistory() {
     [filtered]
   );
 
-  if (isLoading) return <Skeleton className="h-48 w-full rounded-xl" />;
+  if (isLoading) return <ShimmerSkeleton className="h-48 w-full rounded-xl" />;
 
   if (isError) {
     return (
