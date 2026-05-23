@@ -46,7 +46,7 @@ function MacroSection() {
         <button
           onClick={handleMacroAnalysis}
           disabled={isRunning}
-          className="rounded-md bg-emerald-500 text-white px-4 py-2 text-sm font-semibold hover:bg-emerald-600 hover:scale-105 disabled:opacity-50 transition-all duration-200"
+          className="rounded-md bg-emerald-500 text-white px-4 py-2 text-sm font-semibold hover:bg-emerald-600 disabled:opacity-50 active:scale-[0.97] transition-all duration-150"
         >
           {isRunning ? (
             <span className="flex items-center gap-2">

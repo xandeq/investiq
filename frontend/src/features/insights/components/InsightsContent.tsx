@@ -83,7 +83,7 @@ export function InsightsContent() {
                   <button
                     onClick={() => seenMut.mutate(i.id)}
                     disabled={seenMut.isPending}
-                    className="shrink-0 flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground bg-white px-3 py-1.5 rounded-md transition-all duration-200 hover:scale-105"
+                    className="shrink-0 flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground bg-white px-3 py-1.5 rounded-md active:scale-[0.97] transition-all duration-150"
                   >
                     <Check className="h-3.5 w-3.5" weight="bold" />
                     Lido

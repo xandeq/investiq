@@ -231,7 +231,7 @@ function TransactionModal({ initial, onClose, onSave, loading, error }: ModalPro
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-md bg-zinc-100 hover:bg-zinc-200 font-medium transition-all duration-200">
               Cancelar
             </button>
-            <button type="submit" disabled={loading} className="px-4 py-2 text-sm rounded-md bg-blue-500 text-white hover:bg-blue-600 font-semibold disabled:opacity-60 transition-all duration-200 hover:scale-[1.02]">
+            <button type="submit" disabled={loading} className="px-4 py-2 text-sm rounded-md bg-blue-500 text-white hover:bg-blue-600 font-semibold disabled:opacity-60 active:scale-[0.97] transition-all duration-150">
               {loading ? "Salvando..." : isEdit ? "Salvar alterações" : "Adicionar transação"}
             </button>
           </div>
@@ -416,7 +416,7 @@ export function TransactionsContent() {
           )}
           <button
             onClick={() => { setMutError(""); setShowNew(true); }}
-            className="px-4 py-2 text-sm rounded-md bg-blue-500 text-white font-semibold hover:bg-blue-600 hover:scale-105 transition-all duration-200"
+            className="px-4 py-2 text-sm rounded-md bg-blue-500 text-white font-semibold hover:bg-blue-600 active:scale-[0.97] transition-all duration-150"
           >
             + Nova transação
           </button>

@@ -299,7 +299,7 @@ function ScreenerMain() {
         <button
           onClick={handleSubmit}
           disabled={isRunning}
-          className="px-6 py-3 rounded-md bg-blue-500 text-white hover:bg-blue-400 hover:scale-105 active:scale-[0.97] disabled:opacity-50 transition-all duration-150 font-semibold"
+          className="px-6 py-3 rounded-md bg-blue-500 text-white hover:bg-blue-400 active:scale-[0.97] disabled:opacity-50 transition-all duration-150 font-semibold"
         >
           {isRunning ? (
             <span className="flex items-center gap-2">

@@ -47,7 +47,7 @@ export function PremiumGate({ children }: Props) {
           </div>
           <Link
             href="/planos"
-            className="rounded-md bg-zinc-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-zinc-800 hover:scale-[1.02] transition-all duration-200"
+            className="rounded-md bg-zinc-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-zinc-800 active:scale-[0.97] transition-all duration-150"
           >
             Fazer upgrade para Premium
           </Link>

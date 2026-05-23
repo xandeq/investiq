@@ -572,7 +572,7 @@ function AdvisorMain() {
           <button
             onClick={handleAnalyze}
             disabled={isRunning}
-            className="px-6 py-3 rounded-md bg-blue-500 text-white hover:bg-blue-400 hover:scale-105 disabled:opacity-50 transition-all duration-200 font-semibold"
+            className="px-6 py-3 rounded-md bg-blue-500 text-white hover:bg-blue-400 disabled:opacity-50 active:scale-[0.97] transition-all duration-150 font-semibold"
           >
             {isRunning ? (
               <span className="flex items-center gap-2">

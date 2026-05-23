@@ -57,7 +57,7 @@ export function PricingCard({ name, price, priceNote, features, highlighted = fa
         ) : ctaLabel ? (
           <UpgradeCTA
             label={ctaLabel}
-            className={`w-full rounded-lg text-sm font-bold py-3 px-5 text-center transition-all duration-200 hover:scale-[1.02] ${
+            className={`w-full rounded-lg text-sm font-bold py-3 px-5 text-center active:scale-[0.97] transition-all duration-150 ${
               highlighted ? "bg-blue-500 text-white hover:bg-blue-400" : "bg-zinc-900 text-white hover:bg-zinc-800"
             }`}
           />

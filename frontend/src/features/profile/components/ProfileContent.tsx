@@ -153,7 +153,7 @@ function ProfileSummary({ profile, onEdit }: { profile: ReturnType<typeof usePro
         ))}
       </div>
 
-      <button onClick={onEdit} className="px-4 py-2 text-sm rounded-md bg-zinc-100 hover:bg-zinc-200 font-medium hover:scale-105 active:scale-[0.97] transition-all duration-150">
+      <button onClick={onEdit} className="px-4 py-2 text-sm rounded-md bg-zinc-100 hover:bg-zinc-200 font-medium active:scale-[0.97] transition-all duration-150">
         Editar perfil
       </button>
     </div>
@@ -290,7 +290,7 @@ export function ProfileContent() {
           <button
             type="button"
             onClick={() => setStep((s) => s + 1)}
-            className="px-4 py-2 text-sm rounded-md bg-blue-500 text-white hover:bg-blue-600 font-semibold hover:scale-105 active:scale-[0.97] transition-all duration-150"
+            className="px-4 py-2 text-sm rounded-md bg-blue-500 text-white hover:bg-blue-600 font-semibold active:scale-[0.97] transition-all duration-150"
           >
             Próximo
           </button>
@@ -299,7 +299,7 @@ export function ProfileContent() {
             type="button"
             onClick={handleSave}
             disabled={upsertMut.isPending}
-            className="px-4 py-2 text-sm rounded-md bg-blue-500 text-white hover:bg-blue-600 font-semibold hover:scale-105 disabled:opacity-60 transition-all duration-200"
+            className="px-4 py-2 text-sm rounded-md bg-blue-500 text-white hover:bg-blue-600 font-semibold active:scale-[0.97] disabled:opacity-60 transition-all duration-150"
           >
             {upsertMut.isPending ? "Salvando..." : "Salvar perfil"}
           </button>
