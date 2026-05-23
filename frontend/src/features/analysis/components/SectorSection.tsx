@@ -73,11 +73,11 @@ export function SectorSection({ data, isLoading }: Props) {
                   <td className="py-1 pr-4 text-muted-foreground">
                     {metricLabels[key] ?? key}
                   </td>
-                  <td className="py-1 pr-4 text-right font-medium">{fmt(val)}</td>
-                  <td className="py-1 pr-4 text-right">
+                  <td className="py-1 pr-4 text-right tabular-nums font-medium">{fmt(val)}</td>
+                  <td className="py-1 pr-4 text-right tabular-nums">
                     {fmt((r.sector_averages as Record<string, unknown>)[key])}
                   </td>
-                  <td className="py-1 text-right">
+                  <td className="py-1 text-right tabular-nums">
                     {fmt((r.sector_medians as Record<string, unknown>)[key])}
                   </td>
                 </tr>

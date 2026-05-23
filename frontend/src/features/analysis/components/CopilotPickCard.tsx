@@ -2,6 +2,7 @@
 import { useSignalEval } from "@/hooks/useSignalEval";
 import { useSentiment } from "@/hooks/useSentiment";
 import { useCopilotRationale } from "@/hooks/useCopilotRationale";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 
 interface Props {
   ticker: string;
@@ -73,7 +74,19 @@ export function CopilotPickCard({ ticker }: Props) {
     !signalLoading && !!signal,
   );
 
-  if (signalLoading || sentimentLoading) return null;
+  if (signalLoading || sentimentLoading) {
+    return (
+      <div className="rounded-xl border border-zinc-200 bg-white p-4 space-y-3">
+        <ShimmerSkeleton className="h-4 w-32" />
+        <ShimmerSkeleton className="h-12 w-full rounded-lg" />
+        <div className="space-y-2">
+          <ShimmerSkeleton className="h-3 w-full" />
+          <ShimmerSkeleton className="h-3 w-5/6" />
+          <ShimmerSkeleton className="h-3 w-2/3" />
+        </div>
+      </div>
+    );
+  }
   if (!signal) return null;
 
   const sentimentScore = sentiment?.score ?? 0;

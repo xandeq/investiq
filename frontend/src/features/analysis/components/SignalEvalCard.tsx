@@ -1,5 +1,6 @@
 "use client";
 import { useSignalEval } from "@/hooks/useSignalEval";
+import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 
 interface Props {
   ticker: string;
@@ -44,7 +45,25 @@ function GateBar({ passed, total }: { passed: number; total: number }) {
 export function SignalEvalCard({ ticker }: Props) {
   const { data, isLoading } = useSignalEval(ticker);
 
-  if (isLoading) return null;
+  if (isLoading) {
+    return (
+      <div className="rounded-xl border border-zinc-200 bg-white p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <ShimmerSkeleton className="h-4 w-28" />
+          <ShimmerSkeleton className="h-5 w-16 rounded-full" />
+        </div>
+        <ShimmerSkeleton className="h-1.5 w-full rounded-full" />
+        <div className="space-y-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex items-center gap-2">
+              <ShimmerSkeleton className="h-3 w-4 rounded" />
+              <ShimmerSkeleton className="h-3 flex-1" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
   if (!data) return null;
 
   const { is_a_plus, grade, passed_gates, total_gates, setup } = data;
