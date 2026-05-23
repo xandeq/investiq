@@ -57,7 +57,7 @@ export function StockDetailContent({ ticker }: Props) {
       <div className="flex items-center gap-4">
         <Link
           href="/"
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="text-sm text-muted-foreground hover:text-foreground active:scale-[0.97] transition-all duration-150"
         >
           ← Voltar
         </Link>

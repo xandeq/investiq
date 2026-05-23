@@ -22,7 +22,7 @@ export default function AdminSubscribersPage() {
             <Link
               key={link.href}
               href={link.href}
-              className="px-4 py-2 rounded-md text-sm font-medium transition-colors hover:bg-white/20 text-zinc-300"
+              className="px-4 py-2 rounded-md text-sm font-medium hover:bg-white/20 active:scale-[0.97] transition-all duration-150 text-zinc-300"
             >
               {link.label}
             </Link>

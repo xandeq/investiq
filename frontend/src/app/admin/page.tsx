@@ -72,7 +72,7 @@ export default function AdminDashboardPage() {
             <Link
               key={link.href}
               href={link.href}
-              className="px-4 py-2 rounded-md text-sm font-medium transition-colors bg-white/10 text-white hover:bg-white/20"
+              className="px-4 py-2 rounded-md text-sm font-medium bg-white/10 text-white hover:bg-white/20 active:scale-[0.97] transition-all duration-150"
             >
               {link.label}
             </Link>

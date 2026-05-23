@@ -36,7 +36,7 @@ export default function SuccessPage() {
           </p>
           <Link
             href="/dashboard"
-            className="inline-block rounded-md bg-primary text-primary-foreground px-6 py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors"
+            className="inline-block rounded-md bg-primary text-primary-foreground px-6 py-2.5 text-sm font-medium hover:bg-primary/90 active:scale-[0.97] transition-all duration-150"
           >
             Ir para o Dashboard
           </Link>

@@ -355,7 +355,7 @@ export function OperationsSection({
       <div>
         <button
           onClick={() => setShowClosed((s) => !s)}
-          className="text-xs text-zinc-500 hover:text-zinc-800 underline decoration-zinc-300 hover:decoration-zinc-600 transition-colors"
+          className="text-xs text-zinc-500 hover:text-zinc-800 underline decoration-zinc-300 hover:decoration-zinc-600 active:scale-[0.97] transition-all duration-150"
         >
           {showClosed ? "Ocultar" : "Mostrar"} operações fechadas ({closedOps.length})
         </button>
