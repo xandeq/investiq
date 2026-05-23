@@ -93,9 +93,9 @@ function DeltaRow({ item }: { item: WizardDeltaItem }) {
         <span className="text-sm font-medium text-zinc-700">{item.label}</span>
       </div>
       <div className="flex items-center gap-4 text-sm">
-        <span className="text-zinc-400 w-16 text-right">{item.current_pct.toFixed(1)}% atual</span>
-        <span className="text-zinc-600 font-medium w-16 text-right">→ {item.suggested_pct.toFixed(1)}%</span>
-        <span className={`font-semibold w-32 text-right ${actionClass}`}>
+        <span className="text-zinc-400 w-16 text-right tabular-nums">{item.current_pct.toFixed(1)}% atual</span>
+        <span className="text-zinc-600 font-medium w-16 text-right tabular-nums">→ {item.suggested_pct.toFixed(1)}%</span>
+        <span className={`font-semibold w-32 text-right tabular-nums ${actionClass}`}>
           {ACTION_LABELS[item.action]}
           {item.action !== "manter" && item.valor_delta !== 0 && (
             <span className="ml-1">{fmtBRL(Math.abs(item.valor_delta))}</span>
