@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
-import { CaretDown, CaretUp } from "@phosphor-icons/react";
+import { CaretDown, CaretUp, MagnifyingGlass, ClockCounterClockwise } from "@phosphor-icons/react";
 import { startScreener } from "../api";
 import { useScreenerJob, useScreenerHistory } from "../hooks/useScreenerJob";
 import { PremiumGate } from "@/features/ai/components/PremiumGate";
@@ -166,9 +166,21 @@ function ScreenerResultView({ run }: { run: ScreenerRun }) {
         <h3 className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
           {result.stocks.length} ações selecionadas
         </h3>
-        {result.stocks.map((stock, i) => (
-          <StockCard key={stock.ticker} stock={stock} index={i} />
-        ))}
+        {result.stocks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 gap-3">
+            <div className="h-10 w-10 rounded-full bg-zinc-50 border border-zinc-200 flex items-center justify-center">
+              <MagnifyingGlass className="h-5 w-5 text-zinc-400" />
+            </div>
+            <p className="text-sm font-medium text-zinc-700">Nenhuma ação encontrada</p>
+            <p className="text-xs text-zinc-400 text-center max-w-xs">
+              Os critérios da triagem não retornaram ativos neste momento. Tente ajustar o filtro de setor ou notas adicionais.
+            </p>
+          </div>
+        ) : (
+          result.stocks.map((stock, i) => (
+            <StockCard key={stock.ticker} stock={stock} index={i} />
+          ))
+        )}
       </div>
 
       <p className="text-xs text-zinc-400 border-t border-zinc-100 pt-3">{result.disclaimer}</p>
@@ -182,7 +194,21 @@ function ScreenerResultView({ run }: { run: ScreenerRun }) {
 function ScreenerHistory({ onSelect }: { onSelect: (runId: string) => void }) {
   const { data: runs, isLoading } = useScreenerHistory();
 
-  if (isLoading || !runs || runs.length === 0) return null;
+  if (isLoading) return null;
+
+  if (!runs || runs.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-10 gap-3">
+        <div className="h-10 w-10 rounded-full bg-zinc-50 border border-zinc-200 flex items-center justify-center">
+          <ClockCounterClockwise className="h-5 w-5 text-zinc-400" />
+        </div>
+        <p className="text-sm font-medium text-zinc-700">Nenhuma triagem realizada</p>
+        <p className="text-xs text-zinc-400 text-center max-w-xs">
+          Inicie sua primeira triagem acima para ver as melhores oportunidades da B3.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">
