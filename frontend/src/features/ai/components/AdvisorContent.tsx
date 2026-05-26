@@ -54,10 +54,12 @@ function HealthSection({
 
   if (!health.has_portfolio) {
     return (
-      <div className="rounded-lg bg-zinc-50 border border-zinc-200 p-5 text-center">
-        <p className="text-sm text-zinc-500">
-          Nenhuma transação encontrada. Importe sua carteira para ver o diagnóstico de saúde.
-        </p>
+      <div className="rounded-lg bg-zinc-50 border border-zinc-200 p-6 flex flex-col items-center gap-2 text-center">
+        <div className="h-10 w-10 rounded-full bg-zinc-50 border border-zinc-200 flex items-center justify-center text-zinc-400 text-lg">
+          📊
+        </div>
+        <p className="text-sm font-medium text-zinc-700">Carteira vazia</p>
+        <p className="text-xs text-zinc-400">Importe suas transações para ver o diagnóstico de saúde.</p>
       </div>
     );
   }
@@ -76,7 +78,7 @@ function HealthSection({
           )}
           <button
             onClick={onRefresh}
-            className="text-[11px] text-blue-500 hover:text-blue-400 transition-colors"
+            className="text-[11px] text-blue-500 hover:text-blue-400 transition-colors active:scale-[0.97] transition-all duration-150"
           >
             Atualizar
           </button>
@@ -86,7 +88,7 @@ function HealthSection({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="rounded-lg border border-zinc-200 bg-white p-4 text-center">
           <p className="text-[11px] uppercase tracking-wide text-zinc-400 mb-1">Score</p>
-          <p className={`text-3xl font-bold ${scoreColor(health.health_score)}`}>
+          <p className={`text-3xl font-bold tabular-nums ${scoreColor(health.health_score)}`}>
             {health.health_score}
           </p>
           <p className={`text-[11px] font-medium mt-1 ${scoreColor(health.health_score)}`}>
@@ -107,7 +109,7 @@ function HealthSection({
           <p className="text-[11px] uppercase tracking-wide text-zinc-400 mb-1">
             Renda Mensal
           </p>
-          <p className="text-xl font-bold text-emerald-600">
+          <p className="text-xl font-bold text-emerald-600 tabular-nums">
             {fmtBRL(health.passive_income_monthly_brl)}
           </p>
           <p className="text-[11px] text-zinc-400 mt-1">últ. 12 meses ÷ 12</p>
@@ -241,11 +243,12 @@ function SmartScreenerSection({
 
   if (!assets.length) {
     return (
-      <div className="rounded-lg border border-zinc-200 p-5 text-center">
-        <p className="text-sm text-zinc-500">
-          Nenhum ativo complementar encontrado. Importe sua carteira para ver sugestões
-          personalizadas.
-        </p>
+      <div className="rounded-lg border border-zinc-200 p-6 flex flex-col items-center gap-2 text-center">
+        <div className="h-10 w-10 rounded-full bg-zinc-50 border border-zinc-200 flex items-center justify-center text-zinc-400 text-lg">
+          🔍
+        </div>
+        <p className="text-sm font-medium text-zinc-700">Nenhum ativo complementar</p>
+        <p className="text-xs text-zinc-400">Importe sua carteira para ver sugestões personalizadas.</p>
       </div>
     );
   }
@@ -424,10 +427,12 @@ function EntrySignalsSection({
         )}
 
         {!portfolioLoading && portfolioSignals.length === 0 && (
-          <div className="rounded-lg border border-zinc-200 p-5 text-center">
-            <p className="text-sm text-zinc-500">
-              Nenhum sinal disponível — sem dados de mercado para seus ativos no momento.
-            </p>
+          <div className="rounded-lg border border-zinc-200 p-6 flex flex-col items-center gap-2 text-center">
+            <div className="h-10 w-10 rounded-full bg-zinc-50 border border-zinc-200 flex items-center justify-center text-zinc-400 text-lg">
+              📡
+            </div>
+            <p className="text-sm font-medium text-zinc-700">Sem sinais disponíveis</p>
+            <p className="text-xs text-zinc-400">Sem dados de mercado para seus ativos no momento.</p>
           </div>
         )}
 
@@ -452,10 +457,12 @@ function EntrySignalsSection({
         )}
 
         {!universeLoading && universeSignals.length === 0 && (
-          <div className="rounded-lg border border-zinc-200 p-5 text-center">
-            <p className="text-sm text-zinc-500">
-              Nenhum sinal disponível — batch noturno ainda não executado.
-            </p>
+          <div className="rounded-lg border border-zinc-200 p-6 flex flex-col items-center gap-2 text-center">
+            <div className="h-10 w-10 rounded-full bg-zinc-50 border border-zinc-200 flex items-center justify-center text-zinc-400 text-lg">
+              🌙
+            </div>
+            <p className="text-sm font-medium text-zinc-700">Nenhuma oportunidade encontrada</p>
+            <p className="text-xs text-zinc-400">Batch noturno ainda não executado.</p>
           </div>
         )}
 

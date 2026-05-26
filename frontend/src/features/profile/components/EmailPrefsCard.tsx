@@ -65,6 +65,7 @@ export function EmailPrefsCard() {
               className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent
                 transition-colors duration-200 ease-in-out focus:outline-none
                 disabled:opacity-60 disabled:cursor-not-allowed
+                active:scale-[0.97] transition-all duration-150
                 ${data?.email_digest_enabled ? "bg-blue-500" : "bg-zinc-200"}`}
               role="switch"
               aria-checked={data?.email_digest_enabled ?? true}
