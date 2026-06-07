@@ -8,6 +8,7 @@ set -euo pipefail
 
 SSH_KEY="$HOME/.ssh/vps_hostinger_ed25519"
 VPS_HOST="185.173.110.180"
+VPS_PORT="2282"
 VPS_USER="root"
 CONTAINER="financas-backend-1"
 WORKER_CONTAINER="financas-celery-worker-1"
@@ -26,7 +27,7 @@ for arg in "$@"; do
 done
 
 vps() {
-  ssh -o StrictHostKeyChecking=accept-new -i "$SSH_KEY" "${VPS_USER}@${VPS_HOST}" "$@"
+  ssh -p "$VPS_PORT" -o StrictHostKeyChecking=accept-new -i "$SSH_KEY" "${VPS_USER}@${VPS_HOST}" "$@"
 }
 
 echo ""
@@ -40,7 +41,7 @@ info "Step 1/3: Uploading backend/app and alembic/versions to VPS..."
 cd "$PROJECT_DIR/backend"
 
 (tar czf - app/ alembic/) | \
-  ssh -o StrictHostKeyChecking=accept-new -i "$SSH_KEY" "${VPS_USER}@${VPS_HOST}" \
+  ssh -p "$VPS_PORT" -o StrictHostKeyChecking=accept-new -i "$SSH_KEY" "${VPS_USER}@${VPS_HOST}" \
   "mkdir -p /tmp/be-deploy && tar xzf - -C /tmp/be-deploy"
 
 success "Upload complete."

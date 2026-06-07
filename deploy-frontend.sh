@@ -14,6 +14,7 @@ set -euo pipefail
 
 SSH_KEY="$HOME/.ssh/vps_hostinger_ed25519"
 VPS_HOST="185.173.110.180"
+VPS_PORT="2282"
 VPS_USER="root"
 CONTAINER="financas-frontend-1"
 FRONTEND_DIR="/d/claude-code/investiq/frontend"
@@ -32,7 +33,7 @@ done
 
 # Helper: run command on VPS
 vps() {
-  ssh -o StrictHostKeyChecking=accept-new -i "$SSH_KEY" "${VPS_USER}@${VPS_HOST}" "$@"
+  ssh -p "$VPS_PORT" -o StrictHostKeyChecking=accept-new -i "$SSH_KEY" "${VPS_USER}@${VPS_HOST}" "$@"
 }
 
 echo ""
@@ -77,7 +78,7 @@ vps "rm -rf /tmp/fe-deploy && mkdir -p /tmp/fe-deploy/standalone"
 # Container CMD is: node .next/standalone/server.js — files must be at /app/.next/standalone/
 info "  Uploading .next/standalone (excluding node_modules — keeps Alpine Linux binaries)..."
 (cd .next/standalone && tar czf - --exclude='./node_modules' .) | \
-  ssh -o StrictHostKeyChecking=accept-new -i "$SSH_KEY" "${VPS_USER}@${VPS_HOST}" \
+  ssh -p "$VPS_PORT" -o StrictHostKeyChecking=accept-new -i "$SSH_KEY" "${VPS_USER}@${VPS_HOST}" \
   "tar xzf - -C /tmp/fe-deploy/standalone"
 
 success "Upload complete."
