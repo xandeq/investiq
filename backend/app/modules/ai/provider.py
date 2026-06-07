@@ -25,17 +25,16 @@ ADMIN tier — internal/admin accounts:
   Free pool first (same as FREE tier).
   If all free models fail → falls back to paid chain as last resort.
 
-Free model pool (confirmed working 2026-03-20):
-    groq       - llama-3.1-8b-instant
-    groq       - llama-3.3-70b-versatile
-    groq       - meta-llama/llama-4-scout-17b-16e-instruct
-    groq       - moonshotai/kimi-k2-instruct
-    groq       - qwen/qwen3-32b
-    groq       - openai/gpt-oss-20b
-    cerebras   - llama3.1-8b
-    gemini     - gemini-2.5-flash
+Free model pool (live-validated 2026-06-07 with a real InvestIQ JSON prompt —
+see _FREE_MODEL_POOL): Groq llama-3.3-70b / llama-3.1-8b / llama-4-scout,
+OpenRouter gemma-4-26b / gemma-4-31b / nemotron-3-nano (:free), Gemini 2.5-flash.
 
-All keys are fetched from AWS Secrets Manager and cached per process.
+COST KILL-SWITCH: when settings.AI_FORCE_FREE (or env AI_FORCE_FREE) is true,
+EVERY tier (paid/ultra/admin) is forced to the free pool — no paid/premium spend.
+Flip to false to re-enable the paid/ultra chains.
+
+Keys are read from runtime env first, then AWS Secrets Manager as fallback,
+cached per process.
 """
 from __future__ import annotations
 
@@ -62,6 +61,8 @@ _cerebras_key: Optional[str] = None
 _gemini_key: Optional[str] = None
 _anthropic_key: Optional[str] = None
 _perplexity_key: Optional[str] = None
+_deepseek_key: Optional[str] = None
+_xai_key: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
@@ -198,6 +199,20 @@ def _get_perplexity_key() -> Optional[str]:
     return _perplexity_key
 
 
+def _get_deepseek_key() -> Optional[str]:
+    global _deepseek_key
+    if _deepseek_key is None:
+        _deepseek_key = _fetch_secret("tools/deepseek", "DEEPSEEK_API_KEY")
+    return _deepseek_key
+
+
+def _get_xai_key() -> Optional[str]:
+    global _xai_key
+    if _xai_key is None:
+        _xai_key = _fetch_secret("tools/xai", "XAI_API_KEY")
+    return _xai_key
+
+
 def _is_quota_error(status_code: int, body: str) -> bool:
     """Detect quota/billing errors that should trigger provider fallback."""
     if status_code in (402, 429):
@@ -212,25 +227,49 @@ def _is_quota_error(status_code: int, body: str) -> bool:
 # ---------------------------------------------------------------------------
 # Each entry: (provider_name, model_id, api_style)
 # api_style: "openai_compat" | "gemini"
+# Live-validated 2026-06-07 via smoke test. Only models confirmed responding
+# (or valid IDs that are transiently rate-limited) are kept. The pool is shuffled
+# and tried one-by-one with a 25s per-model timeout — a slow/down/429 model fails
+# over to the next automatically (_call_free_pool).
+# Live-validated 2026-06-07 with a real InvestIQ JSON prompt (PETR4 analysis):
+# every model below returned schema-valid JSON. Reasoning models that emit
+# <think> blocks (e.g. qwen3-32b) were dropped — InvestIQ JSON parsers only
+# strip ``` fences, so <think> output breaks them. 429-prone OpenRouter IDs
+# were dropped in favor of the one confirmed responding. The pool is shuffled
+# and tried one-by-one with a 25s per-model timeout (_call_free_pool); a
+# slow/down/429 model fails over to the next automatically.
 _FREE_MODEL_POOL = [
-    ("groq", "llama-3.1-8b-instant",                        "openai_compat"),
+    # Groq — fastest (~1s), confirmed clean JSON, no reasoning leak — try first
     ("groq", "llama-3.3-70b-versatile",                     "openai_compat"),
+    ("groq", "llama-3.1-8b-instant",                        "openai_compat"),
     ("groq", "meta-llama/llama-4-scout-17b-16e-instruct",   "openai_compat"),
-    ("groq", "moonshotai/kimi-k2-instruct",                 "openai_compat"),
-    ("groq", "qwen/qwen3-32b",                              "openai_compat"),
-    ("groq", "openai/gpt-oss-20b",                         "openai_compat"),
-    ("cerebras", "llama3.1-8b",                             "openai_compat"),
+    # OpenRouter :free — validated schema-valid JSON, no <think> leak, <11s
+    ("openrouter", "google/gemma-4-26b-a4b-it:free",        "openrouter"),
+    ("openrouter", "nvidia/nemotron-3-nano-30b-a3b:free",   "openrouter"),
+    ("openrouter", "google/gemma-4-31b-it:free",            "openrouter"),
+    # Gemini — reliable backstop, 250k tokens/min free
     ("gemini", "gemini-2.5-flash",                          "gemini"),
 ]
 
 # Ultra tier pool — rotated round-robin across calls (1 provider per call, fallback to next)
 # style: "anthropic" | "openai_compat" | "openrouter" | "gemini"
+# Premium models are intentional here — ultra is a paid upsell (pro plan + ai_mode=ultra).
 _ULTRA_POOL = [
     ("anthropic",  "claude-sonnet-4-6",  "anthropic"),
     ("openai",     "gpt-4o",             "openai_compat"),
     ("perplexity", "sonar-pro",          "perplexity"),
     ("openrouter", "deepseek/deepseek-r1", "openrouter"),
     ("gemini",     "gemini-2.5-pro",     "gemini"),
+]
+
+# Cheap tier chain — cheapest paid models, tried in order, then free pool.
+# Middle ground between the free pool and the premium ultra chain.
+# style: "openai_compat" with a per-provider (url, key_fn). All OpenAI-compatible.
+# DeepSeek (deepseek-chat) is ~$0.014/1k in, grok-3-mini and gpt-4o-mini are cheap too.
+_CHEAP_CHAIN = [
+    ("deepseek", "deepseek-chat", "https://api.deepseek.com/chat/completions",   _get_deepseek_key),
+    ("xai",      "grok-3-mini",   "https://api.x.ai/v1/chat/completions",        _get_xai_key),
+    ("openai",   "gpt-4o-mini",   "https://api.openai.com/v1/chat/completions",  _get_openai_key),
 ]
 
 # Module-level rotation counter — advances on each successful ultra call
@@ -254,6 +293,7 @@ async def _call_openai_compat(
     messages: list,
     extra_headers: dict | None = None,
     max_tokens: int = 1500,
+    timeout: float = 60.0,
 ) -> str:
     """Call an OpenAI-compatible chat completions endpoint."""
     headers = {
@@ -263,7 +303,7 @@ async def _call_openai_compat(
     if extra_headers:
         headers.update(extra_headers)
 
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    async with httpx.AsyncClient(timeout=timeout) as client:
         resp = await client.post(
             url,
             headers=headers,
@@ -282,7 +322,7 @@ async def _call_openai_compat(
         )
 
 
-async def _call_gemini(api_key: str, model: str, messages: list) -> str:
+async def _call_gemini(api_key: str, model: str, messages: list, timeout: float = 45.0) -> str:
     """Call Gemini via REST API."""
     # Convert messages to Gemini format
     parts = []
@@ -297,7 +337,7 @@ async def _call_gemini(api_key: str, model: str, messages: list) -> str:
     if system_text:
         payload["system_instruction"] = {"parts": [{"text": system_text}]}
 
-    async with httpx.AsyncClient(timeout=45.0) as client:
+    async with httpx.AsyncClient(timeout=timeout) as client:
         resp = await client.post(
             f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}",
             headers={"Content-Type": "application/json"},
@@ -325,6 +365,9 @@ async def _call_free_pool(messages: list, max_tokens: int = 1500, label: str = "
     pool = list(_FREE_MODEL_POOL)
     random.shuffle(pool)
 
+    # Shorter per-model timeout so a slow/unresponsive free model fails over fast.
+    _FREE_TIMEOUT = 25.0
+
     errors = []
     for provider, model, style in pool:
         _t0 = time.time()
@@ -334,7 +377,22 @@ async def _call_free_pool(messages: list, max_tokens: int = 1500, label: str = "
                 if not key:
                     errors.append(f"gemini/{model}: no key")
                     continue
-                content = await _call_gemini(key, model, messages)
+                content = await _call_gemini(key, model, messages, timeout=_FREE_TIMEOUT)
+            elif style == "openrouter":
+                key = _get_openrouter_key()
+                if not key:
+                    errors.append(f"openrouter/{model}: no key")
+                    continue
+                content = await _call_openai_compat(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    key, model, messages,
+                    extra_headers={
+                        "HTTP-Referer": "https://investiq.com.br",
+                        "X-Title": "InvestIQ Free Analysis",
+                    },
+                    max_tokens=max_tokens,
+                    timeout=_FREE_TIMEOUT,
+                )
             else:
                 key_fn = _PROVIDER_KEY_FN.get(provider)
                 key = key_fn() if key_fn else None
@@ -342,7 +400,7 @@ async def _call_free_pool(messages: list, max_tokens: int = 1500, label: str = "
                     errors.append(f"{provider}/{model}: no key")
                     continue
                 url = _PROVIDER_URLS[provider]
-                content = await _call_openai_compat(url, key, model, messages, max_tokens=max_tokens)
+                content = await _call_openai_compat(url, key, model, messages, max_tokens=max_tokens, timeout=_FREE_TIMEOUT)
 
             logger.info("AI call completed via %s (model=%s) [%s]", provider, model, label)
             _log_usage(provider, model, int((time.time() - _t0) * 1000), True)
@@ -616,6 +674,48 @@ async def _call_paid_chain(messages: list, model: str, max_tokens: int = 1500, l
     )
 
 
+async def _call_cheap_chain(messages: list, max_tokens: int = 1500, label: str = "cheap") -> str:
+    """Try the cheapest paid models in order: DeepSeek → Grok-3-mini → gpt-4o-mini.
+
+    Each is OpenAI-compatible. On timeout/error/quota, falls through to the next.
+
+    Raises:
+        AIProviderError: If every cheap provider fails.
+    """
+    errors = []
+    for provider, model, url, key_fn in _CHEAP_CHAIN:
+        key = key_fn()
+        if not key:
+            errors.append(f"{provider}/{model}: no key")
+            continue
+        _t0 = time.time()
+        try:
+            content = await _call_openai_compat(url, key, model, messages, max_tokens=max_tokens, timeout=40.0)
+            logger.info("AI call completed via %s (%s) [%s]", provider, model, label)
+            _log_usage(provider, model, int((time.time() - _t0) * 1000), True)
+            return content
+        except httpx.TimeoutException as exc:
+            logger.warning("[CHEAP] %s/%s timed out — trying next", provider, model)
+            _log_usage(provider, model, int((time.time() - _t0) * 1000), False, f"timeout: {exc}")
+            errors.append(f"{provider}/{model}: timeout")
+        except httpx.HTTPStatusError as exc:
+            code = exc.response.status_code if exc.response else 0
+            if _is_quota_error(code, str(exc)):
+                logger.warning("[QUOTA_ALERT][CHEAP] %s/%s quota/billing — trying next", provider, model)
+            else:
+                logger.warning("[CHEAP] %s/%s HTTP %s — trying next", provider, model, code)
+            _log_usage(provider, model, int((time.time() - _t0) * 1000), False, f"HTTP {code}")
+            errors.append(f"{provider}/{model}: HTTP {code}")
+        except Exception as exc:
+            logger.warning("[CHEAP] %s/%s exception — trying next: %s", provider, model, exc)
+            _log_usage(provider, model, int((time.time() - _t0) * 1000), False, str(exc)[:300])
+            errors.append(f"{provider}/{model}: {exc}")
+
+    raise AIProviderError(
+        f"All cheap providers failed [{label}]. Errors: {'; '.join(errors[:3])}"
+    )
+
+
 async def call_llm(
     prompt: str,
     system: str = "",
@@ -631,6 +731,7 @@ async def call_llm(
         model: OpenAI model name (used for paid path only).
         tier: Routing tier — one of:
             "free"  → free model pool only (trial/free-plan users).
+            "cheap" → cheapest paid chain (DeepSeek→Grok-3-mini→gpt-4o-mini), then free pool.
             "paid"  → paid chain first (OpenAI→OpenRouter→Groq), then free pool as fallback.
             "ultra" → premium chain (Anthropic→GPT-4o→Perplexity→DeepSeek-R1→Gemini-2.5-Pro),
                       then paid chain, then free pool as last resort.
@@ -648,6 +749,20 @@ async def call_llm(
         messages.append({"role": "system", "content": system})
     messages.append({"role": "user", "content": prompt})
 
+    # Global cost kill-switch — force every tier to the free pool when enabled.
+    # Env var AI_FORCE_FREE takes precedence; defaults to settings value.
+    _force_free_env = os.environ.get("AI_FORCE_FREE")
+    if _force_free_env is not None:
+        _force_free = _force_free_env.strip().lower() in ("1", "true", "yes", "on")
+    else:
+        try:
+            from app.core.config import settings as _settings
+            _force_free = bool(getattr(_settings, "AI_FORCE_FREE", True))
+        except Exception:
+            _force_free = True
+    if _force_free:
+        return await _call_free_pool(messages, max_tokens=max_tokens, label=f"forcefree-{tier}")
+
     if tier == "free":
         # Free/trial users: free pool only, no paid fallback
         return await _call_free_pool(messages, max_tokens=max_tokens, label="free")
@@ -663,6 +778,14 @@ async def call_llm(
         except AIProviderError:
             logger.warning("All paid providers failed for ultra user — falling back to free pool")
             return await _call_free_pool(messages, max_tokens=max_tokens, label="ultra-free-fallback")
+
+    if tier == "cheap":
+        # Cheap tier: cheapest paid chain (DeepSeek→Grok-mini→gpt-4o-mini), free as fallback
+        try:
+            return await _call_cheap_chain(messages, max_tokens=max_tokens, label="cheap")
+        except AIProviderError:
+            logger.warning("All cheap providers failed — falling back to free pool")
+            return await _call_free_pool(messages, max_tokens=max_tokens, label="cheap-free-fallback")
 
     if tier == "paid":
         # Paying users: paid chain first, free pool as ultimate fallback
