@@ -97,19 +97,19 @@ def test_macro_watchdog_missing_key(fake_redis_sync):
 
 
 def test_macro_watchdog_stale(fake_redis_sync):
-    """Returns status=stale when fetched_at is older than 2h."""
+    """Returns status=stale when fetched_at is older than the 7h threshold."""
     from datetime import timedelta
     from unittest.mock import patch
-    from app.modules.market_data.tasks import check_macro_freshness
+    from app.modules.market_data.tasks import check_macro_freshness, _MACRO_STALE_THRESHOLD_SECONDS
 
-    stale_ts = (datetime.now(timezone.utc) - timedelta(hours=3)).isoformat()
+    stale_ts = (datetime.now(timezone.utc) - timedelta(hours=8)).isoformat()
     fake_redis_sync.set("market:macro:fetched_at", stale_ts)
 
     with patch("app.modules.market_data.tasks._get_redis", return_value=fake_redis_sync):
         result = check_macro_freshness()
 
     assert result["status"] == "stale"
-    assert result["age_seconds"] > 2 * 3600
+    assert result["age_seconds"] > _MACRO_STALE_THRESHOLD_SECONDS
 
 
 def test_macro_watchdog_ok(fake_redis_sync):
