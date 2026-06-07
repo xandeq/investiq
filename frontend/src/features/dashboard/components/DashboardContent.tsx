@@ -17,6 +17,7 @@ import { MonthlyReturnHeatmap } from "./MonthlyReturnHeatmap";
 import { GoalsProgressCard } from "./GoalsProgressCard";
 import { PositionMoversCard } from "./PositionMoversCard";
 import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
+import { OutcomesSection } from "@/features/outcome_tracker/components/OutcomesSection";
 import Link from "next/link";
 import { OnboardingBanner } from "@/features/onboarding/OnboardingBanner";
 
@@ -171,6 +172,20 @@ export function DashboardContent() {
 
       {/* Row 3h: Investment Goals Progress */}
       <GoalsProgressCard />
+
+      {/* DIVIDER: Closed Loop Section — System Performance */}
+      <div className="pt-4 border-t border-zinc-200/60">
+        <motion.div
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          className="mb-6"
+        >
+          <h2 className="text-lg font-bold text-zinc-900 tracking-tight">Desempenho de Sinais</h2>
+          <p className="text-sm text-zinc-500 mt-1">Análise do loop fechado: como seus sinais estão performando</p>
+        </motion.div>
+        <OutcomesSection />
+      </div>
 
       {/* Row 4: Recent Transactions */}
       {isLoading ? (
