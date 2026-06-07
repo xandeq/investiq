@@ -6,7 +6,7 @@
 
 set -euo pipefail
 
-SSH_KEY="$HOME/.ssh/id_ed25519_vps"
+SSH_KEY="$HOME/.ssh/vps_hostinger_ed25519"
 VPS_HOST="185.173.110.180"
 VPS_USER="root"
 CONTAINER="financas-backend-1"
