@@ -121,7 +121,7 @@ Retorne APENAS o JSON abaixo, sem nenhum texto adicional:
 {_OUTPUT_SCHEMA}
 """
 
-    raw = await call_llm(prompt, system=_SYSTEM, model="gpt-4o", tier=tier, max_tokens=4000)
+    raw = await call_llm(prompt, system=_SYSTEM, model="gpt-4o-mini", tier=tier, max_tokens=4000)
     logger.info("Goldman screener AI call completed")
 
     # Parse JSON
