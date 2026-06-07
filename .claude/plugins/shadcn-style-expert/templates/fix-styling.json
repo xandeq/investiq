@@ -1,0 +1,8 @@
+{
+  "id": "fix-styling",
+  "name": "Fix Style Violations",
+  "description": "Automatically fix common style guide violations and anti-patterns",
+  "argumentHint": "Paste the code with style issues",
+  "allowedTools": ["Read", "Write", "Edit", "MultiEdit"],
+  "model": null
+}

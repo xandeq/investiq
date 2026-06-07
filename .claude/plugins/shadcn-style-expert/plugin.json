@@ -1,0 +1,27 @@
+{
+  "id": "shadcn-style-expert",
+  "name": "shadcn/ui Style Expert",
+  "version": "1.0.0",
+  "category": "frontend",
+  "tags": ["shadcn", "tailwind", "css", "styling", "dark-mode", "components", "ui"],
+  "metadata": {
+    "author": "Claude Code Team",
+    "description": "Expert guidance for shadcn/ui, Tailwind CSS v4, and modern CSS architecture with theme variables",
+    "icon": "🎨",
+    "documentation": "https://docs.claude-code.com/plugins/shadcn-style-expert",
+    "keywords": ["shadcn", "tailwind", "css", "dark-mode", "theme", "oklch", "components"],
+    "license": "MIT"
+  },
+  "enhances": ["frontend-expert", "vite-react-optimizer", "tailwind-expert"],
+  "provides": {
+    "agents": ["agents/style-architect.md"],
+    "templates": [
+      "templates/fix-styling.md",
+      "templates/shadcn-component.md",
+      "templates/theme-colors.md",
+      "templates/dark-mode-setup.md",
+      "templates/responsive-patterns.md"
+    ],
+    "hooks": ["hooks/style-guardian.json"]
+  }
+}

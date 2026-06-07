@@ -1,0 +1,22 @@
+{
+  "id": "file-change-limiter",
+  "name": "File Change Limiter",
+  "description": "Limits the number of files and lines that can be modified in a single operation",
+  "event": "PreToolUse",
+  "matcher": "Edit|MultiEdit|Write",
+  "script": "file-change-limiter",
+  "config": {
+    "timeout": 500,
+    "priority": 95
+  },
+  "environment": {
+    "MAX_FILES_PER_OPERATION": {
+      "default": "3",
+      "description": "Maximum number of files that can be modified in one operation"
+    },
+    "MAX_LINES_PER_FILE": {
+      "default": "400",
+      "description": "Maximum number of lines allowed per file"
+    }
+  }
+}

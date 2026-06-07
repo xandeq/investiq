@@ -1,0 +1,63 @@
+{
+  "id": "init-project",
+  "name": "Initialize New Project",
+  "description": "Complete workflow for starting a new software project",
+  "requirements": [
+    "Project idea or requirements",
+    "Target technology stack decided"
+  ],
+  "outcomes": [
+    "Project structure created",
+    "Development environment configured",
+    "Initial documentation written",
+    "Git repository initialized",
+    "First tasks defined"
+  ],
+  "steps": [
+    {
+      "id": "planning",
+      "name": "Project Planning",
+      "description": "Define project scope and create initial plan",
+      "action": "template",
+      "parameters": {
+        "template": "plan-project"
+      }
+    },
+    {
+      "id": "structure",
+      "name": "Create Project Structure",
+      "description": "Set up directory structure and initial files",
+      "action": "command",
+      "parameters": {
+        "command": "mkdir -p src tests docs"
+      }
+    },
+    {
+      "id": "git-init",
+      "name": "Initialize Git Repository",
+      "description": "Set up version control",
+      "action": "command",
+      "parameters": {
+        "command": "git init && git add . && git commit -m 'Initial commit'"
+      }
+    },
+    {
+      "id": "documentation",
+      "name": "Generate Documentation",
+      "description": "Create README and initial docs",
+      "action": "template",
+      "parameters": {
+        "template": "generate-docs"
+      }
+    },
+    {
+      "id": "tasks",
+      "name": "Create Initial Tasks",
+      "description": "Define first set of development tasks",
+      "action": "template",
+      "parameters": {
+        "template": "create-tasks"
+      }
+    }
+  ]
+}

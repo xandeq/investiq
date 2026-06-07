@@ -1,0 +1,26 @@
+{
+  "id": "command-validator",
+  "name": "Command Validator",
+  "description": "Validates bash commands and blocks dangerous operations",
+  "event": "PreToolUse",
+  "matcher": "Bash",
+  "script": "command-validator",
+  "config": {
+    "timeout": 500,
+    "priority": 99
+  },
+  "environment": {
+    "ALLOWED_COMMANDS": {
+      "default": "",
+      "description": "Comma-separated list of explicitly allowed commands"
+    },
+    "BLOCKED_COMMANDS": {
+      "default": "rm -rf /,dd,format,mkfs",
+      "description": "Comma-separated list of blocked commands"
+    },
+    "ALLOW_SUDO": {
+      "default": "false",
+      "description": "Allow sudo commands (true/false)"
+    }
+  }
+}

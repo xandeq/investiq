@@ -1,0 +1,8 @@
+{
+  "id": "shadcn-component",
+  "name": "Create shadcn/ui Component",
+  "description": "Create a properly structured shadcn/ui component with theme support",
+  "argumentHint": "Describe the component you want to create",
+  "allowedTools": ["Write", "Read"],
+  "model": null
+}

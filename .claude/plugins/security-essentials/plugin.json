@@ -1,0 +1,26 @@
+{
+  "id": "security-essentials",
+  "name": "Security Essentials",
+  "version": "1.0.0",
+  "category": "security",
+  "tags": ["security", "protection", "validation", "guardrails", "safety"],
+  "metadata": {
+    "author": "Claude Code Team",
+    "description": "Essential security guardrails including file protection, command validation, and change limiting",
+    "icon": "🔒",
+    "documentation": "https://docs.claude-code.com/plugins/security-essentials",
+    "keywords": ["security", "protection", "validation", "safety", "guardrails"],
+    "license": "MIT"
+  },
+  "provides": {
+    "hooks": [
+      "hooks/file-change-limiter.json",
+      "hooks/sensitive-file-protector.json",
+      "hooks/command-validator.json"
+    ],
+    "templates": [
+      "templates/security-best-practices.md",
+      "templates/security-audit.md"
+    ]
+  }
+}

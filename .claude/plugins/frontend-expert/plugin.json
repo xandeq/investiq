@@ -1,0 +1,30 @@
+{
+  "id": "frontend-expert",
+  "name": "Frontend Expert",
+  "version": "1.0.0",
+  "category": "frontend",
+  "tags": ["react", "vue", "angular", "typescript", "css", "performance", "accessibility"],
+  "metadata": {
+    "author": "Claude Code Team",
+    "description": "Expert guidance for modern frontend development, performance optimization, and best practices",
+    "icon": "🎨",
+    "documentation": "https://docs.claude-code.com/plugins/frontend-expert",
+    "keywords": ["react", "vue", "angular", "typescript", "webpack", "vite", "performance", "accessibility"],
+    "license": "MIT"
+  },
+  "enhances": ["node-developer", "testing-toolkit", "code-quality", "tailwind-expert"],
+  "provides": {
+    "templates": [
+      "templates/react-optimization.md",
+      "templates/vue-composition-api.md",
+      "templates/angular-best-practices.md",
+      "templates/performance-audit.md",
+      "templates/accessibility-review.md",
+      "templates/component-architecture.md",
+      "templates/state-management.md",
+      "templates/css-architecture.md"
+    ],
+    "agents": ["agents/frontend-architect.md"],
+    "workflows": ["workflows/frontend-setup.md", "workflows/component-library.md"]
+  }
+}

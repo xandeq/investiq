@@ -1,0 +1,18 @@
+{
+  "id": "sensitive-file-protector",
+  "name": "Sensitive File Protector",
+  "description": "Prevents modifications to sensitive files like .env, credentials, and private keys",
+  "event": "PreToolUse",
+  "matcher": "Edit|MultiEdit|Write|Bash",
+  "script": "sensitive-file-protector",
+  "config": {
+    "timeout": 500,
+    "priority": 100
+  },
+  "environment": {
+    "SENSITIVE_FILE_PATTERNS": {
+      "default": "",
+      "description": "Comma-separated list of additional regex patterns for sensitive files"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "id": "greenfield-guardian",
+  "name": "Greenfield Guardian",
+  "description": "Detects when starting a new project and suggests structured planning workflow",
+  "event": "UserPromptSubmit",
+  "matcher": ".*",
+  "script": "greenfield-guardian",
+  "config": {
+    "timeout": 1000,
+    "priority": 90
+  },
+  "environment": {
+    "GREENFIELD_AUTO_TRIGGER": {
+      "default": "true",
+      "description": "Automatically suggest plan-project workflow for new projects"
+    }
+  }
+}

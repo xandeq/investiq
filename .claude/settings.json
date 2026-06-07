@@ -1,0 +1,11 @@
+{
+  "version": "1.0",
+  "permissions": {
+    "Bash(*)": true,
+    "Read(*)": true,
+    "Write(*)": true,
+    "Edit(*)": true
+  },
+  "hooks": {},
+  "settings": {}
+}

@@ -1,0 +1,64 @@
+{
+  "id": "plan-project",
+  "name": "Plan Project from PRD",
+  "description": "Create comprehensive project plan from Product Requirements Document",
+  "requirements": [
+    "Product Requirements Document (PRD)",
+    "Technical constraints identified",
+    "Timeline requirements"
+  ],
+  "outcomes": [
+    "Technical design document",
+    "Architecture decisions",
+    "Task breakdown",
+    "Milestone schedule",
+    "Risk assessment"
+  ],
+  "steps": [
+    {
+      "id": "analyze-prd",
+      "name": "Analyze PRD",
+      "description": "Extract requirements from PRD",
+      "action": "template",
+      "parameters": {
+        "template": "from-prd"
+      }
+    },
+    {
+      "id": "architecture",
+      "name": "Design Architecture",
+      "description": "Create high-level architecture",
+      "action": "agent",
+      "parameters": {
+        "agent": "project-architect"
+      }
+    },
+    {
+      "id": "breakdown",
+      "name": "Create Task Breakdown",
+      "description": "Break down project into manageable tasks",
+      "action": "template",
+      "parameters": {
+        "template": "create-tasks"
+      }
+    },
+    {
+      "id": "timeline",
+      "name": "Estimate Timeline",
+      "description": "Create milestone schedule",
+      "action": "agent",
+      "parameters": {
+        "agent": "project-architect"
+      }
+    },
+    {
+      "id": "document",
+      "name": "Document Plan",
+      "description": "Create project documentation",
+      "action": "template",
+      "parameters": {
+        "template": "generate-docs"
+      }
+    }
+  ]
+}

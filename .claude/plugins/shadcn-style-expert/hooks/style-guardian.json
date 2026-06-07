@@ -1,0 +1,12 @@
+{
+  "id": "style-guardian",
+  "name": "Style Guardian",
+  "description": "Detects and warns about CSS anti-patterns and style guide violations",
+  "event": "PreToolUse",
+  "matcher": "(Write|Edit|MultiEdit)",
+  "script": "style-guardian",
+  "config": {
+    "timeout": 500,
+    "priority": 90
+  }
+}

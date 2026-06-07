@@ -1,0 +1,30 @@
+{
+  "id": "project-management",
+  "name": "Project Management",
+  "version": "1.0.0",
+  "category": "workflow",
+  "tags": ["project", "planning", "tasks", "documentation", "organization"],
+  "metadata": {
+    "author": "Claude Code Team",
+    "description": "Complete project management toolkit with task creation, planning workflows, and documentation generation",
+    "icon": "📋",
+    "documentation": "https://docs.claude-code.com/plugins/project-management",
+    "keywords": ["project", "tasks", "planning", "prd", "documentation"],
+    "license": "MIT"
+  },
+  "enhances": ["code-quality", "testing-toolkit"],
+  "provides": {
+    "templates": [
+      "templates/create-tasks.md",
+      "templates/from-prd.md",
+      "templates/generate-docs.md",
+      "templates/update-tasks.md"
+    ],
+    "agents": ["agents/project-architect.md"],
+    "workflows": [
+      "workflows/init-project.json",
+      "workflows/plan-project.json"
+    ],
+    "hooks": ["hooks/greenfield-guardian.json"]
+  }
+}

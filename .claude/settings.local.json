@@ -106,7 +106,28 @@
       "mcp__playwright__browser_type",
       "mcp__playwright__browser_close",
       "mcp__playwright__browser_wait_for",
-      "mcp__playwright__browser_console_messages"
+      "mcp__playwright__browser_console_messages",
+      "Bash(curl -s --max-time 8 \"https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados/ultimos/1?formato=json\")",
+      "Bash(curl -s --max-time 8 \"https://api.bcb.gov.br/dados/serie/bcdata.sgs.4189/dados/ultimos/1?formato=json\")",
+      "Bash(curl -s --max-time 8 \"https://api.bcb.gov.br/dados/serie/bcdata.sgs.4391/dados/ultimos/1?formato=json\")",
+      "Bash(dotnet build *)",
+      "Bash(git -C d:/claude-code/investiq log --oneline -10)",
+      "Bash(git -C d:/claude-code/investiq status --short)",
+      "Bash(git -C d:/claude-code/diax-crm log --oneline -8)",
+      "Bash(git -C d:/claude-code/diax-crm status --short)",
+      "Bash(git -C d:/claude-code/diax-crm branch -a)",
+      "Bash(git -C d:/claude-code/diax-crm log --all --oneline --grep=\"integrat\" -i)",
+      "Bash(git -C d:/claude-code/diax-crm show a04535e --name-only --format=\"%H %s\")",
+      "Bash(git -C d:/claude-code/diax-crm branch --contains a04535e)",
+      "Bash(git -C d:/claude-code/diax-crm log --oneline a04535e~5..a04535e)",
+      "Bash(git -C d:/claude-code/diax-crm log --oneline a04535e..HEAD)"
+    ],
+    "additionalDirectories": [
+      "d:\\claude-code\\diax-crm\\docs",
+      "d:\\claude-code\\diax-crm\\api-core\\src\\Diax.Api",
+      "d:\\claude-code\\diax-crm\\api-core\\src\\Diax.Application\\Integrations\\Dtos",
+      "d:\\claude-code\\diax-crm\\api-core\\src\\Diax.Application\\Integrations",
+      "d:\\claude-code\\diax-crm\\api-core\\src\\Diax.Application"
     ]
   }
 }
