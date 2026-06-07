@@ -12,10 +12,12 @@ import { RiskMetricsCard } from "./RiskMetricsCard";
 import { SectorAllocationChart } from "./SectorAllocationChart";
 import { DividendCalendarCard } from "./DividendCalendarCard";
 import { DividendRankingCard } from "./DividendRankingCard";
+import { DividendRadarTable } from "@/features/dividends/components/DividendRadarTable";
 import { DividendIncomeCard } from "./DividendIncomeCard";
 import { MonthlyReturnHeatmap } from "./MonthlyReturnHeatmap";
 import { GoalsProgressCard } from "./GoalsProgressCard";
 import { PositionMoversCard } from "./PositionMoversCard";
+import { CryptoAllocationCard } from "./CryptoAllocationCard";
 import { ShimmerSkeleton } from "@/components/ui/ShimmerSkeleton";
 import { OutcomesSection } from "@/features/outcome_tracker/components/OutcomesSection";
 import Link from "next/link";
@@ -137,17 +139,20 @@ export function DashboardContent() {
       {/* Row 2b: Position Movers — today's top gainers/losers from portfolio */}
       <PositionMoversCard />
 
-      {/* Row 3: Charts — side by side on lg, stacked on mobile */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      {/* Row 3: Charts — 1 col mobile, 2 col lg, 3 col xl when crypto is present */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
         {isLoading ? (
           <>
             <ShimmerSkeleton className="h-80 rounded-xl" />
             <ShimmerSkeleton className="h-80 rounded-xl" />
+            <ShimmerSkeleton className="h-80 rounded-xl xl:col-span-1 lg:col-span-2" />
           </>
         ) : data ? (
           <>
             <AllocationChart allocation={data.asset_allocation} />
             <PortfolioHistoryCard />
+            {/* CryptoAllocationCard renders null when no crypto positions */}
+            <CryptoAllocationCard />
           </>
         ) : null}
       </div>
@@ -163,6 +168,9 @@ export function DashboardContent() {
 
       {/* Row 3e: Dividend Ranking */}
       <DividendRankingCard />
+
+      {/* Row 3e2: Dividend Radar — ranked by buy_score, sorted DESC */}
+      <DividendRadarTable />
 
       {/* Row 3f: Dividend Income History */}
       <DividendIncomeCard />

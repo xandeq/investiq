@@ -36,29 +36,33 @@ interface StatChipProps {
 }
 
 function StatChip({ label, value, icon, color = "text-zinc-700", index, animation }: StatChipProps) {
-  const variants = animation === "pulse" ? {
-    initial: { opacity: 0, scale: 0.95 },
-    animate: {
-      opacity: [0.7, 1, 0.7],
-      scale: 1,
-      transition: {
-        duration: 3,
-        repeat: Infinity,
-        ease: "easeInOut",
-        delay: index * 0.15,
-      },
-    },
-  } : {
-    initial: { opacity: 0, y: 6 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.28, ease: [0.16, 1, 0.3, 1], delay: index * 0.05 },
-  };
+  if (animation === "pulse") {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: [0.7, 1, 0.7], scale: 1 }}
+        transition={{
+          duration: 3,
+          repeat: Infinity,
+          ease: "easeInOut" as const,
+          delay: index * 0.15,
+        }}
+        className="flex items-center gap-3 rounded-[1.25rem] border border-zinc-200/60 bg-white/70 backdrop-blur-sm px-4 py-3 hover:border-zinc-300 transition-colors"
+      >
+        <span className="shrink-0 text-zinc-400">{icon}</span>
+        <div className="flex-1">
+          <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400">{label}</p>
+          <p className={`text-base font-bold tabular-nums ${color}`}>{value}</p>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
-      initial={variants.initial}
-      animate={variants.animate}
-      transition={variants.transition}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1], delay: index * 0.05 }}
       className="flex items-center gap-3 rounded-[1.25rem] border border-zinc-200/60 bg-white/70 backdrop-blur-sm px-4 py-3 hover:border-zinc-300 transition-colors"
     >
       <span className="shrink-0 text-zinc-400">{icon}</span>

@@ -29,3 +29,17 @@ export interface DashboardSummary {
   portfolio_timeseries: TimeseriesPoint[];
   recent_transactions: RecentTransaction[];
 }
+
+export interface CryptoHolding {
+  ticker: string;
+  value: string;
+  pct_of_crypto: string;
+  pct_of_portfolio: string;
+}
+
+export interface CryptoAllocation {
+  portfolio_pct: string;
+  total_value: string;
+  top_holdings: CryptoHolding[];
+  data_available: boolean;
+}

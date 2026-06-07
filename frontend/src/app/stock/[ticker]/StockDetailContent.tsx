@@ -8,6 +8,7 @@ import { DividendSection } from "@/features/analysis/components/DividendSection"
 import { SectorSection } from "@/features/analysis/components/SectorSection";
 import { NarrativeSection } from "@/features/analysis/components/NarrativeSection";
 import { PremiumGate } from "@/features/ai/components/PremiumGate";
+import { SignalEngineCard } from "@/features/analysis/components/SignalEngineCard";
 
 interface Props {
   ticker: string;
@@ -86,6 +87,9 @@ export function StockDetailContent({ ticker }: Props) {
           Iniciando análises...
         </p>
       )}
+
+      {/* Signal Engine Card — above analysis sections, no PremiumGate (renders null on error) */}
+      <SignalEngineCard ticker={ticker} />
 
       {/* Analysis sections wrapped in PremiumGate */}
       <PremiumGate>
